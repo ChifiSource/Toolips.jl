@@ -13,8 +13,12 @@ create_serverdeps(name::String)
 - TODO Logging
 ==#
 using Sockets, HTTP
-include("templates/components.jl")
-export Route, Toolip, HTTP, Page
+include("interface/components.jl")
+# Server
+export Route, ServerTemplate, stop!
+# Components
+export Page, html, html_file, getargs, fn
+
 function create_serverdeps(name::String)
     Pkg.generate(name)
     src = name * "/src"
@@ -29,12 +33,15 @@ function create_serverdeps(name::String)
         # Welcome to your new Toolips server!\n
         using Toolips\n\n
         # TODO Parse CLI's/Env vars\n
+        PUBLIC = "../public" # (This cannot be accessed via routes.)\n
         IP = "127.0.0.1"\n
         PORT = 8000\n
         function main()\n
             routes = make_routes()\n
             server_template = ServerTemplate(IP, PORT, routes)\n
-            server = server_template.start()\n
+            # Add the suicide route to the server template.\n
+            suicidePage = Route("/suicide", fn(suicide_route))\n
+            global TLSERVER = server_template.start()\n
         end\n\n
         # Routes\n
         function make_roots()\n
@@ -47,6 +54,9 @@ function create_serverdeps(name::String)
             push!(routes, homeroot)\n
             push!(four04route) = Route("404", four04)\n
             routes\n
+        end
+        function suicide_route()
+            stop!(TLSERVER)
         end
         """)
     end

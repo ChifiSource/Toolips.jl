@@ -1,53 +1,88 @@
-using Sockets
-using HTTP
-abstract type RoseBudServer end
-mutable struct Route <: Component
-    req_type::String
-    req_dir::String
-    components::Page
-    response::Function
-    function Route(type::String, dir::String, components::Page ...)
-        response() = [render(component) for component in components]
-        new(req_type, dir, componentes, response)
+mutable struct Route
+    path::String
+    page::Any
+    function Route(path::String = "", page::Any = "")
+        new(path, page)
     end
 end
-macro route(dir::String, components::Page) Route(Page.type, dir, components) end
 
-mutable struct RoseBud <: RoseBudServer
+mutable struct ServerTemplate
     ip::String
-    port::Int64
-    router::HTTP.Router
-    routes::Vector{Route}
-    run::Function
+    port::Integer
+    routes::AbstractVector
+    remove::Function
     add::Function
-    function RoseBud()
-        router = HTTP.Router()
-        routes = []
+    start::Function
+    function ServerTemplate(ip::String, port::Int64,
+        routes::AbstractVector = [])
+        add, remove, start = funcdefs(routes, ip, port)
+        new(ip, port, routes, remove, add, start)
+    end
+
+    function ServerTemplate()
+        port = 8001
         ip = "127.0.0.1"
-        port = 8000
-        run() = _run(ip, port, routes, router)
-        add(route::Route) = _add(route)
-        new(ip, port, run, add)
+        ServerTemplate(ip, port)
     end
-    function RoseBud(ip::String, port::Int64)
-        router = HTTP.Router()
-        routes = []
-        run() = _run(ip, port, routes, router)
-        add(route::Route) = _add(route, routes)
-        new(ip, port, run, add)
-    end
-
 end
 
-function _run(ip::String, port::Int64, routes::Vector{Route}, ROUTER::HTTP.Router)
-    for route in routes
-        HTTP.@register(ROUTER, route.req_type, route.req_dir, route.response())
-    end
-    HTTP.serve(ROUTER, ip, port)
+function funcdefs(routes::AbstractVector, ip::String, port::Integer)
+    add(r::Route) = push!(routes, r)
+    remove(i::Int64) = deleteat!(routes, i)
+    start() = _start(routes, ip, port)
+    return(add, remove, start)
 end
 
-function _add(route::Route, routes::Vector{Route})
-    push!(routes, route)
+function _start(routes::AbstractVector, ip::String, port::Integer)
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    # TODO Logging
+    println("Starting server on port ", string(port))
+    routefunc = generate_router(routes, server)
+    @async HTTP.listen(routefunc, ip, port; server = server)
+    println("Successfully started Toolips server on port ", port, "\n")
+    println("You may visit it now at http://" * string(ip) * ":" * string(port))
+    return(server)
 end
-# response example: (anonymous function)
-# req->HTTP.Response(200, "Bye!")
+
+function _start(routes::AbstractVector, ip::String, port::Integer)
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    println("Starting server on port ", string(port))
+    routefunc = generate_router(routes, server)
+    @async HTTP.listen(routefunc, ip, port; server = server)
+    println("Successfully started server on port ", port, "\n")
+    println("You may visit it now at http://" * string(ip) * ":" * string(port))
+    return(server)
+end
+function generate_router(routes::AbstractVector, server)
+    route_paths = Dict([route.path => route.page for route in routes])
+    # CORE routing server lies here.
+    # - Router itself is merely a function that gets called with the http
+    #  stream. This trickles down the line all the way to the interface methods.
+    routeserver = function serve(http)
+    HTTP.setheader(http, "Content-Type" => "text/html")
+    fullpath = http.message.target
+    # Checks for argument data, because this is not in the route.
+    if contains(http.message.target, '?')
+         fullpath = split(http.message.target, '?')[1]
+    end
+
+     if fullpath in keys(route_paths)
+         if typeof(route_paths[fullpath]) != Page
+             write(http, route_paths[fullpath](http))
+         else
+             write(http, route_paths[fullpath].f(http))
+         end
+     else
+         if typeof(route_paths["404"]) != Page
+             write(http, route_paths["404"](http))
+         else
+            write(http, route_paths["404"].f(http))
+        end
+     end
+
+ end # serve()
+    return(routeserver)
+end
+function stop!(x::Any)
+    close(x)
+end

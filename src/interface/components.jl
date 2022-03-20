@@ -14,25 +14,25 @@ mutable struct Page
 end
 
 function getargs(http::Any)
-
+    split(http.message.target, '?')[2]
 end
 
 function html(hypertxt::String)
     return(http -> hypertxt)
 end
 
-function fn(f::Function)
-    m = first(methods(f))
-    if m.nargs > 1 | m.nargs < 0
-        throw(ArgumentError("Expected either 1 or 0 arguments."))
-    elseif m.nargs == 1
-        return(f)
-    else
-        return(http -> f())
-    end
+function html_file(hypertxt::String)
+
 end
 
-function generate(p::Page, args::String)
-    p.f(args)
+function fn(f::Function)
+    m = first(methods(f))
+    if m.nargs > 2 | m.nargs < 1
+        throw(ArgumentError("Expected either 1 or 2 arguments."))
+    elseif m.nargs == 2
+        http -> f(http)
+    else
+        http -> f()
+    end
 end
 include("../server/serve.jl")

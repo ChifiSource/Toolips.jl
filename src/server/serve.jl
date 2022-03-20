@@ -56,6 +56,8 @@ end
 function generate_router(routes::AbstractVector, server)
     route_paths = Dict([route.path => route.page for route in routes])
     # CORE routing server lies here.
+    # - Router itself is merely a function that gets called with the http
+    #  stream. This trickles down the line all the way to the interface methods.
     routeserver = function serve(http)
     HTTP.setheader(http, "Content-Type" => "text/html")
     fullpath = http.message.target
@@ -65,9 +67,17 @@ function generate_router(routes::AbstractVector, server)
     end
 
      if fullpath in keys(route_paths)
-        write(http, route_paths[fullpath].f(http))
+         if typeof(route_paths[fullpath]) != Page
+             write(http, route_paths[fullpath](http))
+         else
+             write(http, route_paths[fullpath].f(http))
+         end
      else
-         write(http, route_paths["404"].f(http))
+         if typeof(route_paths["404"]) != Page
+             write(http, route_paths["404"](http))
+         else
+            write(http, route_paths["404"].f(http))
+        end
      end
 
  end # serve()

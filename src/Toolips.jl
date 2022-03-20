@@ -31,7 +31,7 @@ function create_serverdeps(name::String)
     mkdir(public)
     mkdir(logs)
     touch(name * "/start.sh")
-    rm(src * "$name.jl")
+    rm(src * "/$name.jl")
     cp("interface/default_main.jl", src)
     mv("src/default_main.jl", "src/$name.jl")
 end

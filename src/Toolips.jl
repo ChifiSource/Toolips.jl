@@ -15,7 +15,7 @@ create_serverdeps(name::String)
 - TODO Front-end call-back tie-ins. Not sure how this is going to be implemented
 but I am sure it will not be too bad! (That's a joke.)
 ==#
-using Sockets, HTTP
+using Sockets, HTTP, Pkg
 include("interface/components.jl")
 # Server
 export Route, ServerTemplate, stop!

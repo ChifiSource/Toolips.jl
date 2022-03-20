@@ -1,7 +1,7 @@
-name = "IpyJL"
+name = "Toolips"
 uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
 authors = ["emmac "]
-version = "0.1.0"
+version = "0.0.1"
 [deps]
 HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
 Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"

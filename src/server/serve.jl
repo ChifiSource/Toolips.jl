@@ -55,19 +55,19 @@ function _start(routes::AbstractVector, ip::String, port::Integer)
 end
 function generate_router(routes::AbstractVector, server)
     route_paths = Dict([route.path => route.page for route in routes])
-
+    # CORE routing server lies here.
     routeserver = function serve(http)
-     HTTP.setheader(http, "Content-Type" => "text/html")
-        fullpath = http.message.target
-        # Checks for argument data, because this is not in the route.
+    HTTP.setheader(http, "Content-Type" => "text/html")
+    fullpath = http.message.target
+    # Checks for argument data, because this is not in the route.
     if contains(http.message.target, '?')
-         fullpath = split(http.message.target, '?')
+         fullpath = split(http.message.target, '?')[1]
     end
 
      if fullpath in keys(route_paths)
-        write(http, route_paths[fullpath])
+        write(http, route_paths[fullpath].f(http))
      else
-         write(http, route_paths["404"])
+         write(http, route_paths["404"].f(http))
      end
 
  end # serve()

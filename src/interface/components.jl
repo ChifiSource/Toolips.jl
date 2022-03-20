@@ -13,16 +13,23 @@ mutable struct Page
     end
 end
 
-function getargs()
+function getargs(http::Any)
 
 end
 
 function html(hypertxt::String)
-    return(() -> hypertxt)
+    return(http -> hypertxt)
 end
 
 function fn(f::Function)
-    return(f)
+    m = first(methods(f))
+    if m.nargs > 1 | m.nargs < 0
+        throw(ArgumentError("Expected either 1 or 0 arguments."))
+    elseif m.nargs == 1
+        return(f)
+    else
+        return(http -> f())
+    end
 end
 
 function generate(p::Page, args::String)

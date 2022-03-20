@@ -24,7 +24,7 @@ export Page, html, html_file, getargs, fn
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
-    dir = readdir() * "/"
+    dir = pwd() * "/"
     src = dir * name * "/src"
     public = dir * name * "/public"
     logs = dir * name * "/logs"

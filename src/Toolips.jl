@@ -33,7 +33,7 @@ function create_serverdeps(name::String)
     touch(name * "/start.sh")
     rm(src * "/$name.jl")
     cp("interface/default_main.jl", src)
-    mv("src/default_main.jl", "src/$name.jl")
+    mv("src/default_main.jl", "src/$name.jl", force = true)
 end
 function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)

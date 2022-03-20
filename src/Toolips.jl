@@ -11,6 +11,9 @@ authentication.
 - TODO Parsing envvariables and CLI from main in the generated file (this file,
 create_serverdeps(name::String)
 - TODO Logging
+- TODO Production vs dev environments
+- TODO Front-end call-back tie-ins. Not sure how this is going to be implemented
+but I am sure it will not be too bad! (That's a joke.)
 ==#
 using Sockets, HTTP
 include("interface/components.jl")
@@ -31,6 +34,9 @@ function create_serverdeps(name::String)
     open(src * "main.jl", "w") do f
         write(f, """
         # Welcome to your new Toolips server!\n
+        # In these early versions of Toolips, prior to registration, we could
+        # are not using Pkgspec, so you will need to source the environment on
+        # your own.
         using Toolips\n\n
         # TODO Parse CLI's/Env vars\n
         PUBLIC = "../public" # (This cannot be accessed via routes.)\n

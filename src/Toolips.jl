@@ -24,49 +24,16 @@ export Page, html, html_file, getargs, fn
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
-    src = name * "/src"
-    public = name * "/public"
-    logs = name * "/logs"
+    dir = readdir() * "/"
+    src = dir * name * "/src"
+    public = dir * name * "/public"
+    logs = dir * name * "/logs"
     mkdir(public)
     mkdir(logs)
     touch(name * "/start.sh")
-    # TODO Parse CLI's/Env vars
-    open(src * "main.jl", "w") do f
-        write(f, """
-        # Welcome to your new Toolips server!\n
-        # In these early versions of Toolips, prior to registration, we could
-        # are not using Pkgspec, so you will need to source the environment on
-        # your own.
-        using Toolips\n\n
-        # TODO Parse CLI's/Env vars\n
-        PUBLIC = "../public" # (This cannot be accessed via routes.)\n
-        IP = "127.0.0.1"\n
-        PORT = 8000\n
-        function main()\n
-            routes = make_routes()\n
-            server_template = ServerTemplate(IP, PORT, routes)\n
-            # Add the suicide route to the server template.\n
-            suicidePage = Route("/suicide", fn(suicide_route))\n
-            global TLSERVER = server_template.start()\n
-        end\n\n
-        # Routes\n
-        function make_roots()\n
-            # Pages\n
-            four04 = html("<h1>404, Page not found!</h1>")\n
-            index = html_file("../public/index.html")\n
-            routes = []\n
-            homeroute = Route("/", index)\n
-            four04route = Route("404", four04)\n
-            push!(routes, homeroot)\n
-            push!(four04route) = Route("404", four04)\n
-            routes\n
-        end
-        function suicide_route()
-            stop!(TLSERVER)
-        end
-        """)
-    end
-
+    rm(src * "/main.jl")
+    cp("interface/default_main.jl", src)
+    mv("src/default_main.jl", "src/main.jl")
 end
 function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)

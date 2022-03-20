@@ -1,5 +1,5 @@
 name = "Toolips"
-uuid = "f2c63c6a-782d-45ad-850e-588fc6f0abf6"
+uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
 authors = ["emmac "]
 version = "0.0.1"
 [deps]

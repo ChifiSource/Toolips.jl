@@ -35,17 +35,6 @@ end
 
 function _start(routes::AbstractVector, ip::String, port::Integer)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    # TODO Logging
-    println("Starting server on port ", string(port))
-    routefunc = generate_router(routes, server)
-    @async HTTP.listen(routefunc, ip, port; server = server)
-    println("Successfully started Toolips server on port ", port, "\n")
-    println("You may visit it now at http://" * string(ip) * ":" * string(port))
-    return(server)
-end
-
-function _start(routes::AbstractVector, ip::String, port::Integer)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     println("Starting server on port ", string(port))
     routefunc = generate_router(routes, server)
     @async HTTP.listen(routefunc, ip, port; server = server)

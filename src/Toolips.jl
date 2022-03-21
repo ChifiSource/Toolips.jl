@@ -13,10 +13,11 @@ create_serverdeps(name::String)
 - TODO Logging
 - TODO Production vs dev environments
 - TODO Front-end call-back tie-ins. Not sure how this is going to be implemented
+- TODO Add proper bootstrap for running the server.
 but I am sure it will not be too bad! (That's a joke.)
 ==#
 using Sockets, HTTP, Pkg
-include("interface/components.jl")
+include("interface/servables.jl")
 # Server
 export Route, ServerTemplate, stop!
 # Components
@@ -35,57 +36,51 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, """
-# Welcome to your new Toolips server!\n
+# Welcome to your new Toolips server!
 using Main.Toolips\n
+PUBLIC = "../public"
+IP = "127.0.0.1"
+PORT = 8000
+function main()
+        # Essentials
+    routes = make_routes()
+    server_template = ServerTemplate(IP, PORT, routes)
+        # Fun stuff (examples !, you should probably delete these.)
+    delayed = Route("/delay", fn(delay))
+    suicide = Route("/suicide", fn(suicide_fn))
+    arguments = Route("/args", fn(args))
+    server_template.add(delayed)
+    server_template.add(suicide)
+    server_template.add(arguments)
+    global TLSERVER = server_template.start()
+    return(TLSERVER)
+end
 \n
-PUBLIC = "../public"\n
-IP = "127.0.0.1"\n
-PORT = 8000\n
-\n
-function main()\n
-        # Essentials\n
-    routes = make_routes()\n
-    server_template = ServerTemplate(IP, PORT, routes)\n
-        # Fun stuff (examples !, you should probably delete these.)\n
-    delayed = Route("/delay", fn(delay))\n
-    suicide = Route("/suicide", fn(suicide_fn))\n
-    arguments = Route("/args", fn(args))\n
-    server_template.add(delayed)\n
-    server_template.add(suicide)\n
-    server_template.add(arguments)\n
-    global TLSERVER = server_template.start()\n
-    return(TLSERVER)\n
-end\n
-\n
-# Routes\n
-function make_routes()\n
-        # Pages\n
-    four04 = html("<h1>404, Page not found!</h1>")\n
+# Routes
+function make_routes()
+        # Pages
+    four04 = html("<h1>404, Page not found!</h1>")
     index = html("<h1>Hello world!</h1></br><p>Not so exciting, <b>is it?</b>
-     well, it is a work in progress :p.</p>")\n
-        # Routes\n
-    routes = []\n
-    homeroute = Route("/", index)\n
-    four04route = Route("404", four04)\n
-    push!(routes, homeroute)\n
-    push!(routes, four04route)\n
-    routes\n
-end\n
+     well, it is a work in progress :p.</p>")
+        # Routes
+    routes = []
+    homeroute = Route("/", index)
+    four04route = Route("404", four04)
+    push!(routes, homeroute)
+    push!(routes, four04route)
+    routes
+end
 \n
-# Routes can either route to a function or a page. Using the html() method,\n
-#   we have avoided making a page. This can be done for anything that is a
-func.\n
-#   This includes fn, as we can see when these methods are referenced in
- main().\n
-suicide_fn = http -> stop!(TLSERVER)\n
-args = http -> string(getargs(http))\n
-function delay(http::Any)\n
-        for character in "Hello World!"\n
-            write(http, string(character))\n
-            sleep(1)\n
-        end\n
-end\n
+suicide_fn = http -> stop!(TLSERVER)
 
+args = http -> string(getargs(http))
+
+function delay(http::Any)
+        for character in "Hello World!"
+            write(http, string(character))
+            sleep(1)
+        end
+end\n
         """)
     end
 end

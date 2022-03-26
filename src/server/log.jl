@@ -4,13 +4,13 @@ mutable struct Logger
     out::String
     levels::Dict
     log::Function
-    function Logger(levels::Dict; out = "logs/log.txt")
+    function Logger(levels::Dict; out = pwd() * "logs/log.txt")
         log(level::Int64, message::String) = _log(level, message, levels, out)
         log(message::String) = _log(1, message, levels, out)
         log(http::HTTP.Stream, message::String) = _log(http, message)
         new(out, levels, log)
     end
-    function Logger(; out = "logs/log.txt")
+    function Logger(; out = pwd() * "logs/log.txt")
         levels = Dict(1 => Crayon(foreground = :light_cyan),
         2 => Crayon(foreground = :light_yellow),
         3 => Crayon(foreground = :yellow, bold = true),
@@ -22,15 +22,15 @@ end
 function _log(level::Int64, message::String, levels::Dict, out::String)
     time = now()
     if level > 1
-        open(out) do o
+        open(out, "w") do o
             try
-                write(o, string("[", time, "]: ", message))
+                write(o, "[" * string(time) * "]: $message")
             catch
                 try
                     touch(out)
-                    write(o, string("[", time, "]: ", message))
+                    write(o, "[" * string(time) * "]: $message")
                 catch
-                    throw(ArgumentError("Cannot acces logs."))
+                    throw(ArgumentError("Cannot access logs."))
                 end
             end
         end

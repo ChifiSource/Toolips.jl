@@ -26,5 +26,5 @@ function _log(level::Int64, message::String, levels::Dict, out::String)
         end
     end
     println(Crayon(foreground = :light_gray), "[", levels[level], string(time),
-     "]: ", )
+     Crayon(foreground = :light_gray), "]: ", )
 end

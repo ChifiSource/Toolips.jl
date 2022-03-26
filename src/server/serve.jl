@@ -1,3 +1,4 @@
+include("log.jl")
 mutable struct Route
     path::String
     page::Any
@@ -10,39 +11,43 @@ mutable struct ServerTemplate
     ip::String
     port::Integer
     routes::AbstractVector
+    logger::Logger
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(ip::String, port::Int64,
+    function ServerTemplate(ip::String, port::Int64, logger::Logger,
         routes::AbstractVector = [])
-        add, remove, start = funcdefs(routes, ip, port)
-        new(ip, port, routes, remove, add, start)
+        add, remove, start = funcdefs(routes, ip, port, logger)
+        new(ip, port, routes, logger, remove, add, start)
     end
 
-    function ServerTemplate()
+    function ServerTemplate(logger = Logger())
         port = 8001
         ip = "127.0.0.1"
-        ServerTemplate(ip, port)
+        ServerTemplate(ip, port, logger)
     end
 end
 
-function funcdefs(routes::AbstractVector, ip::String, port::Integer)
+function funcdefs(routes::AbstractVector, ip::String, port::Integer,
+    logger::Logger)
     add(r::Route) = push!(routes, r)
     remove(i::Int64) = deleteat!(routes, i)
-    start() = _start(routes, ip, port)
+    start() = _start(routes, ip, port, logger)
     return(add, remove, start)
 end
 
-function _start(routes::AbstractVector, ip::String, port::Integer)
+function _start(routes::AbstractVector, ip::String, port::Integer,
+    logger::Logger)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    println("Starting server on port ", string(port))
-    routefunc = generate_router(routes, server)
+    logger.log(1, "Toolips Server starting on port " * string(port))
+    routefunc = generate_router(routes, server, logger)
     @async HTTP.listen(routefunc, ip, port; server = server)
-    println("Successfully started server on port ", port, "\n")
-    println("You may visit it now at http://" * string(ip) * ":" * string(port))
+    logger.log(2, "Successfully started server on port " * string(port))
+    logger.log(1,
+    "You may visit it now at http://" * string(ip) * ":" * string(port))
     return(server)
 end
-function generate_router(routes::AbstractVector, server)
+function generate_router(routes::AbstractVector, server, logger::Logger)
     route_paths = Dict([route.path => route.page for route in routes])
     # CORE routing server lies here.
     # - Router itself is merely a function that gets called with the http

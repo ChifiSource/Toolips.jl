@@ -13,7 +13,7 @@ mutable struct Logger
     function Logger(; out = "log/log.txt")
         levels = Dict(1 => Crayon(foreground = :light_cyan),
         2 => Crayon(foreground = :light_yellow),
-        3 => Crayon(foreground = :yellow, , bold = true),
+        3 => Crayon(foreground = :yellow, bold = true),
         4 => Crayon(foreground = :red, bold = true))
         Logger(levels; out = out)
     end

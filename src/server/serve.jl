@@ -15,16 +15,16 @@ mutable struct ServerTemplate
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(ip::String, port::Int64, logger::Logger,
-        routes::AbstractVector = [])
+    function ServerTemplate(ip::String, port::Int64,
+        routes::AbstractVector = [], ; logger::Logger = Logger())
         add, remove, start = funcdefs(routes, ip, port, logger)
         new(ip, port, routes, logger, remove, add, start)
     end
 
-    function ServerTemplate(logger = Logger())
+    function ServerTemplate(logger::Logger = Logger())
         port = 8001
         ip = "127.0.0.1"
-        ServerTemplate(ip, port, logger)
+        ServerTemplate(ip, port, logger = logger)
     end
 end
 

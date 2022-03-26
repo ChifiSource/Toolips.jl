@@ -6,20 +6,19 @@ intentions for this design, and dramatic changes. There are numerous features
 coming to spruce up this code base to better facilitate things like
 authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
+=========================
 - TODO Secret keys.
 - TODO Authentication.
 - TODO Parsing envvariables and CLI from main in the generated file (this file,
 create_serverdeps(name::String)
-- TODO Logging
 - TODO Production vs dev environments
 - TODO Front-end call-back tie-ins. Not sure how this is going to be implemented
-- TODO Add proper bootstrap for running the server.
-but I am sure it will not be too bad! (That's a joke.)
 ==#
+using Crayons
 using Sockets, HTTP, Pkg
 include("interface/servables.jl")
 # Server
-export Route, ServerTemplate, stop!
+export Route, ServerTemplate, Logger, stop!
 # Components
 export Page, html, html_file, getargs, fn
 
@@ -32,6 +31,7 @@ function create_serverdeps(name::String)
     mkdir(public)
     mkdir(logs)
     touch(name * "/start.sh")
+    touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
@@ -81,6 +81,7 @@ function delay(http::Any)
             sleep(1)
         end
 end\n
+main()
         """)
     end
 end
@@ -88,7 +89,7 @@ function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)
 end
 
-export new_webapp, new_webapi
+export new_webapp
 # --
 
 end

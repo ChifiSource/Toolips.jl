@@ -66,14 +66,38 @@ mutable struct Button <: FormComponent
     end
 end
 
+mutable struct TextArea <: FormComponent
+    name::String
+    text::String
+    maxlength::Int64
+    rows::Int64
+    cols::Int64
+    f::Function
+    html::String
+    onAction::Function
+    function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
+        cols::Int64 = 50, text = "", onAction = http -> "")
+        html = """
+        <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
+        $text
+        </textarea>"""
+        f(http) = """<form action="$action">
+        <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
+        $text
+        </textarea>
+        </form>"""
+        new(name, text, maxlength, rows, cols, f, html, action)
+    end
+end
+
 mutable struct Form <: FormComponent
     action::String
     f::Function
     html::String
     components::AbstractArray
     OnAction::Function
-    function CompoundForm(components...; OnAction::Function = http -> "")
-        html = """<form action="$action" method="post">"""
+    function Form(components...; onAction::Any = http -> "")
+        html = """<form action="$action" method = "GET">"""
         for comp in components
             html = html * comp.html
         end
@@ -82,11 +106,6 @@ mutable struct Form <: FormComponent
         new(action, f, html, components, OnAction)
     end
 end
-
-
-
-
-
 #==
 Page
 ==#

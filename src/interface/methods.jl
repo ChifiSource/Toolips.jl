@@ -4,6 +4,10 @@ function getargs(http::Any)
     split(http.message.target, '?')[2]
 end
 
+function getarg(http::Any, s::Symbol)
+
+end
+
 function getpost(http::Any)
     http.message.body
 end

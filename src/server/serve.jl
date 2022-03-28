@@ -1,9 +1,15 @@
 include("log.jl")
-mutable struct Route
+mutable struct Route{T}
     path::String
-    page::Any
-    function Route(path::String = "", page::Any = "")
-        new(path, page)
+    page::T
+    function Route(path::String = "", page::Function = http -> "")
+        new{Function}(path, page)
+    end
+    function Route(path::String, page::Page)
+        new{Page}(path, page)
+    end
+    function Route(path::String, page::FormComponent)
+        new{FormComponent)}(path, page)
     end
 end
 
@@ -30,10 +36,18 @@ end
 
 function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger)
-    add(r::Route) = push!(routes, r)
+    add(r::Route{Function}) = push!(routes, r)
+    add(r::Route{Page}) = page_route(routes, r)
+    add(r::Route{Button}) = begin push!(routes, r);
+        push!(routes, Route(r.page.action, fn(r.page.onAction)))
+    end
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, logger)
     return(add, remove, start)
+end
+
+function page_route(routes::AbstractVector, r::Route{Page})
+
 end
 
 function _start(routes::AbstractVector, ip::String, port::Integer,
@@ -61,7 +75,7 @@ function generate_router(routes::AbstractVector, server, logger::Logger)
     end
 
      if fullpath in keys(route_paths)
-         if typeof(route_paths[fullpath]) != Page
+         if typeof(route_paths[fullpath]) == Function
              write(http, route_paths[fullpath](http))
          else
              write(http, route_paths[fullpath].f(http))

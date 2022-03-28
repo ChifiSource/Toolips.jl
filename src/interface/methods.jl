@@ -11,3 +11,4 @@ function write_file(URI::String, http::HTTP.Stream)
 end
 +(f::Function, f2::Function) = Page([f, f2])
 +(p::Page, f::Function) = p.add(f)
++(fc::FormComponent, fc2::FormComponent) = Form(fc, fc2)

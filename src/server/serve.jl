@@ -39,8 +39,10 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Page}) = begin push!(routes, r)
         for comp in r.page.components
-            if comp <: FormComponent
-                push!(routes, Route(r.page.action, fn(r.page.OnAction)))
+            if typeof(comp) != Function
+                if typeof(comp) <: FormComponent
+                    push!(routes, Route(r.page.action, fn(r.page.OnAction)))
+                end
             end
         end
     end
@@ -50,10 +52,6 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, logger)
     return(add, remove, start)
-end
-
-function page_route(routes::AbstractVector, r::Route{Page})
-
 end
 
 function _start(routes::AbstractVector, ip::String, port::Integer,

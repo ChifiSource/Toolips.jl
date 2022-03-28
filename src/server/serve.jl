@@ -9,7 +9,7 @@ mutable struct Route{T}
         new{Page}(path, page)
     end
     function Route(path::String, page::FormComponent)
-        new{FormComponent)}(path, page)
+        new{FormComponent}(path, page)
     end
 end
 

@@ -41,7 +41,7 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
         for comp in r.page.components
             if typeof(comp) != Function
                 if typeof(comp) <: FormComponent
-                    push!(routes, Route(comp.action, fn(comp.OnAction)))
+                    push!(routes, Route(comp.action, fn(comp.onAction)))
                 end
             end
         end

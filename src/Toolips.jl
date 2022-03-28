@@ -22,7 +22,8 @@ export Route, ServerTemplate, Logger, stop!
 # Components
 export Page
 export html, html_file, getargs, fn
-export Button, Form
+export Button, Form, TextArea
+export getargs, getarg, getpost, write_file
 
 function create_serverdeps(name::String)
     Pkg.generate(name)

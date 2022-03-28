@@ -38,7 +38,7 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger)
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Page}) = page_route(routes, r)
-    add(r::Route{TButton}) = begin push!(routes, r);
+    add(r::Route{Button}) = begin push!(routes, r);
         push!(routes, Route(r.page.action, fn(r.page.onClick)))
     end
     remove(i::Int64) = deleteat!(routes, i)

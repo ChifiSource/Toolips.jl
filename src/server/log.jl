@@ -10,7 +10,10 @@ mutable struct Logger
         log(http::HTTP.Stream, message::String) = _log(http, message)
         new(out, levels, log)
     end
-    function Logger(; out = pwd() * "logs/log.txt")
+    function Logger(; out = pwd() * "/logs/log.txt")
+        if contains(out, "src")
+            out = pwd() * "../logs/log.txt"
+        end
         levels = Dict(1 => Crayon(foreground = :light_cyan),
         2 => Crayon(foreground = :light_yellow),
         3 => Crayon(foreground = :yellow, bold = true),

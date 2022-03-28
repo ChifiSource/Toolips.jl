@@ -3,23 +3,33 @@ Servables!
 ==#
 
 #==
- HTML
+ text/html
     Components
 ==#
+
 function html(hypertxt::String)
     return(http -> hypertxt)
 end
-mutable struct Button
 
-end
-function html_file(hypertxt::String)
-
+function html_file(URI::String)
+    return(http -> write_file(URI, http))
 end
 
 function css(css::String)
-    return(http -> "<style>" * css * "<style>")
+    return(http -> "<style>" * css * "</style>")
 end
 
+function css_file(URI::String)
+    http -> """<link rel="stylesheet" href="$URI">"""
+end
+
+function js(js::String)
+    return(http -> "<script>" * js * "</script>")
+end
+
+function js_file(URI::String)
+    http -> """<script src="$URI"></script>"""
+end
 #==
 Functions
 ==#
@@ -40,14 +50,14 @@ end
         ==#
 abstract type FormComponent end
 
-mutable struct TButton <: FormComponent
+mutable struct Button <: FormComponent
     name::String
     action::String
     label::String
     f::Function
     onClick::Function
     html::String
-    function TButton(name::String; onClick::Function = http -> "",
+    function Button(name::String; onClick::Function = http -> "",
          label = "Button")
         action = "/connect/$name"
         html = """

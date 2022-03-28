@@ -1,3 +1,10 @@
+#==
+Servables!
+==#
+
+#==
+Page
+==#
 mutable struct Page
     f::Function
     components::AbstractVector
@@ -8,15 +15,48 @@ mutable struct Page
     function Page(components, title = "Toolips Webapp"; icon = "/")
         f(http) = generate_page(http, title, components, icon)
         add(x::Function) = push!(components, x)
+        add(x::FormComponent) = push!(components, x)
         new(f, components, add, title, icon)
     end
 end
-function generate_head(title, icon)
 
-end
 function generate_page(http, title, components, icon = "/")
     html = "<head>" * "<title>$title</title>"
 end
+
+function generate_head(title, icon)
+
+end
+
+
+    #==
+    Interactive
+        Components
+        ==#
+abstract type FormComponent end
+
+mutable struct Button <: FormComponent
+    name::String
+    action::String
+    label::String
+    f::Function
+    onClick::Function
+    html::String
+    function Button(name::String; onClick::Function = http -> "",
+         label = "Button")
+        action = "/connect/$name"
+        html = """
+        <form action="$action" method="post">
+            <button name="foo" value="upvote">$label</button>
+            </form>
+        """
+        f(http) = html
+        new(name, action, label, f, onClick, html)
+    end
+end
+
+
+
 #==
  HTML
     Components

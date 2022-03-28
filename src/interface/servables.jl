@@ -97,7 +97,7 @@ mutable struct Page
     # Document
     title::String
     icon::String
-    function Page(components, title = "Toolips Webapp"; icon = "/")
+    function Page(components = [], title = "Toolips Webapp"; icon = "/")
         f(http) = generate_page(http, title, components, icon)
         add(x::Function) = push!(components, x)
         add(x::FormComponent) = push!(components, x)
@@ -106,11 +106,14 @@ mutable struct Page
 end
 
 function generate_page(http, title, components, icon = "/")
-    html = "<head>" * "<title>$title</title>"
-end
-
-function generate_head(title, icon)
-
+    html = "<head>" * "<title>$title</title>" * "</head>"
+    for comp in components
+        if typeof(comp) == Function
+            comp(http)
+        else
+            comp.f(http)
+        end
+    end
 end
 include("methods.jl")
 include("../server/serve.jl")

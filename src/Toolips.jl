@@ -21,7 +21,7 @@ include("interface/servables.jl")
 export Route, ServerTemplate, Logger, stop!
 # Components
 export Page
-export html, html_file, getargs, fn,
+export html, html_file, getargs, fn
 export Button, Form
 
 function create_serverdeps(name::String)

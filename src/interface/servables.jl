@@ -86,7 +86,7 @@ mutable struct TextArea <: FormComponent
         $text
         </textarea>
         </form>"""
-        new(name, text, maxlength, rows, cols, f, html, action)
+        new(name, text, maxlength, rows, cols, f, html, onAction)
     end
 end
 
@@ -95,7 +95,7 @@ mutable struct Form <: FormComponent
     f::Function
     html::String
     components::AbstractArray
-    OnAction::Function
+    onAction::Function
     function Form(components...; onAction::Any = http -> "")
         html = """<form action="$action" method = "GET">"""
         for comp in components
@@ -103,7 +103,7 @@ mutable struct Form <: FormComponent
         end
         html = html * "</form>"
         f(http) = html
-        new(action, f, html, components, OnAction)
+        new(action, f, html, components, onAction)
     end
 end
 #==

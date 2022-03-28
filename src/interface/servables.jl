@@ -96,7 +96,7 @@ mutable struct Form <: FormComponent
     html::String
     components::AbstractArray
     onAction::Function
-    function Form(components...; onAction::Any = http -> "")
+    function Form(components...; onAction::Any = http -> "", action::String = "")
         html = """<form action="$action" method = "GET">"""
         for comp in components
             html = html * comp.html

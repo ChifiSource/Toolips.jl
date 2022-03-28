@@ -108,10 +108,10 @@ end
 function generate_page(http, title, components, icon = "/")
     html = "<head>" * "<title>$title</title>" * "</head>"
     for comp in components
-        if typeof(comp) == Function
-            comp(http)
-        else
+        if typeof(comp) <: FormComponent
             comp.f(http)
+        else
+            comp(http)
         end
     end
 end

@@ -107,13 +107,16 @@ end
 
 function generate_page(http, title, components, icon = "/")
     html = "<head>" * "<title>$title</title>" * "</head>"
+    write(http, html)
+    body = ""
     for comp in components
         if typeof(comp) <: FormComponent
-            comp.f(http)
+            body = body * comp.f(http)
         else
-            comp(http)
+            body = body * comp(http)
         end
     end
+    body
 end
 include("methods.jl")
 include("../server/serve.jl")

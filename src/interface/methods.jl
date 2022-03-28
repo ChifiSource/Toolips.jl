@@ -4,6 +4,10 @@ function getargs(http::Any)
     split(http.message.target, '?')[2]
 end
 
+function getpost(http::Any)
+    http.message.body
+end
+
 function write_file(URI::String, http::HTTP.Stream)
     open(URI, "r") do i
         write(http, i)

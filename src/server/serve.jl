@@ -22,7 +22,7 @@ mutable struct ServerTemplate
     add::Function
     start::Function
     function ServerTemplate(ip::String, port::Int64,
-        routes::AbstractVector = [], ; logger::Logger = Logger())
+        routes::AbstractVector = []; logger::Logger = Logger())
         add, remove, start = funcdefs(routes, ip, port, logger)
         new(ip, port, routes, logger, remove, add, start)
     end
@@ -37,8 +37,14 @@ end
 function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger)
     add(r::Route{Function}) = push!(routes, r)
-    add(r::Route{Page}) = page_route(routes, r)
-    add(r::Route{Button}) = begin push!(routes, r);
+    add(r::Route{Page}) = begin push!(routes, r)
+        for comp in r.page.components
+            if comp <: FormComponent
+                push!(routes, Route(r.page.action, fn(r.page.OnAction)))
+            end
+        end
+    end
+    add(r::Route{FormComponent}) = begin push!(routes, r);
         push!(routes, Route(r.page.action, fn(r.page.onAction)))
     end
     remove(i::Int64) = deleteat!(routes, i)

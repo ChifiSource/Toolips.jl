@@ -58,9 +58,9 @@ mutable struct Button <: FormComponent
     onAction::Function
     html::String
     function Button(name::String; onAction::Function = http -> "",
-         label = "Button")
+         label = "Button", value = "none")
         action = "/connect/$name"
-        html = """<button name="$name" value="upvote">$label</button>"""
+        html = """<button name="$name" value="$value">$label</button>"""
         f(http) = """<form action="$action" method="post">""" * html * "</form>"
         new(name, action, label, f, onAction, html)
     end

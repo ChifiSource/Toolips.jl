@@ -7,12 +7,12 @@ coming to spruce up this code base to better facilitate things like
 authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
+- TODO Incoming user information would be nice.
 - TODO Secret keys.
-- TODO Authentication.
+- TODO Authentication. (UUID's would be nice)
 - TODO Parsing envvariables and CLI from main in the generated file (this file,
 create_serverdeps(name::String)
 - TODO Production vs dev environments
-- TODO Front-end call-back tie-ins. Not sure how this is going to be implemented
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -20,7 +20,9 @@ include("interface/servables.jl")
 # Server
 export Route, ServerTemplate, Logger, stop!
 # Components
-export Page, html, html_file, getargs, fn
+export Page
+export html, html_file, getargs, fn,
+export Button, Form
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
@@ -43,15 +45,9 @@ IP = "127.0.0.1"
 PORT = 8000
 function main()
         # Essentials
+    global LOGGER = Logger()
     routes = make_routes()
     server_template = ServerTemplate(IP, PORT, routes)
-        # Fun stuff (examples !, you should probably delete these.)
-    delayed = Route("/delay", fn(delay))
-    suicide = Route("/suicide", fn(suicide_fn))
-    arguments = Route("/args", fn(args))
-    server_template.add(delayed)
-    server_template.add(suicide)
-    server_template.add(arguments)
     global TLSERVER = server_template.start()
     return(TLSERVER)
 end
@@ -60,8 +56,7 @@ end
 function make_routes()
         # Pages
     four04 = html("<h1>404, Page not found!</h1>")
-    index = html("<h1>Hello world!</h1></br><p>Not so exciting, <b>is it?</b>
-     well, it is a work in progress :p.</p>")
+    index = html("<h1>Hello world!</h1>")
         # Routes
     routes = []
     homeroute = Route("/", index)
@@ -71,16 +66,6 @@ function make_routes()
     routes
 end
 \n
-suicide_fn = http -> stop!(TLSERVER)
-
-args = http -> string(getargs(http))
-
-function delay(http::Any)
-        for character in "Hello World!"
-            write(http, string(character))
-            sleep(1)
-        end
-end\n
 main()
         """)
     end

@@ -55,21 +55,33 @@ mutable struct Button <: FormComponent
     action::String
     label::String
     f::Function
-    onClick::Function
+    onAction::Function
     html::String
-    function Button(name::String; onClick::Function = http -> "",
+    function Button(name::String; onAction::Function = http -> "",
          label = "Button")
         action = "/connect/$name"
-        html = """
-        <form action="$action" method="post">
-            <button name="foo" value="upvote">$label</button>
-            </form>
-        """
-        f(http) = html
-        new(name, action, label, f, onClick, html)
+        html = """<button name="$name" value="upvote">$label</button>"""
+        f(http) = """<form action="$action" method="post">""" * html * "</form>"
+        new(name, action, label, f, onAction, html)
     end
 end
 
+mutable struct Form <: FormComponent
+    action::String
+    f::Function
+    html::String
+    components::AbstractArray
+    OnAction::Function
+    function CompoundForm(components...; OnAction::Function = http -> "")
+        html = """<form action="$action" method="post">"""
+        for comp in components
+            html = html * comp.html
+        end
+        html = html * "</form>"
+        f(http) = html
+        new(action, f, html, components, OnAction)
+    end
+end
 
 
 

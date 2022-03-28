@@ -9,7 +9,7 @@ mutable struct Route{T}
         new{Page}(path, page)
     end
     function Route(path::String, page::FormComponent)
-        new{FormComponent}(path, page)
+        new{typeof(page)}(path, page)
     end
 end
 
@@ -38,8 +38,8 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger)
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Page}) = page_route(routes, r)
-    add(r::Route{Button}) = begin push!(routes, r);
-        push!(routes, Route(r.page.action, r.page.onClick))
+    add(r::Route{TButton}) = begin push!(routes, r);
+        push!(routes, Route(r.page.action, fn(r.page.onClick)))
     end
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, logger)
@@ -75,7 +75,7 @@ function generate_router(routes::AbstractVector, server, logger::Logger)
     end
 
      if fullpath in keys(route_paths)
-         if typeof(route_paths[fullpath]) != Page
+         if typeof(route_paths[fullpath]) == Function
              write(http, route_paths[fullpath](http))
          else
              write(http, route_paths[fullpath].f(http))

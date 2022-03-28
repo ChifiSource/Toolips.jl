@@ -9,7 +9,7 @@ mutable struct Route{T}
         new{Page}(path, page)
     end
     function Route(path::String, page::FormComponent)
-        new{typeof(page)}(path, page)
+        new{FormComponent)}(path, page)
     end
 end
 
@@ -39,7 +39,7 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Page}) = page_route(routes, r)
     add(r::Route{Button}) = begin push!(routes, r);
-        push!(routes, Route(r.page.action, fn(r.page.onClick)))
+        push!(routes, Route(r.page.action, fn(r.page.onAction)))
     end
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, logger)

@@ -119,8 +119,14 @@ mutable struct RadioSet
     f::Function
     html::String
     onAction::Function
-    function RadioSet(name::String, setdict::Dict; onAction = http -> "")
-        htmlopen = """<select id="$name" name="$name">"""
+    function RadioSet(name::String, setdict::Dict; onAction = http -> "",
+        multiple = false)
+        if multiple == true
+            multiple = "multiple"
+        else
+            multiple = ""
+        end
+        htmlopen = """<select id="$name" name="$name" $multiple>"""
         for option in setdict
             label = setdic[option]
             htmlopen = htmlopen * """<option value="$option">$label</option>"""
@@ -132,6 +138,25 @@ mutable struct RadioSet
         new(name, setdict, f, html, onAction)
     end
 end
+
+
+mutable struct Slider
+    name::String
+    range::UnitRange
+    f::Function
+    html::String
+    onAction::Function
+    function Slider(name::String; range = 0:100, onAction = http -> "")
+        min, max = range[1], range[2]
+        html = """<input type="range" id="$name" name="$name"
+               min="$min" max="$max">"""
+        f(http) = """<form action="$action">
+               $html
+               </form>"""
+        new(name, range, f, html, onAction)
+    end
+end
+
 
 mutable struct Form <: FormComponent
     action::String

@@ -76,17 +76,39 @@ mutable struct TextArea <: FormComponent
     html::String
     onAction::Function
     function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
-        cols::Int64 = 50, text = "", onAction = http -> "")
+        cols::Int64 = 50, text = "~", onAction = http -> "")
         html = """
         <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
         $text
         </textarea>"""
         f(http) = """<form action="$action">
-        <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
-        $text
-        </textarea>
+        $html
         </form>"""
+        set_txt(to::String) = begin
+            upperlower = split(html, "~")
+        end
         new(name, text, maxlength, rows, cols, f, html, onAction)
+    end
+end
+
+mutable struct TextBox
+    name::String
+    text::String
+    maxlength::Int64
+    f::Function
+    html::String
+    onAction::Function
+    function Text(name::String; maxlength::Int64 = 25, text::String = "",
+        onAction = http -> "")
+        html = """
+        <input type = "text" id = "$name" name = "$name" maxlength = "$maxlength">
+        $text
+        </input>
+        """
+        f(http) = """<form action="$action">
+        $html
+        </form>"""
+        new(name, text, mexlength, f, html, onAction)
     end
 end
 

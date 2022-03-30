@@ -112,6 +112,27 @@ mutable struct TextBox
     end
 end
 
+
+mutable struct RadioSet
+    name::String
+    setdict::Dict
+    f::Function
+    html::String
+    onAction::Function
+    function RadioSet(name::String, setdict::Dict; onAction = http -> "")
+        htmlopen = """<select id="$name" name="$name">"""
+        for option in setdict
+            label = setdic[option]
+            htmlopen = htmlopen * """<option value="$option">$label</option>"""
+        end
+        html = htmlopen * "</select>"
+        f(http) = """<form action="$action">
+        $html
+        </form>"""
+        new(name, setdict, f, html, onAction)
+    end
+end
+
 mutable struct Form <: FormComponent
     action::String
     f::Function

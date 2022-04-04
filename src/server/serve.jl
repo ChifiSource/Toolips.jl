@@ -12,7 +12,20 @@ mutable struct Route{T}
         new{FormComponent}(path, page)
     end
 end
-
+function route_from_dir(dir::String)
+    dirs = readdir(pub)
+    routes = []
+    for directory in dirs
+        if isfile(directory)
+            push!(routes, Route("/$directory", f(http -> HTTP.Response(200,
+             read("public/$directory")))))
+        else
+            newread = readdir(pub * "/$directory")
+            merge!(route_from_dir(readdir), routes)
+        end
+    end
+    routes
+end
 mutable struct ServerTemplate
     ip::String
     port::Integer
@@ -21,22 +34,24 @@ mutable struct ServerTemplate
     remove::Function
     add::Function
     start::Function
+    public::String
     function ServerTemplate(ip::String, port::Int64,
         routes::AbstractVector = []; logger::Logger = Logger())
-        add, remove, start = funcdefs(routes, ip, port, logger)
-        new(ip, port, routes, logger, remove, add, start)
+        add, remove, start = funcdefs(routes, ip, port, logger, public)
+        new(ip, port, routes, logger, remove, add, start, public)
     end
 
-    function ServerTemplate(logger::Logger = Logger())
+    function ServerTemplate(;logger::Logger = Logger(). public::String = "public")
         port = 8001
         ip = "127.0.0.1"
-        ServerTemplate(ip, port, logger = logger)
+        ServerTemplate(ip, port, logger = logger, public = public)
     end
 end
 
 function funcdefs(routes::AbstractVector, ip::String, port::Integer,
-    logger::Logger)
+    logger::Logger, public::String)
     add(r::Route{Function}) = push!(routes, r)
+    add(r::Route{JSComponent}) = push!(routes, r)
     add(r::Route{Page}) = begin push!(routes, r)
         for comp in r.page.components
             if typeof(comp) != Function
@@ -50,12 +65,14 @@ function funcdefs(routes::AbstractVector, ip::String, port::Integer,
         push!(routes, Route(r.page.action, fn(r.page.onAction)))
     end
     remove(i::Int64) = deleteat!(routes, i)
-    start() = _start(routes, ip, port, logger)
+    start() = _start(routes, ip, port, logger, public)
     return(add, remove, start)
 end
 
 function _start(routes::AbstractVector, ip::String, port::Integer,
-    logger::Logger)
+    logger::Logger, public::String)
+    public_rs = route_from_dir(public)
+    merge!(routes, public_rs)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     logger.log(1, "Toolips Server starting on port " * string(port))
     routefunc = generate_router(routes, server, logger)

@@ -12,7 +12,7 @@ function html(hypertxt::String)
 end
 
 function html_file(URI::String)
-    return(http -> write_file(URI, http))
+    return(http -> HTTP.Response(200, read(URI))
 end
 
 function css(css::String)
@@ -205,6 +205,27 @@ function generate_page(http, title, components, icon = "/")
         end
     end
     body
+end
+#==
+Canvas
+==#
+abstract type JSComponent end
+macro script(jsc::JSComponent, inline::Symbol ...)
+
+end
+mutable struct Canvas <: JSComponent
+    name::String
+    width::Int64
+    height::Int64
+    script::String
+    html::String
+    f::Function
+    function Canvas(name = "canvas"; width = 200, height = 200)
+        new(name, width, height)
+    end
+end
+function script_object(ctx, name, f)
+
 end
 include("methods.jl")
 include("../server/serve.jl")

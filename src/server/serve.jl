@@ -36,7 +36,8 @@ mutable struct ServerTemplate
     start::Function
     public::String
     function ServerTemplate(ip::String, port::Int64,
-        routes::AbstractVector = []; logger::Logger = Logger())
+        routes::AbstractVector = []; logger::Logger = Logger(),
+        public::String = "public")
         add, remove, start = funcdefs(routes, ip, port, logger, public)
         new(ip, port, routes, logger, remove, add, start, public)
     end

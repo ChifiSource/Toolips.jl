@@ -12,7 +12,7 @@ function html(hypertxt::String)
 end
 
 function html_file(URI::String)
-    return(http -> write_file(URI, http))
+    return(http -> HTTP.Response(200, read(URI))
 end
 
 function css(css::String)
@@ -76,19 +76,87 @@ mutable struct TextArea <: FormComponent
     html::String
     onAction::Function
     function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
-        cols::Int64 = 50, text = "", onAction = http -> "")
+        cols::Int64 = 50, text = "~", onAction = http -> "")
         html = """
         <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
         $text
         </textarea>"""
         f(http) = """<form action="$action">
-        <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
-        $text
-        </textarea>
+        $html
         </form>"""
+        set_txt(to::String) = begin
+            upperlower = split(html, "~")
+        end
         new(name, text, maxlength, rows, cols, f, html, onAction)
     end
 end
+
+mutable struct TextBox
+    name::String
+    text::String
+    maxlength::Int64
+    f::Function
+    html::String
+    onAction::Function
+    function Text(name::String; maxlength::Int64 = 25, text::String = "",
+        onAction = http -> "")
+        html = """
+        <input type = "text" id = "$name" name = "$name" maxlength = "$maxlength">
+        $text
+        </input>
+        """
+        f(http) = """<form action="$action">
+        $html
+        </form>"""
+        new(name, text, mexlength, f, html, onAction)
+    end
+end
+
+
+mutable struct RadioSet
+    name::String
+    setdict::Dict
+    f::Function
+    html::String
+    onAction::Function
+    function RadioSet(name::String, setdict::Dict; onAction = http -> "",
+        multiple = false)
+        if multiple == true
+            multiple = "multiple"
+        else
+            multiple = ""
+        end
+        htmlopen = """<select id="$name" name="$name" $multiple>"""
+        for option in setdict
+            label = setdic[option]
+            htmlopen = htmlopen * """<option value="$option">$label</option>"""
+        end
+        html = htmlopen * "</select>"
+        f(http) = """<form action="$action">
+        $html
+        </form>"""
+        new(name, setdict, f, html, onAction)
+    end
+end
+
+
+mutable struct Slider
+    name::String
+    range::UnitRange
+    f::Function
+    html::String
+    onAction::Function
+    function Slider(name::String; range = 0:100, onAction = http -> "")
+        min, max = range[1], range[2]
+        html = """<input type="range" id="$name" name="$name"
+               min="$min" max="$max">"""
+        f(http) = """<form action="$action">
+               $html
+               </form>"""
+        new(name, range, f, html, onAction)
+    end
+end
+
 
 mutable struct Form <: FormComponent
     action::String
@@ -137,6 +205,78 @@ function generate_page(http, title, components, icon = "/")
         end
     end
     body
+end
+#==
+Canvas
+==#
+abstract type JSComponent end
+
+mutable struct Context
+    codestrings::AbstractArray
+    update::Function
+    fillRect::Function
+    strokeRect::Function
+    beginPath::Function
+    closePath::Function
+    moveTo::Function
+    lineTo::Function
+    fill::Function
+    stroke::Function
+    arc::Function
+    rect::Function
+    function Context(ctx::String = "2d", name::String = "canvas")
+        codestrings = []
+        push!(codestrings, """var canvas = document.getElementById("$name");
+            var ctx = canvas.getContext($ctx);""")
+        namectx = "$name" * ctx
+        update() = script = join(codestrings)
+        rect(x::Integer, y::Integer, w::Integer, h::Integer) =
+            push!(codestrings, "$namectx.rect($x, $y, $w, $h);")
+        fillRect(x::Integer, y::Integer, w::Integer, h::Integer) = begin
+            push!(codestrings, "$namectx.fillRect($x, $y, $w, $h);")
+        end
+        strokeRect(x::Integer, y::Integer, w::Integer, h::Integer) =
+            push!(codestrings, "$namectx.strokeRect($x, $y, $w, $h);")
+        arc(x, y, r, sa, ea, ccw) = begin
+            push!(codestrings, "$namectx.arc($x, $y, $r, $sa, $ea, $ccw);")
+        end
+        beginPath() = begin
+            push!(codestrings, "$namectx.beginPath();")
+        end
+        closePath() = begin
+            push!(codestrings, "$namectx.closePath();")
+        end
+        moveTo(x::Integer, y::Integer) = begin
+            push!(codestrings, "$namectx.moveTo($x, $y);")
+        end
+        lineTo(x::Integer, y::Integer) = begin
+            push!(codestrings, "$namectx.lineTo($x, $y);")
+        end
+        fill() = begin
+            push!(codestrings, "$namectx.fill();")
+        end
+        stroke() = begin
+            push!(codestrings, "$namectx.stroke();")
+        end
+        new(codestrings, update, fillRect, strokeRect, beginPath, closePath, moveTo,
+        lineTo, fill, stroke, arc, rect)
+    end
+end
+mutable struct Canvas
+    name::String
+    width::Int64
+    height::Int64
+    html::String
+    ctx::Context
+    context::Function
+    f::Function
+    function Canvas(name = "canvas"; width = 200, height = 200, mode = "2d")
+        ctx = Context(mode, name)
+        html = """<canvas id="$name" width="$width" height="$height"></canvas>"""
+        context(f::Function) = f(ctx)
+        f(http) = """<canvas id="$name" width="$width" height="$height"><script>""" * join(ctx.codestrings) * "</script></canvas>"
+        new(name, width, height, html, ctx, context, f)
+    end
 end
 include("methods.jl")
 include("../server/serve.jl")

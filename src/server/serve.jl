@@ -41,7 +41,7 @@ mutable struct ServerTemplate
         new(ip, port, routes, logger, remove, add, start, public)
     end
 
-    function ServerTemplate(;logger::Logger = Logger(). public::String = "public")
+    function ServerTemplate(;logger::Logger = Logger(), public::String = "public")
         port = 8001
         ip = "127.0.0.1"
         ServerTemplate(ip, port, logger = logger, public = public)

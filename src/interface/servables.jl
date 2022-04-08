@@ -210,22 +210,41 @@ end
 Canvas
 ==#
 abstract type JSComponent end
-macro script(jsc::JSComponent, inline::Symbol ...)
 
+mutable struct Context
+    fillRect::Function
+    strokeRect::Function
+    arc::Function
+    beginPath::Function
+    closePath::Function
+    MoveTo::Function
+    lineTo::Function
+    fill::Function
+    stroke::Function
+    arc::Function
+    rect::Function
+    codestrings::AbstractArray
+    script::String
+    function Context(ctx::String = "2d", name::String = "canvas")
+        codestrings = []
+        fillRect() = push!(codestrings, )
+    end
 end
-mutable struct Canvas <: JSComponent
+mutable struct Canvas
     name::String
     width::Int64
     height::Int64
-    script::String
     html::String
+    ctx::Context
     f::Function
     function Canvas(name = "canvas"; width = 200, height = 200)
+        context(f::Function, ctype::String) = f(ctx); update()
+        update() = html = """<canvas id="$name" width="$width" height="$height">
+        </canvas>""" * ctx.script
+        ctx = Context("2d", name)
+        f(http) = html
         new(name, width, height)
     end
-end
-function script_object(ctx, name, f)
-
 end
 include("methods.jl")
 include("../server/serve.jl")

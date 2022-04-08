@@ -51,7 +51,7 @@ end
 function funcdefs(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger, public::String)
     add(r::Route{Function}) = push!(routes, r)
-    add(r::Route{JSComponent}) = push!(routes, r)
+    add(r::Route{Component}) = push!(routes, r)
     add(r::Route{Page}) = begin push!(routes, r)
         for comp in r.page.components
             if typeof(comp) != Function

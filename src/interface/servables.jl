@@ -1,7 +1,7 @@
 #==
 Servables!
 ==#
-
+abstract type Component end
 #==
  text/html
     Components
@@ -12,7 +12,7 @@ function html(hypertxt::String)
 end
 
 function html_file(URI::String)
-    return(http -> HTTP.Response(200, read(URI))
+    return(http -> HTTP.Response(200, read(URI)))
 end
 
 function css(css::String)
@@ -48,7 +48,7 @@ end
     Interactive
         Components
         ==#
-abstract type FormComponent end
+abstract type FormComponent <: Component end
 
 mutable struct Button <: FormComponent
     name::String
@@ -91,7 +91,7 @@ mutable struct TextArea <: FormComponent
     end
 end
 
-mutable struct TextBox
+mutable struct TextBox <: FormComponent
     name::String
     text::String
     maxlength::Int64
@@ -113,7 +113,7 @@ mutable struct TextBox
 end
 
 
-mutable struct RadioSet
+mutable struct RadioSet <: FormComponent
     name::String
     setdict::Dict
     f::Function
@@ -140,7 +140,7 @@ mutable struct RadioSet
 end
 
 
-mutable struct Slider
+mutable struct Slider <: FormComponent
     name::String
     range::UnitRange
     f::Function
@@ -178,7 +178,7 @@ end
 #==
 Page
 ==#
-mutable struct Page
+mutable struct Page <: Component
     f::Function
     components::AbstractVector
     add::Function
@@ -207,11 +207,11 @@ function generate_page(http, title, components, icon = "/")
     body
 end
 #==
-Canvas
+Other
+    Components
 ==#
-abstract type JSComponent end
-
-mutable struct Context
+abstract type ComponentPart end
+mutable struct Context <: ComponentPart
     codestrings::AbstractArray
     update::Function
     fillRect::Function
@@ -227,7 +227,7 @@ mutable struct Context
     function Context(ctx::String = "2d", name::String = "canvas")
         codestrings = []
         push!(codestrings, """var canvas = document.getElementById("$name");
-            var ctx = canvas.getContext($ctx);""")
+            var $namectx = canvas.getContext($ctx);""")
         namectx = "$name" * ctx
         update() = script = join(codestrings)
         rect(x::Integer, y::Integer, w::Integer, h::Integer) =
@@ -262,7 +262,7 @@ mutable struct Context
         lineTo, fill, stroke, arc, rect)
     end
 end
-mutable struct Canvas
+mutable struct Canvas <: Component
     name::String
     width::Int64
     height::Int64

@@ -212,22 +212,54 @@ Canvas
 abstract type JSComponent end
 
 mutable struct Context
+    codestrings::AbstractArray
+    update::Function
     fillRect::Function
     strokeRect::Function
-    arc::Function
     beginPath::Function
     closePath::Function
-    MoveTo::Function
+    moveTo::Function
     lineTo::Function
     fill::Function
     stroke::Function
     arc::Function
     rect::Function
-    codestrings::AbstractArray
-    script::String
     function Context(ctx::String = "2d", name::String = "canvas")
         codestrings = []
-        fillRect() = push!(codestrings, )
+        push!(codestrings, """var canvas = document.getElementById("$name");
+            var ctx = canvas.getContext($ctx);""")
+        namectx = "$name" * ctx
+        update() = script = join(codestrings)
+        rect(x::Integer, y::Integer, w::Integer, h::Integer) =
+            push!(codestrings, "$namectx.rect($x, $y, $w, $h);")
+        fillRect(x::Integer, y::Integer, w::Integer, h::Integer) = begin
+            push!(codestrings, "$namectx.fillRect($x, $y, $w, $h);")
+        end
+        strokeRect(x::Integer, y::Integer, w::Integer, h::Integer) =
+            push!(codestrings, "$namectx.strokeRect($x, $y, $w, $h);")
+        arc(x, y, r, sa, ea, ccw) = begin
+            push!(codestrings, "$namectx.arc($x, $y, $r, $sa, $ea, $ccw);")
+        end
+        beginPath() = begin
+            push!(codestrings, "$namectx.beginPath();")
+        end
+        closePath() = begin
+            push!(codestrings, "$namectx.closePath();")
+        end
+        moveTo(x::Integer, y::Integer) = begin
+            push!(codestrings, "$namectx.moveTo($x, $y);")
+        end
+        lineTo(x::Integer, y::Integer) = begin
+            push!(codestrings, "$namectx.lineTo($x, $y);")
+        end
+        fill() = begin
+            push!(codestrings, "$namectx.fill();")
+        end
+        stroke() = begin
+            push!(codestrings, "$namectx.stroke();")
+        end
+        new(codestrings, update, fillRect, strokeRect, beginPath, closePath, moveTo,
+        lineTo, fill, stroke, arc, rect)
     end
 end
 mutable struct Canvas
@@ -236,14 +268,14 @@ mutable struct Canvas
     height::Int64
     html::String
     ctx::Context
+    context::Function
     f::Function
-    function Canvas(name = "canvas"; width = 200, height = 200)
-        context(f::Function, ctype::String) = f(ctx); update()
-        update() = html = """<canvas id="$name" width="$width" height="$height">
-        </canvas>""" * ctx.script
-        ctx = Context("2d", name)
-        f(http) = html
-        new(name, width, height)
+    function Canvas(name = "canvas"; width = 200, height = 200, mode = "2d")
+        ctx = Context(mode, name)
+        html = """<canvas id="$name" width="$width" height="$height"></canvas>"""
+        context(f::Function) = f(ctx)
+        f(http) = """<canvas id="$name" width="$width" height="$height"><script>""" * join(ctx.codestrings) * "</script></canvas>"
+        new(name, width, height, html, ctx, context, f)
     end
 end
 include("methods.jl")

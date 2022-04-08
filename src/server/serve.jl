@@ -13,14 +13,14 @@ mutable struct Route{T}
     end
 end
 function route_from_dir(dir::String)
-    dirs = readdir(pub)
+    dirs = readdir(dir)
     routes = []
     for directory in dirs
         if isfile(directory)
             push!(routes, Route("/$directory", f(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
-            newread = readdir(pub * "/$directory")
+            newread = readdir(dir * "/$directory")
             merge!(route_from_dir(readdir), routes)
         end
     end

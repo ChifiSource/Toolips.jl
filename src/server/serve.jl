@@ -33,7 +33,7 @@ function route_from_dir(dir::String)
     rts::Vector{Route} = []
     for directory in routes
         if isfile("$dir/" * directory)
-            push!(routes, Route("$directory", file("$dir/" * directory)))
+            push!(rts, Route("$directory", file("$dir/" * directory)))
         end
     end
     rts
@@ -58,7 +58,11 @@ mutable struct ServerTemplate
     function ServerTemplate(;logger::Logger = Logger(), public::String = "public")
         port = 8001
         ip = "127.0.0.1"
-        ServerTemplate(ip, port; logger = logger, public = public)
+        ServerTemplate(ip, port, []; logger = logger, public = public)
+    end
+    function ServerTemplate(ip::String, port::Integer;
+        logger::Logger = Logger(), public::String = "public")
+        ServerTemplate(ip, port, []; logger = logger, public = public)
     end
 end
 

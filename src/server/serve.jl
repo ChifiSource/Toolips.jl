@@ -16,12 +16,12 @@ function route_from_dir(dir::String)
     dirs = readdir(dir)
     routes = []
     for directory in dirs
-        if isfile(directory)
+        if isfile("$dir/" * directory)
             push!(routes, Route("/$directory", f(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
             newread = readdir(dir * "/$directory")
-            merge!(route_from_dir(readdir), routes)
+            merge!(route_from_dir(newread), routes)
         end
     end
     routes

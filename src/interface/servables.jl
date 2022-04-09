@@ -278,5 +278,51 @@ mutable struct Canvas <: Component
         new(name, width, height, html, ctx, context, f)
     end
 end
+
+abstract type ListComponent <: Component end
+
+mutable struct UnorderedList
+    name::String
+    html::String
+    f::Function
+    lists::Vector{List}
+    function UnorderedList(name::String = "ul", comps::Array{List} = [])
+        html = "<ul id = '$name'>"
+
+        f(http) = "<ul id='$name'>" * join([l.f(http) for l in comps]) * "</ul>"
+        new(name, html, f, comps)
+    end
+     function UnorderedList(name::String = "ul")
+        UnorderedList(name, comps)
+    end
+         function UnorderedList(comps::Vector{List})
+        name = ""
+        UnorderedList(name, comps)
+    end
+end
+
+mutable struct List <: ListComponent
+    name::String
+    label::String
+    html::String
+    f::Function
+    href::String
+    function List(name::String = "list"; label = "hello world!", href = "")
+        if href != ""
+            href = "href='$href'"
+        end
+        html = """<li id='$name'><a $href>$label</a></li>"""
+        f(http) = html
+        new(name, label, html, f, href)
+    end
+end
+
+mutable struct DropDown <: Component
+
+end
+
+mutable struct A <: Component
+
+end
 include("methods.jl")
 include("../server/serve.jl")

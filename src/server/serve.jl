@@ -80,7 +80,7 @@ end
 function _start(routes::AbstractVector, ip::String, port::Integer,
     logger::Logger, public::String)
     public_rs = route_from_dir(public)
-    merge!(routes, public_rs)
+    routes = vcat(routes, public_rs)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     logger.log(1, "Toolips Server starting on port " * string(port))
     routefunc = generate_router(routes, server, logger)

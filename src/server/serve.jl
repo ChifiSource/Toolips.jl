@@ -17,7 +17,7 @@ function route_from_dir(dir::String)
     routes = []
     for directory in dirs
         if isfile("$dir/" * directory)
-            push!(routes, Route("/$directory", f(http -> HTTP.Response(200,
+            push!(routes, Route("/$directory", fn(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
             newread = readdir(dir * "/$directory")

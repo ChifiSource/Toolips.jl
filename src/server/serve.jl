@@ -48,21 +48,11 @@ mutable struct ServerTemplate
     add::Function
     start::Function
     public::String
-    function ServerTemplate(ip::String, port::Int64,
-        routes::Vector{Route} = []; logger::Logger = Logger(),
+    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+        routes::Vector{Route} = Vector{Route}(); logger::Logger = Logger(),
         public::String = "public")
         add, remove, start = funcdefs(routes, ip, port, logger, public)
         new(ip, port, routes, logger, remove, add, start, public)
-    end
-
-    function ServerTemplate(;logger::Logger = Logger(), public::String = "public")
-        port = 8001
-        ip = "127.0.0.1"
-        ServerTemplate(ip, port, []; logger = logger, public = public)
-    end
-    function ServerTemplate(ip::String, port::Integer;
-        logger::Logger = Logger(), public::String = "public")
-        ServerTemplate(ip, port, []; logger = logger, public = public)
     end
 end
 

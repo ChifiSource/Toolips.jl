@@ -21,9 +21,12 @@ include("interface/servables.jl")
 export Route, ServerTemplate, Logger, stop!
 # Components
 export Page
-export html, html_file, getargs, fn
-export Button, Form, TextArea
-export getargs, getarg, getpost, write_file
+export html, html_file, file, css, css_file, js, js_file, fn
+export Button, Form, TextArea, TextBox, RadioSet, Slider
+export Canvas
+export List, UnorderedList
+# Methods
+export getargs, getarg, getpost, write_file, lists
 
 function create_serverdeps(name::String)
     Pkg.generate(name)

@@ -23,9 +23,7 @@ function route_from_dir(dir::String)
         if isfile("$dir/" * directory)
             push!(routes, "$dir/$directory")
         else
-            if directory in routes
-
-            else
+            if ~(directory in routes)
                 newread = dir * "/$directory"
                 newrs = route_from_dir(newread)
                 [push!(routes, r) for r in newrs]
@@ -38,19 +36,20 @@ function route_from_dir(dir::String)
             push!(routes, Route("$directory", file("$dir/" * directory)))
         end
     end
+    rts
 end
 
 mutable struct ServerTemplate
     ip::String
     port::Integer
-    routes::AbstractVector
+    routes::Vector{Route}
     logger::Logger
     remove::Function
     add::Function
     start::Function
     public::String
     function ServerTemplate(ip::String, port::Int64,
-        routes::AbstractVector = []; logger::Logger = Logger(),
+        routes::Vector{Route} = []; logger::Logger = Logger(),
         public::String = "public")
         add, remove, start = funcdefs(routes, ip, port, logger, public)
         new(ip, port, routes, logger, remove, add, start, public)
@@ -59,7 +58,7 @@ mutable struct ServerTemplate
     function ServerTemplate(;logger::Logger = Logger(), public::String = "public")
         port = 8001
         ip = "127.0.0.1"
-        ServerTemplate(ip, port, logger = logger, public = public)
+        ServerTemplate(ip, port; logger = logger, public = public)
     end
 end
 

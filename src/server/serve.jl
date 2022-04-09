@@ -33,7 +33,7 @@ function route_from_dir(dir::String)
     rts::Vector{Route} = []
     for directory in routes
         if isfile("$dir/" * directory)
-            push!(routes, Route("$directory", file("$dir/" * directory)))
+            push!(rts, Route("$directory", file("$dir/" * directory)))
         end
     end
     rts

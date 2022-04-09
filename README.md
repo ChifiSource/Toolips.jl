@@ -2,12 +2,56 @@
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
 </div>
 
-**Toolips.jl** is a multi-paradigm web-development framework built around function calls and [HTTP.jl](https://github.com/JuliaWeb/HTTP.jl). While the servers and routes are object-oriented, the core methodology is centralized around function pipelines. In addition, Toolips.jl is a full-stack framework that is meant to bring together all your code and centralize it around Julia. While other solutions might have you write Javascript, using Toolips.jl there is often no need. In scenarios when you do, though Toolips allows for much different types of interactions with Javascript, HTML, and CSS. The package features
-- A front-end templating engine.
-- Interact-able forms with push data.
-- Automatically generated function pipelines on routes.
-- Organized and simple file-structure
+**Toolips.jl** is a multi-paradigm web-development framework built around function calls and [HTTP.jl](https://github.com/JuliaWeb/HTTP.jl). This is Julia's first true **full-stack** web-development framework, and it is likely that by a stable release you will be able to do just about anything you may elsewhere with Toolips.jl. **Here are some of the features that the framework includes:**
+- Customizable loggers.
+- Private directory scopes and routing, everything gets returned in Julia.
+- A function pipeline system.
+- Simple single-argument constructors.
 - Asynchronicity
+- A library of interactive components.
+- A furthered library of front-end components.
+- Canvases
+- Extensions
+- HTTP.jl consistency
+- Object-oriented syntax
+- Request handling
 - Server management
-- Speed compared to other options
-What is great about Toolips.jl is that it can apply to a multitude of different projects. If you would like to take a look at the kind of things that are possible using this module, then I highly suggest you check out [ToolipsApp.jl](http://github.com/emmettgb/ToolipsApp.jl), which is a collection of projects that utilize Toolips.jl.
+```julia
+julia> # Press ] to enter your Pkg REPL
+julia> ]
+pkg> add https://github.com/ChifiSource/Toolips.jl
+```
+<details class="details-overlay">
+  <summary class="btn"><h2>What's inside?</h2></summary>
+<div>
+  <h4>Servables</h4>
+  <h5>Raw Components</h5>
+  <li>html</li>
+  <li>html files</li>
+  <li>css</li>
+  <li>css_file</li>
+  <li>js</li>
+  <li>js_file</li>
+  <li>css_file</li>
+  <li>functions</li>
+  <h5>Form Components</h5>
+  <li>button</li>
+  <li>text area</li>
+  <li>text box</li>
+  <li>radio set</li>
+  <li>slider</li>
+  <li>forms</li>
+  <h5>Other</h5>
+  <li>pages</li>
+  <li>canvas</li>
+  <li>list</li>
+  <li>unordered list</li>
+  <li>drop downs</li>
+  </div>
+  </details>
+  <details class="details-overlay">
+  <summary class="btn"><h2>Using Toolips</h2></summary>
+<div>
+ Currently, there is no documentation really put together for Toolips.jl. The package is still relatively new, and I am still trying to get a decent enough candadite for release, although I am most definitely getting close! If you would like to learn how to use the package without the docs, I would suggest referencing this sample application:
+  https://github.com/emmettgb/ToolipsApp.jl
+  

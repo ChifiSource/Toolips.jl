@@ -18,19 +18,26 @@ end
 
 function route_from_dir(dir::String)
     dirs = readdir(dir)
-    routes = []
+    routes::Vector{String} = []
     for directory in dirs
         if isfile("$dir/" * directory)
-            push!(routes, Route("/$directory", fn(http -> HTTP.Response(200,
-             read("public/$directory")))))
+            push!(routes, "$dir/$directory")
         else
-            if ~(directory in routes)
+            if directory in routes
+
+            else
                 newread = dir * "/$directory"
-                merge!(route_from_dir(dir), routes)
+                newrs = route_from_dir(newread)
+                [push!(routes, r) for r in newrs]
             end
         end
     end
-    routes
+    rts::Vector{Route} = []
+    for directory in routes
+        if isfile("$dir/" * directory)
+            push!(routes, Route("$directory", file("$dir/" * directory)))
+        end
+    end
 end
 
 mutable struct ServerTemplate

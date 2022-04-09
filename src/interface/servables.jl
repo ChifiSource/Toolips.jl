@@ -15,6 +15,9 @@ function html_file(URI::String)
     return(http -> HTTP.Response(200, read(URI)))
 end
 
+function file(URI::String)
+    return(http -> HTTP.Response(200, read(URI)))
+end
 function css(css::String)
     return(http -> "<style>" * css * "</style>")
 end

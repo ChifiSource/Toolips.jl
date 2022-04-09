@@ -55,6 +55,16 @@ function write_file(URI::String, http::HTTP.Stream)
     end
 end
 
+
+function lists(dct::Pair{String, String} ...)
+    lists::Vector{List} = []
+    for (key, value) in dct
+        push!(lists, List(label = key, href = value))
+    end
+    lists
+end
+
+
 +(f::Function, f2::Function) = Page([f, f2])
 +(p::Page, f::Function) = p.add(f)
 +(fc::FormComponent, fc2::FormComponent) = Form(fc, fc2)

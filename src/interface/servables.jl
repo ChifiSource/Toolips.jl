@@ -281,6 +281,22 @@ end
 
 abstract type ListComponent <: Component end
 
+mutable struct List <: ListComponent
+    name::String
+    label::String
+    html::String
+    f::Function
+    href::String
+    function List(name::String = "list"; label = "hello world!", href = "")
+        if href != ""
+            href = "href='$href'"
+        end
+        html = """<li id='$name'><a $href>$label</a></li>"""
+        f(http) = html
+        new(name, label, html, f, href)
+    end
+end
+
 mutable struct UnorderedList
     name::String
     html::String
@@ -298,22 +314,6 @@ mutable struct UnorderedList
          function UnorderedList(comps::Vector{List})
         name = ""
         UnorderedList(name, comps)
-    end
-end
-
-mutable struct List <: ListComponent
-    name::String
-    label::String
-    html::String
-    f::Function
-    href::String
-    function List(name::String = "list"; label = "hello world!", href = "")
-        if href != ""
-            href = "href='$href'"
-        end
-        html = """<li id='$name'><a $href>$label</a></li>"""
-        f(http) = html
-        new(name, label, html, f, href)
     end
 end
 

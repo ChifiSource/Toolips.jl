@@ -11,7 +11,11 @@ mutable struct Route{T}
     function Route(path::String, page::FormComponent)
         new{FormComponent}(path, page)
     end
+    function Route(path::String, page::Component)
+        new{typeof(page)}(path, page)
+    end
 end
+
 function route_from_dir(dir::String)
     dirs = readdir(dir)
     routes = []
@@ -20,12 +24,15 @@ function route_from_dir(dir::String)
             push!(routes, Route("/$directory", fn(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
-            newread = dir * "/$directory"
-            merge!(route_from_dir(dir), routes)
+            if ! directory in routes
+                newread = dir * "/$directory"
+                merge!(route_from_dir(dir), routes)
+            end
         end
     end
     routes
 end
+
 mutable struct ServerTemplate
     ip::String
     port::Integer

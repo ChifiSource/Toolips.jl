@@ -20,8 +20,8 @@ function route_from_dir(dir::String)
             push!(routes, Route("/$directory", fn(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
-            newread = readdir(dir * "/$directory")
-            merge!(route_from_dir(newread), routes)
+            newread = dir * "/$directory"
+            merge!(route_from_dir(dir), routes)
         end
     end
     routes

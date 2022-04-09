@@ -24,7 +24,7 @@ function route_from_dir(dir::String)
             push!(routes, Route("/$directory", fn(http -> HTTP.Response(200,
              read("public/$directory")))))
         else
-            if ! directory in routes
+            if ~directory in routes
                 newread = dir * "/$directory"
                 merge!(route_from_dir(dir), routes)
             end

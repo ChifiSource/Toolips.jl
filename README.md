@@ -24,6 +24,18 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
 <details class="details-overlay">
   <summary class="btn"><h2>What's inside?</h2></summary>
 <div>
+  <h4>Create a project</h4>
+  <li>new_webapp</li>
+  <h4>Server</h4>
+  <li>ServerTemplate</li>
+  <li>Route</li>
+  <li>Logger</li>
+  <h4>Methods</h4>
+  <li>stop!</li>
+  <li>write_file</li>
+  <li>getargs</li>
+  <li>getarg</li>
+  <li>lists</li>
   <h4>Servables</h4>
   <h5>Raw Components</h5>
   <li>html</li>

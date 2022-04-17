@@ -6,36 +6,90 @@ abstract type Component end
  text/html
     Components
 ==#
-
+"""
+### html(::String) -> ::Function
+------------------
+Creates a servable from the provided string, which should be HTML.
+#### example
+"""
 function html(hypertxt::String)
     return(http -> hypertxt)
 end
 
+"""
+### html_file(URI::String) -> ::Function
+------------------
+Creates a servable which will read and return the file denoted by its path in
+URI.
+#### example
+"""
 function html_file(URI::String)
     return(http -> HTTP.Response(200, read(URI)))
 end
 
+"""
+### file(URI::String) -> ::Function
+------------------
+Creates a servable which will read and return the file denoted by its path in
+URI.
+#### example
+"""
 function file(URI::String)
     return(http -> HTTP.Response(200, read(URI)))
 end
+
+"""
+### html(::String) -> ::Function
+------------------
+Creates a servable from the provided string, which should be CSS.
+#### example
+"""
 function css(css::String)
     return(http -> "<style>" * css * "</style>")
 end
 
+"""
+### css_file(URI::String) -> ::Function
+------------------
+Creates a servable which will read and return the file denoted by its path in
+URI.
+#### example
+"""
 function css_file(URI::String)
     http -> """<link rel="stylesheet" href="$URI">"""
 end
 
+"""
+### html(::String) -> ::Function
+------------------
+Creates a servable from the provided string, which should be JavaScript.
+#### example
+"""
 function js(js::String)
     return(http -> "<script>" * js * "</script>")
 end
 
+"""
+### js_file(URI::String) -> ::Function
+------------------
+Creates a servable which will read and return the file denoted by its path in
+URI.
+#### example
+"""
 function js_file(URI::String)
     http -> """<script src="$URI"></script>"""
 end
 #==
 Functions
 ==#
+"""
+### fn(::Function) -> ::Function
+------------------
+Turns any function into a servable. Functions can optionally take the single
+    positional argument "http."
+#### example
+
+"""
 function fn(f::Function)
     m = first(methods(f))
     if m.nargs > 2 | m.nargs < 1
@@ -52,7 +106,21 @@ end
         Components
         ==#
 abstract type FormComponent <: Component end
+"""
+### Button
+name::String
+action::String
+label::String
+f::Function
+onAction::Function
+html::String
+------------------
+A button is a form component that allows Toolips.jl to communicate with button
+clicks on a web-page. The **onAction** function denotes what the button is
+to do when clicked. Name will also become the id inside of the Document. \
+------------------
 
+"""
 mutable struct Button <: FormComponent
     name::String
     action::String

@@ -36,7 +36,8 @@ function create_serverdeps(name::String)
     logs = dir * name * "/logs"
     mkdir(public)
     mkdir(logs)
-    touch(name * "/start.sh")
+    touch(name * "/dev.jl")
+    touch(name * "/prod.jl")
     touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
@@ -44,9 +45,6 @@ function create_serverdeps(name::String)
         write(io, """
 # Welcome to your new Toolips server!
 using Main.Toolips\n
-PUBLIC = "../public"
-IP = "127.0.0.1"
-PORT = 8000
 function main()
         # Essentials
     global LOGGER = Logger()
@@ -71,6 +69,22 @@ function make_routes()
 end
 \n
 main()
+        """)
+    end
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        IP = "127.0.0.1"
+        PORT = 8000
+        PUBLIC = "../public"
+        include("src/$name.jl")
+        """)
+    end
+    open(name * "/prod.jl", "w") do io
+        write(io, """
+        IP = "127.0.0.1"
+        PORT = 8000
+        PUBLIC = "../public"
+        include("src/$name.jl")
         """)
     end
 end

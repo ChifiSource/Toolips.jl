@@ -54,13 +54,6 @@ mutable struct Columns
         if length(comparrays) != n
             throw(DimensionMismatch("Component arrays must be length of n columns!"))
         end
-        for col in columns
-
-            <div class="row">
-            <div class="column"><h1>hi</h1></div>
-            <div class="column"><p>Hello</p></div>
-            </div>
-        end
         html = ""
         f(http) = begin
             open = "<style>$col_rowcss</style><div class='row'>"

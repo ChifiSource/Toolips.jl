@@ -259,7 +259,7 @@ mutable struct Page <: Component
     function Page(components = [], title = "Toolips Webapp"; icon = "/")
         f(http) = generate_page(http, title, components, icon)
         add(x::Function) = push!(components, x)
-        add(x::FormComponent) = push!(components, x)
+        add(x::Component) = push!(components, x)
         new(f, components, add, title, icon)
     end
 end
@@ -389,11 +389,38 @@ mutable struct UnorderedList
 end
 
 mutable struct DropDown <: Component
-
+    name::String
+    html::String
+    href::String
+    As::AbstractArray{Component}
+    f::Function
+    function DropDrown(name::String = "dropdown", As::A ...;
+        label::String = "dropdown", href::String = "#")
+        html = "<div id='$name' href='$href'></div>"
+        f(http) = begin
+            """<div id="$name">
+              <button class="dropbtn">$label
+                </button>
+                <div id=$name-content>
+                """ * join([a.f(http) for a in As]) * "</div></div>"
+            end
+            new(name, html, href, As, f)
+        end
+    end
 end
+
 
 mutable struct A <: Component
-
+    name::String
+    href::String
+    f::Function
+    html::String
+    function A(name = "a"; href = "#", label = "a")
+        f(http) = "<a id='$name' href='$href'>$label</a>"
+        html = "<a id='$name' href='$href'>$label</a>"
+        new(name, href, f, html)
+    end
 end
+include("frontend.jl")
 include("methods.jl")
 include("../server/serve.jl")

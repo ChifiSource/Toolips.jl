@@ -345,7 +345,7 @@ mutable struct Canvas <: Component
         ctx = Context(mode, name)
         html = """<canvas id="$name" width="$width" height="$height"></canvas>"""
         context(f::Function) = f(ctx)
-        f(http) = """<canvas id="$name" width="$width" height="$height"><script>""" * join(ctx.codestrings) * "</script></canvas>"
+        f(http) = """<canvas id="$name" width="$width" height="$height"script = '""" * join(ctx.codestrings) * "'</script></canvas>"
         new(name, width, height, html, ctx, context, f)
     end
 end

@@ -9,9 +9,17 @@ end
 mutable struct Navbar
     name::String
     f::Function
-    ul::UnorderedList
-    function Navbar()
+    comps::AbstractArray
+    function Navbar(content::Pair{String, Any} ...)
+        comps = []
+        for comp in content
+            if typeof(comp[2]) == Array
+                # Need to figure out some good way to provide
+                #    all of the data that is needed here.
+            else
 
+            end
+        end
     end
 end
 
@@ -27,10 +35,41 @@ mutable struct Columns
     html::String
     components::AbstractArray{AbstractArray}
     add::Function
-    function Columns(n::Int64, comparrays::AbstractArray ...)
+    function Columns(name::String, n::Integer, comparrays::AbstractArray ...;
+        width = .5)
+        percentage = .5 * 100
+        perc_txt = "%$percentage"
+        col_rowcss = """.newspaper {
+  column-width: 100px;
+}
+.column {
+  float: left;
+  width: $perc_txt;
+}
+    .row:after {
+    content: "";
+    display: table;
+    clear: both;
+}"""
         if length(comparrays) != n
             throw(DimensionMismatch("Component arrays must be length of n columns!"))
         end
+        for col in columns
 
+            <div class="row">
+            <div class="column"><h1>hi</h1></div>
+            <div class="column"><p>Hello</p></div>
+            </div>
+        end
+        html = ""
+        f(http) = begin
+            open = "<style>$col_rowcss</style><div class='row'>"
+            for i in 1:n
+                open = open * """<div class="column">"""
+                open = open * join([l.f(http) for l in comparrays[i]])
+                open = open * "</div>"
+            end
+            open * "</div>"
+        end
     end
 end

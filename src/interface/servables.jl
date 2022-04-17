@@ -269,9 +269,9 @@ function generate_page(http, title, components, icon = "/")
     write(http, html)
     body = ""
     for comp in components
-        if ~(typeof(comp) == Function)
+        try
             body = body * comp.f(http)
-        else
+        catch
             body = body * comp(http)
         end
     end

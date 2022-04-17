@@ -24,7 +24,9 @@ export Page
 export html, html_file, file, css, css_file, js, js_file, fn
 export Button, Form, TextArea, TextBox, RadioSet, Slider
 export Canvas
-export List, UnorderedList
+export List, UnorderedList, A, DropDown
+# Structure servables (frontend)
+export Header, Navbar, Body, Columns
 # Methods
 export getargs, getarg, getpost, write_file, lists
 

@@ -281,7 +281,7 @@ end
 Other
     Components
 ==#
-abstract type ComponentPart end
+abstract type ComponentPart <: Component end
 mutable struct Context <: ComponentPart
     codestrings::AbstractArray
     update::Function
@@ -388,7 +388,7 @@ mutable struct UnorderedList
     end
 end
 
-mutable struct A <: Component
+mutable struct A <: ComponentPart
     name::String
     href::String
     f::Function
@@ -418,7 +418,6 @@ mutable struct DropDown <: Component
             end
             new(name, html, href, As, f)
         end
-    end
 end
 include("frontend.jl")
 include("methods.jl")

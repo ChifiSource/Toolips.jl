@@ -21,9 +21,14 @@ include("interface/servables.jl")
 export Route, ServerTemplate, Logger, stop!
 # Components
 export Page
-export html, html_file, getargs, fn
-export Button, Form, TextArea
-export getargs, getarg, getpost, write_file
+export html, html_file, file, css, css_file, js, js_file, fn
+export Button, Form, TextArea, TextBox, RadioSet, Slider
+export Canvas
+export List, UnorderedList, A, DropDown
+# Structure servables (frontend)
+export Header, Navbar, Body, Columns
+# Methods
+export getargs, getarg, getpost, write_file, lists
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
@@ -33,7 +38,8 @@ function create_serverdeps(name::String)
     logs = dir * name * "/logs"
     mkdir(public)
     mkdir(logs)
-    touch(name * "/start.sh")
+    touch(name * "/dev.jl")
+    touch(name * "/prod.jl")
     touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
@@ -41,9 +47,6 @@ function create_serverdeps(name::String)
         write(io, """
 # Welcome to your new Toolips server!
 using Main.Toolips\n
-PUBLIC = "../public"
-IP = "127.0.0.1"
-PORT = 8000
 function main()
         # Essentials
     global LOGGER = Logger()
@@ -68,6 +71,22 @@ function make_routes()
 end
 \n
 main()
+        """)
+    end
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        IP = "127.0.0.1"
+        PORT = 8000
+        PUBLIC = "../public"
+        include("src/$name.jl")
+        """)
+    end
+    open(name * "/prod.jl", "w") do io
+        write(io, """
+        IP = "127.0.0.1"
+        PORT = 8000
+        PUBLIC = "../public"
+        include("src/$name.jl")
         """)
     end
 end

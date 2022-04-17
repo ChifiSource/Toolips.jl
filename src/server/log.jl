@@ -26,12 +26,13 @@ function _log(level::Int64, message::String, levels::Dict, out::String)
     time = now()
     if level > 1
         open(out, "w") do o
+            seekend(o)
             try
-                write(o, "[" * string(time) * "]: $message")
+                write(o, "[" * string(time) * "]: $message\n")
             catch
                 try
                     touch(out)
-                    write(o, "[" * string(time) * "]: $message")
+                    write(o, "[" * string(time) * "]: $message"\n)
                 catch
                     throw(ArgumentError("Cannot access logs."))
                 end

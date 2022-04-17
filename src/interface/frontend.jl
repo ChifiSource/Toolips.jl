@@ -59,7 +59,11 @@ mutable struct Columns
             open = "<style>$col_rowcss</style><div class='row'>"
             for i in 1:n
                 open = open * """<div class="column">"""
-                open = open * join([l.f(http) for l in comparrays[i]])
+                try
+                    open = open * join([l.f(http) for l in comparrays[i]])
+                catch
+                    open = open * join([w(http) for w in comparrays[i]])
+                end
                 open = open * "</div>"
             end
             open * "</div>"

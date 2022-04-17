@@ -388,6 +388,18 @@ mutable struct UnorderedList
     end
 end
 
+mutable struct A <: Component
+    name::String
+    href::String
+    f::Function
+    html::String
+    function A(name = "a"; href = "#", label = "a")
+        f(http) = "<a id='$name' href='$href'>$label</a>"
+        html = "<a id='$name' href='$href'>$label</a>"
+        new(name, href, f, html)
+    end
+end
+
 mutable struct DropDown <: Component
     name::String
     html::String
@@ -406,19 +418,6 @@ mutable struct DropDown <: Component
             end
             new(name, html, href, As, f)
         end
-    end
-end
-
-
-mutable struct A <: Component
-    name::String
-    href::String
-    f::Function
-    html::String
-    function A(name = "a"; href = "#", label = "a")
-        f(http) = "<a id='$name' href='$href'>$label</a>"
-        html = "<a id='$name' href='$href'>$label</a>"
-        new(name, href, f, html)
     end
 end
 include("frontend.jl")

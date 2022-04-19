@@ -52,7 +52,9 @@ function getargs(http::HTTP.Stream)
     end
     return(arg_dict)
 end
-
+function active_target(http::HTTP.Stream)
+    
+end
 """
 ### getargs(::HTTP.Stream, ::Symbol) -> ::Vector
 ------------------

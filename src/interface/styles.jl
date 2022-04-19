@@ -1,27 +1,37 @@
+
+
+abstract type AbstractStyle <: Component end
 abstract type StyleComponent <: Component end
 
-mutable struct Styler{C<:Component} <: StyleComponent
+mutable struct StyleSheet <: Component
     name::String
     html::String
     f::Function
-    rules::Dict
-    keyframes::Function
-    useid::Bool
-    component::C
-    function Style(name::String = "style"; rules = Dict(), useid = false)
-        keyframes(f::Function) = animate(style, f)
-        rules = TLDEFAULT_doc
-        html = "<style></style>"
-        f(http) = "<style>" * rules_css(rules) * "</style>"
+    components::Vector{Style}
+    function StyleSheet(name::String = "Toolips", styles::Vector{Style})
+
     end
-    function Style(c::Component)
-        rules = default_style(typeof(c))
-    end
+end
+@keyframes example {
+  from {background-color: red;}
+  to {background-color: yellow;}
+}
+
+mutable struct Style <: AbstractStyle
 
 end
 
-copystyle!(c::StyleComponent, c2::StyleComponent) = c.rules = c2.rules
+mutable struct Animation <: AbstractStyle
+    name::String
+    html::String
+    expression::Expr
+    f::Function
+    apply::Function
+    function Animation(name::String = "animation")
 
-function default_style()
+    end
+end
 
+mutable struct Border <: StyleComponent
+    keyframes::
 end

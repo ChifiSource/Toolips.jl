@@ -1,4 +1,47 @@
 import Base: +
+#==
+File/system stuff
+==#
+"""
+### write_file(URI::String, http::HTTP.Stream) -> _
+------------------
+Writes a file to an HTTP.Stream.
+
+"""
+function write_file(URI::String, http::HTTP.Stream)
+    open(URI, "r") do i
+        write(http, i)
+    end
+end
+
+function route_from_dir(dir::String)
+    dirs = readdir(dir)
+    routes::Vector{String} = []
+    for directory in dirs
+        if isfile("$dir/" * directory)
+            push!(routes, "$dir/$directory")
+        else
+            if ~(directory in routes)
+                newread = dir * "/$directory"
+                newrs = route_from_dir(newread)
+                [push!(routes, r) for r in newrs]
+            end
+        end
+    end
+    rts::Vector{Route} = []
+    for directory in routes
+        if isfile("$dir/" * directory)
+            push!(rts, Route("/$directory", file("$dir/" * directory)))
+        end
+    end
+    rts
+end
+#==
+Data formatting stuff
+==#
+function _percentage_text(percentage::Float64)
+    
+end
 """
 ### parsetypes(data::AbstractString) -> T(data)
 ------------------
@@ -33,7 +76,9 @@ function parsetypes(data::AbstractString)
 end
     return(x)
 end
-
+#==
+HTTP Arguments/Requests
+==#
 """
 ### getargs(::HTTP.Stream) -> ::Dict
 ------------------
@@ -53,7 +98,7 @@ function getargs(http::HTTP.Stream)
     return(arg_dict)
 end
 function active_target(http::HTTP.Stream)
-    
+
 end
 """
 ### getargs(::HTTP.Stream, ::Symbol) -> ::Vector
@@ -86,19 +131,9 @@ Returns the post argument data of an HTTP stream.
 function getpost(http::HTTP.Stream)
     http.message.body
 end
-
-"""
-### write_file(URI::String, http::HTTP.Stream) -> _
-------------------
-Writes a file to an HTTP.Stream.
-
-"""
-function write_file(URI::String, http::HTTP.Stream)
-    open(URI, "r") do i
-        write(http, i)
-    end
-end
-
+#==
+Servable Generators
+==#
 """
 ### lists(::Pair{String, String} ...) -> ::Vector{List}
 ------------------
@@ -138,3 +173,32 @@ Easy compound forms with the + operator. See Form for more information.
 
 """
 +(fc::FormComponent, fc2::FormComponent) = Form(fc, fc2)
+#==
+CSS methods
+==#
+animate_style!(s::AbstractStyle, a::Animation) = s.animation = a
+
+style!(c::Component, s::Style) = c.class = s.name
+copystyle!(c::Component, c2::Component) = c.class = c2.class
+macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
+    percent = _percentage_text(percentage)
+    try
+        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)],
+        eval(expr))
+    catch
+        anim.keyframes[Symbol("$percent")] = eval(expr)
+    end
+end
+
+macro keyframes!(anim::Animation, percentage::Int64, expr::Expression)
+    keyframes!(anim, float(percentage), expr)
+end
+
+macro keyframes!(anim::Animation, method::Symbol, expr::Expression)
+    try
+        anim.keyframes[string(method)] = vcat(anim.keyframes[string(method)],
+        eval(expr))
+    catch
+        anim.keyframes[string(method)] = eval(expr)
+    end
+end

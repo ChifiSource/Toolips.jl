@@ -117,7 +117,7 @@ html::String
 ------------------
 A button is a form component that allows Toolips.jl to communicate with button
 clicks on a web-page. The **onAction** function denotes what the button is
-to do when clicked. Name will also become the id inside of the Document. \
+to do when clicked. Name will also become the id inside of the Document.
 ------------------
 
 """
@@ -129,10 +129,10 @@ mutable struct Button <: FormComponent
     onAction::Function
     html::String
     function Button(name::String; onAction::Function = http -> "",
-         label = "Button", value = "none")
+         label = "Button", value = "none", method = "GETt")
         action = "/connect/$name"
         html = """<button name="$name" value="$value">$label</button>"""
-        f(http) = """<form action="$action" method="post">""" * html * "</form>"
+        f(http) = """<form action="$action" method="GET">""" * html * "</form>"
         new(name, action, label, f, onAction, html)
     end
 end
@@ -146,6 +146,7 @@ mutable struct TextArea <: FormComponent
     f::Function
     html::String
     onAction::Function
+    action::String
     function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
         cols::Int64 = 50, text = "~", onAction = http -> "")
         html = """
@@ -158,7 +159,8 @@ mutable struct TextArea <: FormComponent
         set_txt(to::String) = begin
             upperlower = split(html, "~")
         end
-        new(name, text, maxlength, rows, cols, f, html, onAction)
+        action = "/connect/$name"
+        new(name, text, maxlength, rows, cols, f, html, onAction, action)
     end
 end
 
@@ -169,6 +171,7 @@ mutable struct TextBox <: FormComponent
     f::Function
     html::String
     onAction::Function
+    action::String
     function Text(name::String; maxlength::Int64 = 25, text::String = "",
         onAction = http -> "")
         html = """
@@ -179,17 +182,39 @@ mutable struct TextBox <: FormComponent
         f(http) = """<form action="$action">
         $html
         </form>"""
-        new(name, text, mexlength, f, html, onAction)
+        new(name, text, mexlength, f, html, onAction, action)
     end
 end
+#==
+<form action="">
+  <input type="file" id="myFile" name="filename">
+  <input type="submit">
+</form>
+==#
+mutable struct  FileInput <: FormComponent
+    name::String
+    html::String
+    onAction::Function
+    f::Function
+    action::String
+    function FileInput(name::String; onAction::Any = http -> string(http.target),)
+        action = "/connect/$name"
+        html = """
+        <input type = "file" id = "$name" name = "$name" type = "$type">
+                </input>"""
+        f(http) = """<form action="$action">
+        $html
+        </form>"""
 
-
+    end
+end
 mutable struct RadioSet <: FormComponent
     name::String
     setdict::Dict
     f::Function
     html::String
     onAction::Function
+    action::String
     function RadioSet(name::String, setdict::Dict; onAction = http -> "",
         multiple = false)
         if multiple == true
@@ -197,6 +222,7 @@ mutable struct RadioSet <: FormComponent
         else
             multiple = ""
         end
+        action = "/connect/$name"
         htmlopen = """<select id="$name" name="$name" $multiple>"""
         for option in setdict
             label = setdic[option]
@@ -206,7 +232,7 @@ mutable struct RadioSet <: FormComponent
         f(http) = """<form action="$action">
         $html
         </form>"""
-        new(name, setdict, f, html, onAction)
+        new(name, setdict, f, html, onAction, action)
     end
 end
 
@@ -217,14 +243,16 @@ mutable struct Slider <: FormComponent
     f::Function
     html::String
     onAction::Function
+    action::String
     function Slider(name::String; range = 0:100, onAction = http -> "")
         min, max = range[1], range[2]
+        action = "/connect/$name"
         html = """<input type="range" id="$name" name="$name"
                min="$min" max="$max">"""
         f(http) = """<form action="$action">
                $html
                </form>"""
-        new(name, range, f, html, onAction)
+        new(name, range, f, html, onAction, action)
     end
 end
 
@@ -235,8 +263,9 @@ mutable struct Form <: FormComponent
     html::String
     components::AbstractArray
     onAction::Function
-    function Form(components...; onAction::Any = http -> "", action::String = "")
-        html = """<form action="$action" method = "GET">"""
+    function Form(components...; onAction::Any = http -> "", action::String = "",
+        method::String = "GET")
+        html = """<form action="$action" method = "$method">"""
         components = [c for c in components]
         for comp in components
             html = html * comp.html
@@ -244,6 +273,28 @@ mutable struct Form <: FormComponent
         html = html * "</form>"
         f(http) = html
         new(action, f, html, components, onAction)
+    end
+end
+
+mutable struct Header <: Component
+    title::String
+    icon::String
+    keywords::Array
+    author::String
+    description::String
+    f::Function
+    function Header(; title = "Toolips App", icon = "/icon.png", keywords = [],
+        author = "Toolips", description = "A new Toolips App")
+        kws = join(keywords)
+        f(http) = """
+        <meta charset="UTF-8">
+        <meta name="description" content="$description">
+        <meta name="keywords" content="$kws">
+        <meta name="author" content="$author">
+        <meta name="viewport" content="width=device-width, initial-scale=1.
+        <title>$title</title>
+        """
+        new(title, icon, keywords, author, description, f)
     end
 end
 #==
@@ -254,25 +305,24 @@ mutable struct Page <: Component
     components::AbstractVector
     add::Function
     # Document
-    title::String
-    icon::String
-    function Page(components = [], title = "Toolips Webapp"; icon = "/")
-        f(http) = generate_page(http, title, components, icon)
+    header::Header
+    function Page(components::AbstractVector = [], header::Header = Header())
+        f(http) = generate_page(http, header)
         add(x::Function) = push!(components, x)
         add(x::Component) = push!(components, x)
-        new(f, components, add, title, icon)
+        new(f::Function, components::AbstractVector, add::Function, header::Header)
     end
 end
 
-function generate_page(http, title, components, icon = "/")
-    html = "<head>" * "<title>$title</title>" * "</head>"
-    write(http, html)
+function generate_page(http::HTTP.Stream, header::Header)
+    header = header.f(http)
+    write(http, header)
     body = ""
     for comp in components
         try
-            body = body * comp.f(http)
+            body::String = body * comp.f(http)
         catch
-            body = body * comp(http)
+            body::String = body * comp(http)
         end
     end
     body

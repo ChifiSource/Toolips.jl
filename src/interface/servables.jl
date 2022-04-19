@@ -128,12 +128,14 @@ mutable struct Button <: FormComponent
     f::Function
     onAction::Function
     html::String
+    class::Any
     function Button(name::String; onAction::Function = http -> "",
-         label = "Button", value = "none", method = "GETt")
+         label = "Button", value = "none", method = "GET",
+         class::Any = Button)
         action = "/connect/$name"
         html = """<button name="$name" value="$value">$label</button>"""
         f(http) = """<form action="$action" method="GET">""" * html * "</form>"
-        new(name, action, label, f, onAction, html)
+        new(name, action, label, f, onAction, html, class)
     end
 end
 
@@ -147,8 +149,10 @@ mutable struct TextArea <: FormComponent
     html::String
     onAction::Function
     action::String
+    class::Any
     function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
-        cols::Int64 = 50, text = "~", onAction = http -> "")
+        cols::Int64 = 50, text = "~", onAction = http -> "",
+        class::Any = TextArea)
         html = """
         <textarea id="$name" name="$name" rows="$rows" cols="$cols" maxlength = "$maxlength">
         $text
@@ -160,7 +164,7 @@ mutable struct TextArea <: FormComponent
             upperlower = split(html, "~")
         end
         action = "/connect/$name"
-        new(name, text, maxlength, rows, cols, f, html, onAction, action)
+        new(name, text, maxlength, rows, cols, f, html, onAction, action, class)
     end
 end
 
@@ -172,8 +176,9 @@ mutable struct TextBox <: FormComponent
     html::String
     onAction::Function
     action::String
+    class::Any
     function Text(name::String; maxlength::Int64 = 25, text::String = "",
-        onAction = http -> "")
+        onAction = http -> "", class::Any = TextBox)
         html = """
         <input type = "text" id = "$name" name = "$name" maxlength = "$maxlength">
         $text
@@ -182,7 +187,7 @@ mutable struct TextBox <: FormComponent
         f(http) = """<form action="$action">
         $html
         </form>"""
-        new(name, text, mexlength, f, html, onAction, action)
+        new(name, text, mexlength, f, html, onAction, action, class)
     end
 end
 #==
@@ -197,7 +202,9 @@ mutable struct  FileInput <: FormComponent
     onAction::Function
     f::Function
     action::String
-    function FileInput(name::String; onAction::Any = http -> string(http.target),)
+    class::Type
+    function FileInput(name::String; onAction::Any = http -> string(http.target),
+        class::Any = FileInput)
         action = "/connect/$name"
         html = """
         <input type = "file" id = "$name" name = "$name" type = "$type">
@@ -205,7 +212,7 @@ mutable struct  FileInput <: FormComponent
         f(http) = """<form action="$action">
         $html
         </form>"""
-
+        new(name, html, onAction, f, action, class)
     end
 end
 mutable struct RadioSet <: FormComponent
@@ -215,8 +222,9 @@ mutable struct RadioSet <: FormComponent
     html::String
     onAction::Function
     action::String
+    class::Any
     function RadioSet(name::String, setdict::Dict; onAction = http -> "",
-        multiple = false)
+        multiple = false, class::Any = TextBox)
         if multiple == true
             multiple = "multiple"
         else
@@ -232,7 +240,7 @@ mutable struct RadioSet <: FormComponent
         f(http) = """<form action="$action">
         $html
         </form>"""
-        new(name, setdict, f, html, onAction, action)
+        new(name, setdict, f, html, onAction, action, class)
     end
 end
 
@@ -244,7 +252,9 @@ mutable struct Slider <: FormComponent
     html::String
     onAction::Function
     action::String
-    function Slider(name::String; range = 0:100, onAction = http -> "")
+    class::Any
+    function Slider(name::String; range = 0:100, onAction = http -> "",
+        class::Any = Slider)
         min, max = range[1], range[2]
         action = "/connect/$name"
         html = """<input type="range" id="$name" name="$name"
@@ -252,7 +262,7 @@ mutable struct Slider <: FormComponent
         f(http) = """<form action="$action">
                $html
                </form>"""
-        new(name, range, f, html, onAction, action)
+        new(name, range, f, html, onAction, action, class)
     end
 end
 
@@ -263,8 +273,9 @@ mutable struct Form <: FormComponent
     html::String
     components::AbstractArray
     onAction::Function
+    class::Any
     function Form(components...; onAction::Any = http -> "", action::String = "",
-        method::String = "GET")
+        method::String = "GET", class::Any = Form)
         html = """<form action="$action" method = "$method">"""
         components = [c for c in components]
         for comp in components
@@ -283,18 +294,22 @@ mutable struct Header <: Component
     author::String
     description::String
     f::Function
-    function Header(; title = "Toolips App", icon = "/icon.png", keywords = [],
-        author = "Toolips", description = "A new Toolips App")
+    stylesheet::StyleSheet
+    function Header(; title::String = "Toolips App", icon::String = "/icon.png",
+         keywords::Array{String} = [],
+        author::String = "Toolips", description::String = "A new Toolips App",
+        stylesheet::StyleSheet = ToolipsDefaultStyle())
         kws = join(keywords)
         f(http) = """
         <meta charset="UTF-8">
         <meta name="description" content="$description">
         <meta name="keywords" content="$kws">
         <meta name="author" content="$author">
+        <link rel="icon" href="$icon">
         <meta name="viewport" content="width=device-width, initial-scale=1.
         <title>$title</title>
         """
-        new(title, icon, keywords, author, description, f)
+        new(title, icon, keywords, author, description, f, stylesheet)
     end
 end
 #==
@@ -391,12 +406,14 @@ mutable struct Canvas <: Component
     ctx::Context
     context::Function
     f::Function
-    function Canvas(name = "canvas"; width = 200, height = 200, mode = "2d")
+    class::Any
+    function Canvas(name = "canvas"; width = 200, height = 200, mode = "2d",
+        class::Any = Canvas)
         ctx = Context(mode, name)
         html = """<canvas id="$name" width="$width" height="$height"></canvas>"""
         context(f::Function) = f(ctx)
         f(http) = """<canvas id="$name" width="$width" height="$height"script = '""" * join(ctx.codestrings) * "'</script></canvas>"
-        new(name, width, height, html, ctx, context, f)
+        new(name, width, height, html, ctx, context, f, class)
     end
 end
 
@@ -408,13 +425,17 @@ mutable struct List <: ListComponent
     html::String
     f::Function
     href::String
-    function List(name::String = "list"; label = "hello world!", href = "")
+    class::Any
+    style::String
+    function List(name::String = "list"; label::String = "hello world!",
+        href::String = "",
+        class::Any = List, style::String = "")
         if href != ""
             href = "href='$href'"
         end
         html = """<li id='$name'><a $href>$label</a></li>"""
         f(http) = html
-        new(name, label, html, f, href)
+        new(name, label, html, f, href, class, style)
     end
 end
 
@@ -423,18 +444,20 @@ mutable struct UnorderedList
     html::String
     f::Function
     lists::Vector{List}
-    function UnorderedList(name::String = "ul", comps::Array{List} = [])
+    class::Any
+    function UnorderedList(name::String = "ul", comps::Array{List} = [];
+        class::Any = UnorderedList)
         html = "<ul id = '$name'>"
 
         f(http) = "<ul id='$name'>" * join([l.f(http) for l in comps]) * "</ul>"
-        new(name, html, f, comps)
+        new(name, html, f, comps, class)
     end
-     function UnorderedList(name::String = "ul")
-        UnorderedList(name, comps)
+     function UnorderedList(name::String = "ul"; class::Any = UnorderedList)
+        UnorderedList(name, [], class = class)
     end
-         function UnorderedList(comps::Vector{List})
+    function UnorderedList(comps::Vector{List}; class::Any = UnorderedList)
         name = ""
-        UnorderedList(name, comps)
+        UnorderedList(name, comps, class = class)
     end
 end
 
@@ -443,10 +466,13 @@ mutable struct A <: ComponentPart
     href::String
     f::Function
     html::String
-    function A(name = "a"; href = "#", label = "a")
-        f(http) = "<a id='$name' href='$href'>$label</a>"
+    class::Any
+    style::Any
+    function A(name = "a"; href = "", label = "a", style::String = "",
+         class::Any = A)
+        f(http) = "<a id='$name' href='$href' style = '$style'>$label</a>"
         html = "<a id='$name' href='$href'>$label</a>"
-        new(name, href, f, html)
+        new(name, href, f, html, style, class)
     end
 end
 
@@ -456,8 +482,10 @@ mutable struct DropDown <: Component
     href::String
     As::AbstractArray{Component}
     f::Function
+    class::Any
     function DropDrown(name::String = "dropdown", As::A ...;
-        label::String = "dropdown", href::String = "#")
+        label::String = "dropdown", href::String = "#",
+        class::Any = DropDown)
         html = "<div id='$name' href='$href'></div>"
         f(http) = begin
             """<div id="$name">
@@ -466,7 +494,7 @@ mutable struct DropDown <: Component
                 <div id=$name-content>
                 """ * join([a.f(http) for a in As]) * "</div></div>"
             end
-            new(name, html, href, As, f)
+            new(name, html, href, As, f, class)
         end
 end
 include("frontend.jl")

@@ -40,7 +40,7 @@ end
 Data formatting stuff
 ==#
 function _percentage_text(percentage::Float64)
-    
+
 end
 """
 ### parsetypes(data::AbstractString) -> T(data)
@@ -173,32 +173,17 @@ Easy compound forms with the + operator. See Form for more information.
 
 """
 +(fc::FormComponent, fc2::FormComponent) = Form(fc, fc2)
+
 #==
-CSS methods
+Document Functions
+WIP
 ==#
-animate_style!(s::AbstractStyle, a::Animation) = s.animation = a
-
-style!(c::Component, s::Style) = c.class = s.name
-copystyle!(c::Component, c2::Component) = c.class = c2.class
-macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
-    percent = _percentage_text(percentage)
-    try
-        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)],
-        eval(expr))
-    catch
-        anim.keyframes[Symbol("$percent")] = eval(expr)
-    end
+macro action(d::Symbol, expr::Expr)
+    action_evaluator(expr.head, expr.args)
 end
+function action_evaluator(d::DocumentFunction, head, args)
+    println(typeof(head)); println(typeof(args))
 
-macro keyframes!(anim::Animation, percentage::Int64, expr::Expression)
-    keyframes!(anim, float(percentage), expr)
-end
-
-macro keyframes!(anim::Animation, method::Symbol, expr::Expression)
-    try
-        anim.keyframes[string(method)] = vcat(anim.keyframes[string(method)],
-        eval(expr))
-    catch
-        anim.keyframes[string(method)] = eval(expr)
-    end
+    known_symbols = Dict(:open => """var xmlHttp = new XMLHttpRequest();
+                xmlHttp.open( "$", , true );""", :get)
 end

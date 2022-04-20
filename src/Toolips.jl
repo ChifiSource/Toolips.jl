@@ -12,7 +12,14 @@ authentication.
 - TODO Authentication. (UUID's would be nice)
 - TODO Parsing envvariables and CLI from main in the generated file (this file,
 create_serverdeps(name::String)
-- TODO Production vs dev environments
+- TODO improve default project files a tad.
+- TODO Load environment in default files
+- TODO Add data-bases (via ODdb.jl, soon after a 0.1.0 release of it)
+- TODO Simple internal calls for get() and post requests.
+- TODO PUBLIC ROUTES STILL BROKEN
+- RIP
+- TODO Implement some kind of classes structure for CSS styling to be easier.
+      Might end up making some CSS Julia equivalent types.
 ==#
 using Crayons
 using Sockets, HTTP, Pkg

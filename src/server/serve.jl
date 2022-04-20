@@ -1,4 +1,21 @@
 include("log.jl")
+"""
+### Route{T}
+path::String
+page::T
+------------------
+##### Field Info
+- path::String
+The path, e.g. "/" at which to direct to the given component.
+- page::T (::Function || T <: Component)
+The servable to serve at this given route.
+------------------
+##### Constructors
+Route(path::String, page::Function)
+Route(path::String, page::Page)
+Route(path::String, page::FormComponent)
+Route(path::String, page::Component)
+"""
 mutable struct Route{T}
     path::String
     page::T
@@ -14,29 +31,6 @@ mutable struct Route{T}
     function Route(path::String, page::Component)
         new{typeof(page)}(path, page)
     end
-end
-
-function route_from_dir(dir::String)
-    dirs = readdir(dir)
-    routes::Vector{String} = []
-    for directory in dirs
-        if isfile("$dir/" * directory)
-            push!(routes, "$dir/$directory")
-        else
-            if ~(directory in routes)
-                newread = dir * "/$directory"
-                newrs = route_from_dir(newread)
-                [push!(routes, r) for r in newrs]
-            end
-        end
-    end
-    rts::Vector{Route} = []
-    for directory in routes
-        if isfile("$dir/" * directory)
-            push!(rts, Route("/$directory", file("$dir/" * directory)))
-        end
-    end
-    rts
 end
 
 mutable struct ServerTemplate
@@ -84,7 +78,7 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     logger.log(1, "Toolips Server starting on port " * string(port))
     routefunc = generate_router(routes, server, logger)
-    @async HTTP.listen(routefunc, ip, port; server = server)
+    @async HTTP.listen(routefunc, ip, port, server = server)
     logger.log(2, "Successfully started server on port " * string(port))
     logger.log(1,
     "You may visit it now at http://" * string(ip) * ":" * string(port))
@@ -98,6 +92,7 @@ function generate_router(routes::AbstractVector, server, logger::Logger)
     routeserver = function serve(http)
     HTTP.setheader(http, "Content-Type" => "text/html")
     fullpath = http.message.target
+    logger.log(string(join([string(r) for r in keys(route_paths)])))
     # Checks for argument data, because this is not in the route.
     if contains(http.message.target, '?')
          fullpath = split(http.message.target, '?')[1]

@@ -12,9 +12,7 @@ abstract type Servable end
 Creates a servable from the provided string, which should be HTML.
 #### example
 """
-function html(hypertxt::String)
-    return(http -> hypertxt)
-end
+html(hypertxt::String) = http::HTTP.Stream -> hypertxt::Function
 
 """
 ### html_file(URI::String) -> ::Function
@@ -23,9 +21,7 @@ Creates a servable which will read and return the file denoted by its path in
 URI.
 #### example
 """
-function html_file(URI::String)
-    return(http -> HTTP.Response(200, read(URI)))
-end
+html_file(URI::String) = http -> HTTP.Response(200, read(URI))::Function
 
 """
 ### file(URI::String) -> ::Function
@@ -34,9 +30,7 @@ Creates a servable which will read and return the file denoted by its path in
 URI.
 #### example
 """
-function file(URI::String)
-    return(http -> HTTP.Response(200, read(URI)))
-end
+file(URI::String) = http::HTTP.Stream -> HTTP.Response(200, read(URI))::Function
 
 """
 ### html(::String) -> ::Function
@@ -44,9 +38,7 @@ end
 Creates a servable from the provided string, which should be CSS.
 #### example
 """
-function css(css::String)
-    return(http -> "<style>" * css * "</style>")
-end
+css(css::String) = http::HTTP.Stream -> "<style>" * css * "</style>"::Function
 
 """
 ### css_file(URI::String) -> ::Function
@@ -55,8 +47,8 @@ Creates a servable which will read and return the file denoted by its path in
 URI.
 #### example
 """
-function css_file(URI::String)
-    http -> """<link rel="stylesheet" href="$URI">"""
+css_file(URI::String) = begin
+    http::HTTP.Stream -> """<link rel="stylesheet" href="$URI">"""::Function
 end
 
 """
@@ -65,9 +57,7 @@ end
 Creates a servable from the provided string, which should be JavaScript.
 #### example
 """
-function js(js::String)
-    return(http -> "<script>" * js * "</script>")
-end
+js(js::String) = http::HTTP.Stream -> "<script>" * js * "</script>"::Function
 
 """
 ### js_file(URI::String) -> ::Function
@@ -76,8 +66,8 @@ Creates a servable which will read and return the file denoted by its path in
 URI.
 #### example
 """
-function js_file(URI::String)
-    http -> """<script src="$URI"></script>"""
+js_file(URI::String) = begin
+    http::HTTP.Stream -> """<script src="$URI"></script>"""::Function
 end
 #==
 Functions
@@ -91,7 +81,7 @@ Turns any function into a servable. Functions can optionally take the single
 
 """
 function fn(f::Function)
-    m = first(methods(f))
+    m::Method = first(methods(f))
     if m.nargs > 2 | m.nargs < 1
         throw(ArgumentError("Expected either 1 or 2 arguments."))
     elseif m.nargs == 2
@@ -140,14 +130,22 @@ mutable struct Component <: Servable
          new(name, f, properties)
     end
 end
+
 mutable struct Container <: Servable
     name::String
     tag::String
     ID::Integer
     components::Vector{Component}
+    f::Function
     properties::Dict
-    function Container()
+    add!::Function
+    function Container(name::String, tag::String = "", ID::Integer = 1,
+        components::Vector{Component} = []; properties::Dict = Dict())
+        add!(c::Component)::Function = push!(components, c)
+        f(http::HTTP.Stream) = begin
 
+        end
+        new(name, tag, ID, components, f, properties, add!)
     end
 end
 
@@ -172,13 +170,17 @@ end
 
 FileInput(name::String) = Input(name, "file")::Component
 
-function Option(name::String; )
-
+function Option(name::String; value::String = "", text::String = "")
+    Component(name, "option", Dict())::Component
 end
 
-function RadioInput(name::String; multiple::Bool = false)
-    Component(name, "select", Dict(:multiple => multiple))
+function RadioInput(name::String, ID::Int64, select::Component;
+    multiple::Bool = false)
+    Container(name, "select", ID, option, properties = Dict())::Container
 end
+
+function Container(name::String, tag::String = "", ID::Integer = 1,
+    components::Vector{Component} = []; properties::Dict = Dict())
 
 function SliderInput(name::String; range::UnitRange)
 

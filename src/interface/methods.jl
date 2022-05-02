@@ -37,46 +37,6 @@ function route_from_dir(dir::String)
     rts
 end
 #==
-Data formatting stuff
-==#
-function _percentage_text(percentage::Float64)
-
-end
-"""
-### parsetypes(data::AbstractString) -> T(data)
-------------------
-This method will turn strings of data read to their approapriate types. Notably
-used by functions like getargs() in order to parse argument data into types.
-Returns the data parsed into its implicit type. For reading in arguments as
-specific types, see getargs(::HTTP.Stream, ::Symbol, ::Type)
-
-"""
-function parsetypes(data::AbstractString)
-    x = nothing
-    try
-        x = parse(Int64, data)
-    catch
-        try
-        x = parse(Bool, data)
-        catch
-            try
-            x = parse(Float64, data)
-            catch
-            try
-                x = parse(Array, data)
-            catch
-                try
-                    x = parse(Dict, data)
-                catch
-                    x = data
-                end
-            end
-        end
-    end
-end
-    return(x)
-end
-#==
 HTTP Arguments/Requests
 ==#
 """

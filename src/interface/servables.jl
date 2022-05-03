@@ -2,107 +2,12 @@
 Servables!
 ==#
 abstract type Servable end
-#==
- text/html
-    Components
-==#
-"""
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be HTML.
-#### example
-"""
-html(hypertxt::String) = http::HTTP.Stream -> hypertxt::Function
 
 """
-### html_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-html_file(URI::String) = http -> HTTP.Response(200, read(URI))::Function
-
-"""
-### file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-file(URI::String) = http::HTTP.Stream -> HTTP.Response(200, read(URI))::Function
-
-"""
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be CSS.
-#### example
-"""
-css(css::String) = http::HTTP.Stream -> "<style>" * css * "</style>"::Function
-
-"""
-### css_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-css_file(URI::String) = begin
-    http::HTTP.Stream -> """<link rel="stylesheet" href="$URI">"""::Function
-end
-
-"""
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be JavaScript.
-#### example
-"""
-js(js::String) = http::HTTP.Stream -> "<script>" * js * "</script>"::Function
-
-"""
-### js_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-js_file(URI::String) = begin
-    http::HTTP.Stream -> """<script src="$URI"></script>"""::Function
-end
-#==
-Functions
-==#
-"""
-### fn(::Function) -> ::Function
-------------------
-Turns any function into a servable. Functions can optionally take the single
-    positional argument "http."
-#### example
-
-"""
-function fn(f::Function)
-    m::Method = first(methods(f))
-    if m.nargs > 2 | m.nargs < 1
-        throw(ArgumentError("Expected either 1 or 2 arguments."))
-    elseif m.nargs == 2
-        http -> f(http)
-    else
-        http -> f()
-    end
-end
-
-    #==
-    Workable
-        Components
-        ==#
-"""
-### Button
+### Component
 name::String
-action::String
-label::String
 f::Function
-onAction::Function
-html::String
+properties::Dict
 ------------------
 A button is a form component that allows Toolips.jl to communicate with button
 clicks on a web-page. The **onAction** function denotes what the button is
@@ -117,17 +22,17 @@ mutable struct Component <: Servable
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict())
          f(http::HTTP.Stream) = begin
-             open_tag = "<$tag id = $name "
+             open_tag::String = "<$tag id = $name "
              for property in keys(properties)
                  if ~(property == :action || property == :text)
-                     prop = properties[property]
-                     propstring = string(property)
+                     prop::String = string(properties[property])
+                     propstring::String = string(property)
                      open_tag = " $open_tag $property"
                  end
              end
              open_tag * ">$text</$tag>"
          end
-         new(name, f, properties)
+         new(name, f, properties)::Component
     end
 end
 
@@ -143,7 +48,12 @@ mutable struct Container <: Servable
         components::Vector{Component} = []; properties::Dict = Dict())
         add!(c::Component)::Function = push!(components, c)
         f(http::HTTP.Stream) = begin
+            open_tag::String = "<$tag id = $name "
+            for property in keys(properties)
 
+            end
+            cs::String = join([c.f(http) for c in components])
+            open_tag * ">$cs</$tag>"
         end
         new(name, tag, ID, components, f, properties, add!)
     end
@@ -164,47 +74,25 @@ function Button(name::String = "Button"; text::String = "", value::Integer = "",
     Component(name, "button", Dict(:text => text, :value => 5))::Component
 end
 
-function P(name::String; maxlength::Int64 = 25, text::String = "")
+function P(name::String = ""; maxlength::Int64 = 25, text::String = "")
     Component(name, "p", Dict(:maxlength => maxlength, :text => text))::Component
 end
 
 FileInput(name::String) = Input(name, "file")::Component
 
-function Option(name::String; value::String = "", text::String = "")
+function Option(name::String = ""; value::String = "", text::String = "")
     Component(name, "option", Dict())::Component
 end
 
-function RadioInput(name::String, ID::Int64, select::Component;
-    multiple::Bool = false)
-    Container(name, "select", ID, option, properties = Dict())::Container
+function RadioInput(name::String = "", ID::Int64, select::Component,
+        options::Vector{Component} = Vector{Component}();
+         multiple::Bool = false)
+    Container(name, "select", ID, options, properties = Dict())::Container
 end
 
-function Container(name::String, tag::String = "", ID::Integer = 1,
-    components::Vector{Component} = []; properties::Dict = Dict())
-
-function SliderInput(name::String; range::UnitRange)
-
-end
-
-mutable struct Slider <: FormComponent
-    name::String
-    range::UnitRange
-    f::Function
-    html::String
-    onAction::Function
-    action::String
-    class::Any
-    function Slider(name::String; range = 0:100, onAction = http -> "",
-        class::Any = Slider)
-        min, max = range[1], range[2]
-        action = "/connect/$name"
-        html = """<input type="range" id="$name" name="$name"
-               min="$min" max="$max">"""
-        f(http) = """<form action="$action">
-               $html
-               </form>"""
-        new(name, range, f, html, onAction, action, class)
-    end
+function SliderInput(name::String = ""; range::UnitRange = 0:100,
+                    text::String = "")
+    Input(name, "range")::Component
 end
 
 
@@ -284,10 +172,7 @@ function generate_page(http::HTTP.Stream, header::Header)
     end
     body
 end
-#==
-Other
-    Components
-==#
+
 abstract type ComponentPart <: Component end
 mutable struct Context <: ComponentPart
     codestrings::AbstractArray

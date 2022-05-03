@@ -68,7 +68,6 @@ mutable struct Animation <: StyleComponent
 end
 
 animate!(s::AbstractStyle, a::Animation) = s.rules[:animation] = a.name
-
 style!(c::Component, s::Style) = c.properties[:class] = s.name
 copystyle!(c::Component, c2::Component) = c.properties[:class] = c2.properties[:class]
 

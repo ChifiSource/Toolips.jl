@@ -14,26 +14,32 @@ authentication.
 create_serverdeps(name::String)
 - TODO improve default project files a tad.
 - TODO Load environment in default files
+- TODO Setup the Pkg environment with the given loaded files
 - TODO Add data-bases (via ODdb.jl, soon after a 0.1.0 release of it)
 - TODO Simple internal calls for get() and post requests.
 - TODO PUBLIC ROUTES STILL BROKEN
 - RIP
 - TODO Implement some kind of classes structure for CSS styling to be easier.
       Might end up making some CSS Julia equivalent types.
+- TODO Add more properties for servables
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
 include("interface/servables.jl")
-# Server
+# Core Server
 export Route, ServerTemplate, Logger, stop!
 # Components
-export Page
 export html, html_file, file, css, css_file, js, js_file, fn
 export Button, Form, TextArea, TextBox, RadioSet, Slider
 export Canvas
 export List, UnorderedList, A, DropDown
 # Structure servables (frontend)
-export Header, Navbar, Body, Columns
+export Header, Page
+# High-level api
+export route, serve, anim!, style!, set!
+# Style Servables
+
+
 # Methods
 export getargs, getarg, getpost, write_file, lists
 

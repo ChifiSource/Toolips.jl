@@ -1,38 +1,53 @@
 include("log.jl")
+
 """
 ### Route{T}
-path::String
-page::T
+- path::String
+- page::T
 ------------------
 ##### Field Info
-- path::String
+- **path::String**
 The path, e.g. "/" at which to direct to the given component.
-- page::T (::Function || T <: Component)
+- **page::T** (::Function || T <: Component)
 The servable to serve at this given route.
 ------------------
 ##### Constructors
-Route(path::String, page::Function)
-Route(path::String, page::Page)
-Route(path::String, page::FormComponent)
-Route(path::String, page::Component)
+- Route(path::String, page::Function)
+- Route(path::String, page::Page)
+- Route(path::String, page::FormComponent)
+- Route(path::String, page::Component)
 """
-mutable struct Route{T}
+mutable struct Route
     path::String
-    page::T
-    function Route(path::String = "", page::Function = http -> "")
-        new{Function}(path, page)
-    end
+    page::Page
     function Route(path::String, page::Page)
-        new{Page}(path, page)
-    end
-    function Route(path::String, page::FormComponent)
-        new{FormComponent}(path, page)
-    end
-    function Route(path::String, page::Component)
-        new{typeof(page)}(path, page)
+        new(path, page)
     end
 end
 
+"""
+### ServerTemplate
+- ip**::String**
+- port**::Integer**
+- routes**::Vector{Route}**
+- logger**::Logger**
+- remove**::Function**
+- add**::Function**
+- public**::String**
+------------------
+##### Field Info
+- ip**::String**
+- port**::Integer**
+- routes**::Vector{Route}**
+- logger**::Logger**
+- add**::Function**
+------------------
+##### Constructors
+- Route(path::String, page::Function)
+- Route(path::String, page::Page)
+- Route(path::String, page::FormComponent)
+- Route(path::String, page::Component)
+"""
 mutable struct ServerTemplate
     ip::String
     port::Integer
@@ -86,29 +101,26 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
 end
 function generate_router(routes::AbstractVector, server, logger::Logger)
     route_paths = Dict([route.path => route.page for route in routes])
+    servables::OddFrame = OddFrame(:ID => [], :properties => [], :tag => [])
     # CORE routing server lies here.
-    # - Router itself is merely a function that gets called with the http
-    #  stream. This trickles down the line all the way to the interface methods.
     routeserver = function serve(http)
-    HTTP.setheader(http, "Content-Type" => "text/html")
-    fullpath = http.message.target
-    logger.log(string(join([string(r) for r in keys(route_paths)])))
-    # Checks for argument data, because this is not in the route.
-    if contains(http.message.target, '?')
-         fullpath = split(http.message.target, '?')[1]
-    end
-
-     if fullpath in keys(route_paths)
-         if typeof(route_paths[fullpath]) == Function
-             write(http, route_paths[fullpath](http))
-         else
-             write(http, route_paths[fullpath].f(http))
-         end
-     else
-         if typeof(route_paths["404"]) != Page
-             write(http, route_paths["404"](http))
-         else
-            write(http, route_paths["404"].f(http))
+        HTTP.setheader(http, "Content-Type" => "text/html")
+        fullpath = http.message.target
+        if contains(http.message.target, '?')
+            fullpath = split(http.message.target, '?')[1]
+        end
+        if fullpath in keys(route_paths)
+            if typeof(route_paths[fullpath]) == Function
+                write(http, route_paths[fullpath](http))
+            else
+                route_paths[fullpath].f(http, server = server,
+                logger = logger, routes = route_paths, servables = servables)
+            end
+        else
+            if typeof(route_paths["404"]) != Page
+                write(http, route_paths["404"](http))
+            else
+                write(http, route_paths["404"].f(http))
         end
      end
 

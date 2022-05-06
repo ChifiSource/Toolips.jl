@@ -1,5 +1,14 @@
 include("log.jl")
-
+mutable struct Connection
+    routes::Dict
+    http::HTTP.Stream
+    extensions::Vector{Function}
+    servables::Vector{Servable}
+    function Connection(routes::Dict, http::HTTP.Stream;
+        extensions::Vector{Function} = Vector{Function}())
+        new(routes, http, extensions, servables)::Connection
+    end
+end
 """
 ### Route{T}
 - path::String
@@ -30,10 +39,7 @@ end
 - ip**::String**
 - port**::Integer**
 - routes**::Vector{Route}**
-- logger**::Logger**
-- remove**::Function**
-- add**::Function**
-- public**::String**
+- extensions
 ------------------
 ##### Field Info
 - ip**::String**
@@ -52,44 +58,30 @@ mutable struct ServerTemplate
     ip::String
     port::Integer
     routes::Vector{Route}
-    logger::Logger
+    extensions::Vector{Any}
     remove::Function
     add::Function
     start::Function
-    public::String
     function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
-        routes::Vector{Route} = Vector{Route}(); logger::Logger = Logger(),
-        public::String = "public")
-        add, remove, start = funcdefs(routes, ip, port, logger, public)
-        new(ip, port, routes, logger, remove, add, start, public)
+        routes::Vector{Route} = Vector{Route}();
+        extensions::Vector{Any} = [:connection => Logger()])
+        add, remove, start = serverfuncdefs(routes, ip, port, extensions)
+        new(ip, port, routes, remove, add, start)
     end
 end
 
-function funcdefs(routes::AbstractVector, ip::String, port::Integer,
-    logger::Logger, public::String)
+function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
+    extensions::Vector)
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Component}) = push!(routes, r)
-    add(r::Route{Page}) = begin push!(routes, r)
-        for comp in r.page.components
-            if typeof(comp) != Function
-                if typeof(comp) <: FormComponent
-                    push!(routes, Route(comp.action, fn(comp.onAction)))
-                end
-            end
-        end
-    end
-    add(r::Route{FormComponent}) = begin push!(routes, r);
-        push!(routes, Route(r.page.action, fn(r.page.onAction)))
-    end
+    add(et::Symbol, e::Any) = push!(extensions, et => e)
     remove(i::Int64) = deleteat!(routes, i)
-    start() = _start(routes, ip, port, logger, public)
+    start() = _start(routes, ip, port, extensions)
     return(add, remove, start)
 end
 
-function _start(routes::AbstractVector, ip::String, port::Integer,
-    logger::Logger, public::String)
-    public_rs = route_from_dir(public)
-    routes = vcat(routes, public_rs)
+function _start(routes::AbstractVector, ip::String, port::Integer, extensions::Vector{Any})
+    
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     logger.log(1, "Toolips Server starting on port " * string(port))
     routefunc = generate_router(routes, server, logger)
@@ -101,20 +93,19 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
 end
 function generate_router(routes::AbstractVector, server, logger::Logger)
     route_paths = Dict([route.path => route.page for route in routes])
-    servables::OddFrame = OddFrame(:ID => [], :properties => [], :tag => [])
     # CORE routing server lies here.
-    routeserver = function serve(http)
+    routeserver::Function = function serve(http)
         HTTP.setheader(http, "Content-Type" => "text/html")
-        fullpath = http.message.target
+        fullpath::String = http.message.target
         if contains(http.message.target, '?')
             fullpath = split(http.message.target, '?')[1]
         end
         if fullpath in keys(route_paths)
-            if typeof(route_paths[fullpath]) == Function
-                write(http, route_paths[fullpath](http))
+            if typeof(route_paths[fullpath]) <: Servable
+                c::Connection = Connection(route_paths, http, servables)
+                route_paths[fullpath].f(c)
             else
-                route_paths[fullpath].f(http, server = server,
-                logger = logger, routes = route_paths, servables = servables)
+
             end
         else
             if typeof(route_paths["404"]) != Page

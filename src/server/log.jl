@@ -22,7 +22,8 @@ Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
                     out::String = pwd() * "logs/log.txt")
 Logger(; out::String = pwd() * "/logs/log.txt")
 """
-mutable struct Logger
+mutable struct Logger <: ServerExtension
+    type::Symbol
     out::String
     levels::Dict
     log::Function
@@ -30,7 +31,7 @@ mutable struct Logger
         log(level::Int64, message::String) = _log(level, message, levels, out)
         log(message::String) = _log(1, message, levels, out)
         log(http::HTTP.Stream, message::String) = _log(http, message)
-        new(out::String, levels::Dict, log::Function)
+        new(:connection, out::String, levels::Dict, log::Function)
     end
     function Logger(; out = pwd() * "/logs/log.txt")
         if contains(out, "src")

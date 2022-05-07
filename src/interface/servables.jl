@@ -9,9 +9,7 @@ name::String
 f::Function
 properties::Dict
 ------------------
-A button is a form component that allows Toolips.jl to communicate with button
-clicks on a web-page. The **onAction** function denotes what the button is
-to do when clicked. Name will also become the id inside of the Document.
+
 ------------------
 
 """
@@ -36,6 +34,16 @@ mutable struct Component <: Servable
     end
 end
 
+"""
+### Container
+name::String
+f::Function
+properties::Dict
+------------------
+
+------------------
+
+"""
 mutable struct Container <: Servable
     name::String
     tag::String
@@ -48,7 +56,7 @@ mutable struct Container <: Servable
         components::Vector{Component} = []; properties::Dict = Dict())
         add!(c::Component)::Function = push!(components, c)
         f(c::Connection) = begin
-            open_tag::String = "<$tag id = $name "
+            open_tag::String = "<$tag name = $name id = $name"
             write(http, open_tag)
             write(http, join([c.f(http) for c in components]))
             cs::String = join([c.f(http) for c in components])
@@ -93,7 +101,8 @@ function SliderInput(name::String = ""; range::UnitRange = 0:100,
                     text::String = "")
     Input(name, "range")::Component
 end
-
+"""
+"""
 function Form(name::String = "",
     components::Vector{Component} = Vector{Component}(); post::String = "",
     get::String = "")
@@ -101,10 +110,10 @@ function Form(name::String = "",
     action::String = ""
     if get != "" || post != ""
         if length(get) > length(post)
-            method = "get"
+            method = "GET"
             action = get
         else
-            method = "post"
+            method = "POST"
             action = post
         end
     end
@@ -113,243 +122,28 @@ function Form(name::String = "",
 end
 
 function Link(name::String; rel::String = "stylesheet", href::String = "")
-    
+    Component(name, "link", Dict(:rel => string(rel), :href => href))::Component
 end
 
-function MetaData(name::String = "description", )
-
+function MetaData(name::String = "charset", content::String = "UTF-8" )
+    Component(name, "meta", Dict(:content => string(content)))::Component
 end
 
 function Header(title::String = "Toolips App";
-    icon::String = "", keywords::String = [], author::String = "",
+    icon::String = "", keywords::Array{String} = [], author::String = "",
     description::String = "", links::Vector{Component} = Vector{Component}())
-
-
+    cs::Vector{Component} = Vector{Component}()
+    push!(cs, MetaData())
+    push!(cs, Link("icon", rel = "icon", href = icon))
+    push!(cs, MetaData("keywords", join(keywords, ",")))
+    push!(cs, MetaData("description", description))
+    [push!(cs, link) for link in cs]
+    Container(name, "head", 1, cs)::Container
 end
 
-mutable struct Header <: Component
-    title::String
-    icon::String
-    keywords::Array{String}
-    author::String
-    description::String
-    f::Function
-    stylesheet::StyleSheet
-    links::Link
-    function Header(; title::String = "Toolips App", icon::String = "/icon.png",
-         keywords::Array{String} = [],
-        author::String = "Toolips", description::String = "A new Toolips App",
-        stylesheet::StyleSheet = ToolipsDefaultStyle())
-        kws = join(keywords)
-        f(http) = """
-        <meta charset="UTF-8">
-        <meta name="description" content="$description">
-        <meta name="keywords" content="$kws">
-        <meta name="author" content="$author">
-        <link rel="icon" href="$icon">
-        <meta name="viewport" content="width=device-width, initial-scale=1.
-        <title>$title</title>
-        """
-        new(title, icon, keywords, author, description, f, stylesheet)
-    end
-end
-#==
-Page
-==#
-mutable struct Page <: Component
-    f::Function
-    components::AbstractVector
-    add::Function
-    # Document
-    header::Header
-    function Page(components::AbstractVector = [], header::Header = Header())
-        f(http) = generate_page(http, header)
-        add(x::Function) = push!(components, x)
-        add(x::Component) = push!(components, x)
-        new(f::Function, components::AbstractVector, add::Function, header::Header)
-    end
-end
-
-function generate_page(http::HTTP.Stream, header::Header)
-    header = header.f(http)
-    write(http, header)
-    body = ""
-    for comp in components
-        try
-            body::String = body * comp.f(http)
-        catch
-            body::String = body * comp(http)
-        end
-    end
-    body
-end
-
-abstract type ComponentPart <: Component end
-mutable struct Context <: ComponentPart
-    codestrings::AbstractArray
-    update::Function
-    fillRect::Function
-    strokeRect::Function
-    beginPath::Function
-    closePath::Function
-    moveTo::Function
-    lineTo::Function
-    fill::Function
-    stroke::Function
-    arc::Function
-    rect::Function
-    function Context(ctx::String = "2d", name::String = "canvas")
-        codestrings = []
-        push!(codestrings, """var canvas = document.getElementById("$name");
-            var $namectx = canvas.getContext($ctx);""")
-        namectx = "$name" * ctx
-        update() = script = join(codestrings)
-        rect(x::Integer, y::Integer, w::Integer, h::Integer) =
-            push!(codestrings, "$namectx.rect($x, $y, $w, $h);")
-        fillRect(x::Integer, y::Integer, w::Integer, h::Integer) = begin
-            push!(codestrings, "$namectx.fillRect($x, $y, $w, $h);")
-        end
-        strokeRect(x::Integer, y::Integer, w::Integer, h::Integer) =
-            push!(codestrings, "$namectx.strokeRect($x, $y, $w, $h);")
-        arc(x, y, r, sa, ea, ccw) = begin
-            push!(codestrings, "$namectx.arc($x, $y, $r, $sa, $ea, $ccw);")
-        end
-        beginPath() = begin
-            push!(codestrings, "$namectx.beginPath();")
-        end
-        closePath() = begin
-            push!(codestrings, "$namectx.closePath();")
-        end
-        moveTo(x::Integer, y::Integer) = begin
-            push!(codestrings, "$namectx.moveTo($x, $y);")
-        end
-        lineTo(x::Integer, y::Integer) = begin
-            push!(codestrings, "$namectx.lineTo($x, $y);")
-        end
-        fill() = begin
-            push!(codestrings, "$namectx.fill();")
-        end
-        stroke() = begin
-            push!(codestrings, "$namectx.stroke();")
-        end
-        new(codestrings, update, fillRect, strokeRect, beginPath, closePath, moveTo,
-        lineTo, fill, stroke, arc, rect)
-    end
-end
-mutable struct Canvas <: Component
-    name::String
-    width::Int64
-    height::Int64
-    html::String
-    ctx::Context
-    context::Function
-    f::Function
-    class::Any
-    function Canvas(name = "canvas"; width = 200, height = 200, mode = "2d",
-        class::Any = Canvas)
-        ctx = Context(mode, name)
-        html = """<canvas id="$name" width="$width" height="$height"></canvas>"""
-        context(f::Function) = f(ctx)
-        f(http) = """<canvas id="$name" width="$width" height="$height"script = '""" * join(ctx.codestrings) * "'</script></canvas>"
-        new(name, width, height, html, ctx, context, f, class)
-    end
-end
-
-abstract type ListComponent <: Component end
-
-mutable struct List <: ListComponent
-    name::String
-    label::String
-    html::String
-    f::Function
-    href::String
-    class::Any
-    style::String
-    function List(name::String = "list"; label::String = "hello world!",
-        href::String = "",
-        class::Any = List, style::String = "")
-        if href != ""
-            href = "href='$href'"
-        end
-        html = """<li id='$name'><a $href>$label</a></li>"""
-        f(http) = html
-        new(name, label, html, f, href, class, style)
-    end
-end
-
-mutable struct UnorderedList
-    name::String
-    html::String
-    f::Function
-    lists::Vector{List}
-    class::Any
-    function UnorderedList(name::String = "ul", comps::Array{List} = [];
-        class::Any = UnorderedList)
-        html = "<ul id = '$name'>"
-
-        f(http) = "<ul id='$name'>" * join([l.f(http) for l in comps]) * "</ul>"
-        new(name, html, f, comps, class)
-    end
-     function UnorderedList(name::String = "ul"; class::Any = UnorderedList)
-        UnorderedList(name, [], class = class)
-    end
-    function UnorderedList(comps::Vector{List}; class::Any = UnorderedList)
-        name = ""
-        UnorderedList(name, comps, class = class)
-    end
-end
-
-mutable struct A <: ComponentPart
-    name::String
-    href::String
-    f::Function
-    html::String
-    class::Any
-    style::Any
-    function A(name = "a"; href = "", label = "a", style::String = "",
-         class::Any = A)
-        f(http) = "<a id='$name' href='$href' style = '$style'>$label</a>"
-        html = "<a id='$name' href='$href'>$label</a>"
-        new(name, href, f, html, style, class)
-    end
-end
-
-mutable struct DropDown <: Component
-    name::String
-    html::String
-    href::String
-    As::AbstractArray{Component}
-    f::Function
-    class::Any
-    function DropDrown(name::String = "dropdown", As::A ...;
-        label::String = "dropdown", href::String = "#",
-        class::Any = DropDown)
-        html = "<div id='$name' href='$href'></div>"
-        f(http) = begin
-            """<div id="$name">
-              <button class="dropbtn">$label
-                </button>
-                <div id=$name-content>
-                """ * join([a.f(http) for a in As]) * "</div></div>"
-            end
-            new(name, html, href, As, f, class)
-        end
-end
-
-mutable struct DocumentFunction <: Component
-    name::String
-    f::Function
-    actions::Array{String}
-    function DocumentFunction(name::String = "func"; actions::Array{String} = Vector{String}())
-        f(http) = begin
-            "<script>" * join(actions) * "</script>"
-        end
-        new(name, html, f, actions)
-    end
-end
-
-function Div(name::String, components::Vector{Component} = [];
-    align = "left")
+function Div(name::String, properties::Dict = Dict(),
+    cs::Vector{Component} = [])
+    Container(name, "tag", 1, cs)
 end
 
 

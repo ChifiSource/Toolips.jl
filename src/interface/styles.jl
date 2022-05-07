@@ -49,34 +49,3 @@ mutable struct Animation <: StyleComponent
         end
     end
 end
-
-animate!(s::StyleComponent, a::Animation) = s.rules[:animation] = a.name
-
-style!(c::Servable, s::Style) = c.properties[:class] = s.name
-
-function copystyle!(c::Servable, c2::Servable)
-    c.properties[:class] = c2.properties[:class]
-end
-
-macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
-    percent = _percentage_text(percentage)
-    try
-        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)]
-        eval(expr))
-    catch
-        anim.keyframes[Symbol("$percent")] = eval(expr)
-    end
-end
-
-macro keyframes!(anim::Animation, percentage::Int64, expr::Expression)
-    keyframes!(anim, float(percentage), expr)
-end
-
-macro keyframes!(anim::Animation, method::Symbol, expr::Expression)
-    try
-        anim.keyframes[string(method)] = vcat(anim.keyframes[string(method)],
-        eval(expr))
-    catch
-        anim.keyframes[string(method)] = eval(expr)
-    end
-end

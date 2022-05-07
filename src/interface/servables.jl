@@ -21,7 +21,7 @@ mutable struct Component <: Servable
     properties::Dict
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict())
-         f(http::HTTP.Stream) = begin
+         f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
              for property in keys(properties)
                  if ~(property == :action || property == :text)
@@ -47,11 +47,10 @@ mutable struct Container <: Servable
     function Container(name::String, tag::String = "", ID::Integer = 1,
         components::Vector{Component} = []; properties::Dict = Dict())
         add!(c::Component)::Function = push!(components, c)
-        f(http::HTTP.Stream) = begin
+        f(c::Connection) = begin
             open_tag::String = "<$tag id = $name "
-            for property in keys(properties)
-
-            end
+            write(http, open_tag)
+            write(http, join([c.f(http) for c in components]))
             cs::String = join([c.f(http) for c in components])
             open_tag * ">$cs</$tag>"
         end
@@ -95,6 +94,10 @@ function SliderInput(name::String = ""; range::UnitRange = 0:100,
     Input(name, "range")::Component
 end
 
+function Form(name::String = "",
+    components::Vector{Component} = Vector{Component}(); post::String = "")
+    Container(name, "form", 5)
+end
 
 mutable struct Form <: FormComponent
     action::String

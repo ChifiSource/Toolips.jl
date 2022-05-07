@@ -24,7 +24,7 @@ mutable struct Component <: Servable
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
              for property in keys(properties)
-                 if ~(property == :action || property == :text)
+                 if ~(property == :text)
                      prop::String = string(properties[property])
                      propstring::String = string(property)
                      open_tag = " $open_tag $property"
@@ -95,34 +95,42 @@ function SliderInput(name::String = ""; range::UnitRange = 0:100,
 end
 
 function Form(name::String = "",
-    components::Vector{Component} = Vector{Component}(); post::String = "")
-    Container(name, "form", 5)
+    components::Vector{Component} = Vector{Component}(); post::String = "",
+    get::String = "")
+    method::String = ""
+    action::String = ""
+    if get != "" || post != ""
+        if length(get) > length(post)
+            method = "get"
+            action = get
+        else
+            method = "post"
+            action = post
+        end
+    end
+    Container(name, "form", 5, properties = Dict(:method => method,
+    :action => action))::Container
 end
 
-mutable struct Form <: FormComponent
-    action::String
-    f::Function
-    html::String
-    components::AbstractArray
-    onAction::Function
-    class::Any
-    function Form(components...; onAction::Any = http -> "", action::String = "",
-        method::String = "GET", class::Any = Form)
-        html = """<form action="$action" method = "$method">"""
-        components = [c for c in components]
-        for comp in components
-            html = html * comp.html
-        end
-        html = html * "</form>"
-        f(http) = html
-        new(action, f, html, components, onAction)
-    end
+function Link(name::String; rel::String = "stylesheet", href::String = "")
+    
+end
+
+function MetaData(name::String = "description", )
+
+end
+
+function Header(title::String = "Toolips App";
+    icon::String = "", keywords::String = [], author::String = "",
+    description::String = "", links::Vector{Component} = Vector{Component}())
+
+
 end
 
 mutable struct Header <: Component
     title::String
     icon::String
-    keywords::Array
+    keywords::Array{String}
     author::String
     description::String
     f::Function
@@ -340,16 +348,8 @@ mutable struct DocumentFunction <: Component
     end
 end
 
-mutable struct Div <: Component
-    name::String
-    f::Function
-    components::AbstractArray
-    align::String
-    function Div(name::String, components::Vector{Component} = [];
-         align = "left")
-         f(http::HTTP.Stream) = begin
-             "<div></div>"
-    end
+function Div(name::String, components::Vector{Component} = [];
+    align = "left")
 end
 
 

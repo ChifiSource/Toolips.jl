@@ -143,6 +143,17 @@ function navigate!()
 
 end
 
+"""
+### write_file(URI::String, http::HTTP.Stream) -> _
+------------------
+Writes a file to an HTTP.Stream.
+
+"""
+function write_file(URI::String, http::HTTP.Stream)
+    open(URI, "r") do i
+        write(http, i)
+    end
+end
 route(f::Function, route::String) = Route(route, f)::Route
 
 route(route::String, s::Servable) = Route(route, s)::Route

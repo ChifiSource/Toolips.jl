@@ -11,47 +11,30 @@ display: table;
 clear: both;
 }"""
 
-abstract type AbstractStyle <: Component end
-abstract type StyleComponent end
+abstract type StyleComponent <: Servable end
 
-mutable struct StyleSheet <: Component
+mutable struct Style <: StyleComponent
     name::String
-    f::Function
-    components::Vector{AbstractStyle}
-    function StyleSheet(name::String = "Toolips", styles::Vector{Style})
-        f(http::HTTP.Stream) = join([c.f(http) for c in components])
-        new(name, html, f, components)
-    end
-end
-
-mutable struct Style{T} <: AbstractStyle
-    name::String
-    class::T
-    html::String
     f::Function
     rules::Dict
-    add::Function
-    function Style(name::String, class::Any; animation = nothing)
-        f(http::HTTP.Stream) = begin
-            name = string(class)
+    function Style(name::String; animation::Animation = nothing)
+        f(c::Connection) = begin
             css = "<style>$name { "
             if animation != nothing
                 anim = animation.name
                 css = css * "animation: $anim;"
             end
-            for rule in rules
+            for rule in keys(rules)
                 property = string(rule)
                 value = string(rules[rule])
                 css = css * "$property: $value; "
             end
             css * "}</style>"
         end
-        add(sc::StyleComponent) = merge!(rules, c.f())
-        add(newrule::Pair{Symbol, Any}) = push!(rules, newrule)
-        new{String}(name::String, class::String,
-         html::String, animation::Any, f::Function, rules::Dict, add::Function)
+        new(name::String, f::Function, rules::Dict)
     end
 end
+
 
 mutable struct Animation <: StyleComponent
     name::String
@@ -67,9 +50,13 @@ mutable struct Animation <: StyleComponent
     end
 end
 
-animate!(s::AbstractStyle, a::Animation) = s.rules[:animation] = a.name
-style!(c::Component, s::Style) = c.properties[:class] = s.name
-copystyle!(c::Component, c2::Component) = c.properties[:class] = c2.properties[:class]
+animate!(s::StyleComponent, a::Animation) = s.rules[:animation] = a.name
+
+style!(c::Servable, s::Style) = c.properties[:class] = s.name
+
+function copystyle!(c::Servable, c2::Servable)
+    c.properties[:class] = c2.properties[:class]
+end
 
 macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
     percent = _percentage_text(percentage)

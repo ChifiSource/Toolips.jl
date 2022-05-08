@@ -35,7 +35,6 @@ mutable struct Route{S}
     end
 end
 
-routes(rs::Route ...) = Vector{Route}([r for r in rs])
 """
 ### ServerTemplate
 - ip**::String**
@@ -132,8 +131,4 @@ function generate_router(routes::AbstractVector, server, extensions::Any)
 
     end # serve()
     return(routeserver)
-end
-
-function stop!(x::Any)
-    close(x)
 end

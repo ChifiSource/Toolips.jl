@@ -14,25 +14,21 @@ authentication.
 - TODO Setup the Pkg environment with the given loaded files
 - TODO Finish Servable 4.0 rework
 - TODO Load directories using extensions.
-- TODO 
+- TODO
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
-include("interface/servables.jl")
+include("interface/Servables.jl")
 # Core Server
-export Route, ServerTemplate, Logger, stop!
-# Components
-export html, html_file, file, css, css_file, js, js_file, fn
-export Button, Form, TextArea, TextBox, RadioSet, Slider
-export Canvas
-export List, UnorderedList, A, DropDown
-# Structure servables (frontend)
-export Header, Page
+export ServerTemplate, Logger, stop!
+# Function returns
+export html, css, js, fn
+# Servables
+export File, Component, Container
+export Input, TextArea, Button, P, Option, RadioInput, SliderInput
+export Form, Link, MetaData, Header, Div, Animation, Style
 # High-level api
-export route, serve, anim!, style!, set!
-# Style Servables
-
-
+export route, routes, route!, get_text, write!
 # Methods
 export getargs, getarg, getpost, write_file, lists
 

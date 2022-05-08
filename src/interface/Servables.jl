@@ -199,6 +199,6 @@ mutable struct Style <: StyleComponent
 end
 
 
-include("methods.jl")
-include("../server/serve.jl")
-include("routing.jl")
+include("../server/Extensions.jl")
+include("../server/Core.jl")
+include("interface.jl")

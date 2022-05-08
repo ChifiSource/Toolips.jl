@@ -9,25 +9,6 @@ Creates a servable from the provided string, which should be HTML.
 #### example
 """
 html(hypertxt::String) = c::Connection -> write!(c, hypertxt)::Function
-
-"""
-### html_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-html_file(URI::String) = c::Connection -> HTTP.Response(200, read(URI))::Function
-
-"""
-### file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-file(URI::String) = c::Connection -> HTTP.Response(200, read(URI))::Function
-
 """
 ### html(::String) -> ::Function
 ------------------
@@ -37,34 +18,12 @@ Creates a servable from the provided string, which should be CSS.
 css(css::String) = http::Connection -> "<style>" * css * "</style>"::Function
 
 """
-### css_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-css_file(URI::String) = begin
-    http::Connection -> """<link rel="stylesheet" href="$URI">"""::Function
-end
-
-"""
 ### html(::String) -> ::Function
 ------------------
 Creates a servable from the provided string, which should be JavaScript.
 #### example
 """
 js(js::String) = http::Connection -> "<script>" * js * "</script>"::Function
-
-"""
-### js_file(URI::String) -> ::Function
-------------------
-Creates a servable which will read and return the file denoted by its path in
-URI.
-#### example
-"""
-js_file(URI::String) = begin
-    http::Connection -> """<script src="$URI"></script>"""::Function
-end
 #==
 Functions
 ==#
@@ -81,7 +40,7 @@ function fn(f::Function)
     if m.nargs > 2 | m.nargs < 1
         throw(ArgumentError("Expected either 1 or 2 arguments."))
     elseif m.nargs == 2
-        http::Connection -> f(http::HTTP.Stream)::Function
+        http::Connection -> f(http)::Function
     else
         http::Connection -> f()::Function
     end
@@ -123,11 +82,11 @@ end
 #==
 Serving/Routing
 ==#
-function serve!(s::Servable, )
+function write!(c::Connection, s::Servable)
 
 end
 
-function get_text(s::Servable)
+function write!(c::Connection, s::String)
 
 end
 
@@ -139,24 +98,20 @@ function route!(f::Function, c::Connection, route::Route)
 
 end
 
+route(f::Function, route::String) = Route(route, f)::Route
+
+route(route::String, s::Servable) = Route(route, s)::Route
+
+routes(rs::Route ...) = Vector{Route}([r for r in rs])
+
 function navigate!()
 
 end
 
-"""
-### write_file(URI::String, http::HTTP.Stream) -> _
-------------------
-Writes a file to an HTTP.Stream.
-
-"""
-function write_file(URI::String, http::HTTP.Stream)
-    open(URI, "r") do i
-        write(http, i)
-    end
+function stop!(x::Any)
+    close(x)
 end
-route(f::Function, route::String) = Route(route, f)::Route
 
-route(route::String, s::Servable) = Route(route, s)::Route
 #==
 Request/Args
 ==#

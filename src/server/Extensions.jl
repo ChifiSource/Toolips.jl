@@ -1,6 +1,12 @@
 using Dates
 
 """
+Must contain field
+SE.type!
+"""
+abstract type ServerExtension end
+
+"""
 ### Logger
 out::String
 levels::Dict
@@ -92,25 +98,36 @@ function _log(http::HTTP.Stream, message::String)
     write(http, "<script>console.log('" * message * "');</script>")
 end
 
+
+
 function route_from_dir(dir::String)
-    dirs = readdir(dir)
+    dirs::Vector{String} = readdir(dir)
     routes::Vector{String} = []
     for directory in dirs
         if isfile("$dir/" * directory)
             push!(routes, "$dir/$directory")
         else
             if ~(directory in routes)
-                newread = dir * "/$directory"
-                newrs = route_from_dir(newread)
+                newread::String = dir * "/$directory"
+                newrs::Vector{String} = route_from_dir(newread)
                 [push!(routes, r) for r in newrs]
             end
         end
     end
-    rts::Vector{Route} = []
-    for directory in routes
-        if isfile("$dir/" * directory)
-            push!(rts, Route("/$directory", file("$dir/" * directory)))
+    routes::Vector{String}
+end
+
+"""
+"""
+mutable struct Files <: ServerExtension
+    directory::String
+    f::Function
+    function Files(dir::String = "public")
+        f(r::Dict) = begin
+            for path in route_from_dir(directory)
+                push!(r, path => File(path))
+            end
         end
+        new(dir, f)
     end
-    rts
 end

@@ -10,11 +10,7 @@ end
 write!(c::Connection, s::Any) = write!(http, s)
 write!(c::Connection, s::Servable) = write(http, s.f(c))
 
-"""
-Must contain field
-SE.type!
-"""
-abstract type ServerExtension end
+
 
 """
 ### Route{T}

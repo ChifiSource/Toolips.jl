@@ -2,6 +2,14 @@
 Servables!
 ==#
 abstract type Servable end
+mutable struct File <: Servable
+    dir::String
+    f::Function
+    function File(dir::String)
+        f(c::Connection) = HTTP.Response(200, read(dir))
+        new(dir, f)
+    end
+end
 
 """
 ### Component
@@ -24,8 +32,8 @@ mutable struct Component <: Servable
              for property in keys(properties)
                  if ~(property == :text)
                      prop::String = string(properties[property])
-                     propstring::String = string(property)
-                     open_tag = " $open_tag $property"
+                     propkey::String = string(property)
+                     open_tag = open_tag * " $propkey = $prop"
                  end
              end
              open_tag * ">$text</$tag>"
@@ -152,6 +160,22 @@ Style
     ==#
 abstract type StyleComponent <: Servable end
 
+
+
+mutable struct Animation <: StyleComponent
+    name::String
+    keyframes::Dict
+    f::Function
+    delay::Float64
+    length::Float64
+    function Animation(name::String = "animation"; delay::Float64 = 0,
+        length::Float64 = 0)
+        f(http) = begin
+
+        end
+    end
+end
+
 mutable struct Style <: StyleComponent
     name::String
     f::Function
@@ -171,21 +195,6 @@ mutable struct Style <: StyleComponent
             css * "}</style>"
         end
         new(name::String, f::Function, rules::Dict)
-    end
-end
-
-
-mutable struct Animation <: StyleComponent
-    name::String
-    keyframes::Dict
-    f::Function
-    delay::Float64
-    length::Float64
-    function Animation(name::String = "animation"; delay::Float64 = 0,
-        length::Float64 = 0)
-        f(http) = begin
-
-        end
     end
 end
 

@@ -18,6 +18,7 @@ authentication.
 using Crayons
 using Sockets, HTTP, Pkg
 include("interface/Servables.jl")
+include("interface/Interface.jl")
 # Core Server
 export ServerTemplate, Logger, Files, stop!, Route
 # Function returns

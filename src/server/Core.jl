@@ -106,7 +106,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
         if extension[2].type == :connection
             push!(ces, extension)
         elseif extension[2].type == :routing
-            extension.f(route_paths)
+            extension[2].f(route_paths)
         elseif extension[2].type == :func
             push!(fes, extension[2])
         end

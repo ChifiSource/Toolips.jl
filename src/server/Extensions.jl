@@ -123,12 +123,12 @@ mutable struct Files <: ServerExtension
     type::Symbol
     directory::String
     f::Function
-    function Files(dir::String = "public")
+    function Files(directory::String = "public")
         f(r::Dict) = begin
             for path in route_from_dir(directory)
                 push!(r, path => File(path))
             end
         end
-        new(:routing, dir, f)
+        new(:routing, directory, f)
     end
 end

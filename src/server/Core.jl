@@ -81,6 +81,7 @@ end
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    logger = nothing
     try
         logger = extensions[:logger]
         logger.log(1, "Toolips Server starting on port " * string(port))

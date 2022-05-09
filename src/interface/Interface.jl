@@ -56,7 +56,7 @@ function copystyle!(c::Servable, c2::Servable)
     c.properties[:class] = c2.properties[:class]
 end
 
-macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
+macro keyframes!(anim::Animation, percentage::Float64, expr::Expr)
     percent = _percentage_text(percentage)
     try
         anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)],
@@ -66,11 +66,11 @@ macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
     end
 end
 
-macro keyframes!(anim::Animation, percentage::Int64, expr::Expression)
+macro keyframes!(anim::Animation, percentage::Int64, expr::Expr)
     keyframes!(anim, float(percentage), expr)
 end
 
-macro keyframes!(anim::Animation, method::Symbol, expr::Expression)
+macro keyframes!(anim::Animation, method::Symbol, expr::Expr)
     try
         anim.keyframes[string(method)] = vcat(anim.keyframes[string(method)],
         eval(expr))

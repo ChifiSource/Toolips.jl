@@ -20,7 +20,7 @@ using Sockets, HTTP, Pkg
 include("interface/Servables.jl")
 include("interface/Interface.jl")
 # Core Server
-export ServerTemplate, Logger, Files, stop!, Route, Connection
+export ServerTemplate, Logger, Files, Route, Connection
 # Function returns
 export html, css, js, fn
 # Servables
@@ -28,7 +28,7 @@ export File, Component, Container
 export Input, TextArea, Button, P, Option, RadioInput, SliderInput
 export Form, Link, MetaData, Header, Div, Animation, Style
 # High-level api
-export route, routes, route!, get_text, write!
+export route, routes, route!, get_text, write!, stop!
 # Methods
 export getargs, getarg, getpost, write_file, lists
 

@@ -59,7 +59,7 @@ end
 macro keyframes!(anim::Animation, percentage::Float64, expr::Expression)
     percent = _percentage_text(percentage)
     try
-        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)]
+        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)],
         eval(expr))
     catch
         anim.keyframes[Symbol("$percent")] = eval(expr)
@@ -82,21 +82,17 @@ end
 #==
 Serving/Routing
 ==#
-function write!(c::Connection, s::Servable)
+write!(c::Connection, s::Servable) = write(c.http, s.f(c))
 
-end
+write!(c::Connection, s::String) = write(c.http, s)
 
-function write!(c::Connection, s::String)
+route!(c::Connection, route::Route) = push!(c.routes, route.path => route.page)
 
-end
+startwrite!(c::Connection) = startwrite(c.http)
 
-function route!(c::Connection, route::Route)
+unroute!(c::Connection, r::String) = delete!(c.routes, r)
 
-end
-
-function route!(f::Function, c::Connection, route::Route)
-
-end
+route!(f::Function, c::Connection, route::String) = push!(c.routes, route => f)
 
 route(f::Function, route::String) = Route(route, f)::Route
 
@@ -104,8 +100,8 @@ route(route::String, s::Servable) = Route(route, s)::Route
 
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
-function navigate!()
-
+function navigate!(c::Connection, url::String)
+    HTTP.get(url, response_stream = c.http, status_exception = false)
 end
 
 function stop!(x::Any)
@@ -122,8 +118,9 @@ The getargs method returns arguments from the HTTP header (GET requests.)
 Returns a full dictionary of these values.
 
 """
-function getargs(http::HTTP.Stream)
-    target = split(http.message.target, '?')[2]
+function getargs(c::Connection)
+    target::String = split(c.http.message.target, '?')[2]
+    target = replace(target, "+" => " ")
     args = split(target, '&')
     arg_dict = Dict()
     for arg in args
@@ -140,8 +137,8 @@ end
 Returns the requested arguments from the target.
 
 """
-function getarg(http::Any, s::Symbol)
-    getargs(http)[s]
+function getarg(c::Connection, s::Symbol)
+    getargs(c)[s]
 end
 
 """
@@ -152,25 +149,19 @@ parsed as type T(). Note that "Cannot convert..." errors are possible with this
 method.
 
 """
-function getarg(http::HTTP.Stream, s::Symbol, T::Type)
+function getarg(c::Connection, s::Symbol, T::Type)
     parse(getargs(http)[s], T)
 end
 
 """
-### getpost(http::HTTP.Stream) -> _
-------------------
-Returns the post argument data of an HTTP stream.
 
 """
-function postarg(http::HTTP.Stream, s::Symbol)
-    http.message.body
+function postarg(c::Connection, s::Symbol)
+
 end
 
 
 """
-### getpost(http::HTTP.Stream) -> _
-------------------
-Returns the post argument data of an HTTP stream.
 
 """
 function postargs(http::HTTP.Stream)

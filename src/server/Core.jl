@@ -3,7 +3,7 @@ mutable struct Connection
     routes::Dict
     http::HTTP.Stream
     extensions::Dict
-    function Connection(routes::Dict, http::HTTP.Stream,extensions::Vector{Any})
+    function Connection(routes::Dict, http::HTTP.Stream,extensions::Dict)
         new(routes, http, extensions)::Connection
     end
 end

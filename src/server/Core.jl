@@ -1,4 +1,4 @@
-include("log.jl")
+include("Extensions.jl")
 mutable struct Connection
     routes::Dict
     http::HTTP.Stream
@@ -27,11 +27,14 @@ The servable to serve at this given route.
 - Route(path::String, f::Function)
 - Route(path::String, s::Servable)
 """
-mutable struct Route{S}
+mutable struct Route{T}
     path::String
-    page::Page
-    function Route(path::String, page::Page)
-        new(path, page)
+    page::T
+    function Route(path::String, f::Function)
+        new{Function}(path, page)
+    end
+    function Route(path::String, s::Servable)
+        new{typeof(s)}(path, page)
     end
 end
 
@@ -48,10 +51,6 @@ end
 - routes**::Vector{Route}**
 ------------------
 ##### Constructors
-- Route(path::String, page::Function)
-- Route(path::String, page::Page)
-- Route(path::String, page::FormComponent)
-- Route(path::String, page::Component)
 """
 mutable struct ServerTemplate
     ip::String
@@ -63,7 +62,7 @@ mutable struct ServerTemplate
     start::Function
     function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
         routes::Vector{Route} = Vector{Route}();
-        extensions::Any ...)
+        extensions::Dict = Dict(:logger => Logger()))
         extensions::Vector = [e for e in extensions]
         add, remove, start = serverfuncdefs(routes, ip, port, extensions)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
@@ -73,7 +72,7 @@ end
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     extensions::Vector)
     add(r::Route{Function}) = push!(routes, r)
-    add(r::Route{Component}) = push!(routes, r)
+    add(r::Route{Servable}) = push!(routes, r)
     add(e::Any ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, extensions)
@@ -82,8 +81,9 @@ end
 
 function _start(routes::AbstractVector, ip::String, port::Integer, extensions::Vector{Any})
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    logger = extensions[1]
     logger.log(1, "Toolips Server starting on port " * string(port))
-    routefunc = generate_router(routes, server, logger)
+    routefunc = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
     logger.log(2, "Successfully started server on port " * string(port))
     logger.log(1,

@@ -49,19 +49,19 @@ function create_serverdeps(name::String)
     open(src * "/$name.jl", "w") do io
         write(io, """
 function main(routes::Vector{Route})
-    server = ServerTemplate(IP, PORT, routes, extensions = [logger])
-    TLSERVER = server.start()
+    server = ServerTemplate(IP, PORT, routes, extensions = extensions)
+    server.start()
     return(TLSERVER)
 end
 \n
-                   #      vvv ?(Connection)
-hello_world = route("/") do c
+hello_world::Route = route("/") do c
     write!(c, P("hello", text = "hello world!"))
 end
 
-fourofour = route("404", P("404", text = "404, not found!"))
+fourofour::Route = route("404", P("404", text = "404, not found!"))
 rs = routes(hello_world, fourofour)
 main(rs)
+
         """)
     end
 
@@ -73,7 +73,7 @@ function new_app(name::String = "ToolipsApp")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        logger = Logger()
+        extensions = Dict(:logger => Logger())
         include("src/$name.jl")
         """)
     end
@@ -82,7 +82,7 @@ function new_app(name::String = "ToolipsApp")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        logger = Logger()
+        extensions = Dict(:logger => Logger())
         include("src/$name.jl")
         """)
     end
@@ -95,7 +95,7 @@ function new_webapp(name::String = "ToolipsApp")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = [Logger(), Files("public")]
+        extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
         """)
     end
@@ -104,14 +104,14 @@ function new_webapp(name::String = "ToolipsApp")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = [Logger(), Files("public")]
+        extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
         """)
     end
     public = pwd() * "/$name/public"
     mkdir(public)
 end
-export new_webapp
+export new_webapp, new_app
 # --
 
 end

@@ -120,6 +120,7 @@ end
 """
 """
 mutable struct Files <: ServerExtension
+    type::Symbol
     directory::String
     f::Function
     function Files(dir::String = "public")
@@ -128,6 +129,6 @@ mutable struct Files <: ServerExtension
                 push!(r, path => File(path))
             end
         end
-        new(dir, f)
+        new(:routing, dir, f)
     end
 end

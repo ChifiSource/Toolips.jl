@@ -32,11 +32,14 @@ mutable struct Component <: Servable
          properties::Dict = Dict())
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
+             text::String = ""
              for property in keys(properties)
                  if ~(property == :text)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
                      open_tag = open_tag * " $propkey = $prop"
+                 else
+                     text = properties[property]
                  end
              end
              open_tag * ">$text</$tag>"

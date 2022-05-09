@@ -31,10 +31,10 @@ mutable struct Route{T}
     path::String
     page::T
     function Route(path::String, f::Function)
-        new{Function}(path, page)
+        new{Function}(path, f)
     end
     function Route(path::String, s::Servable)
-        new{typeof(s)}(path, page)
+        new{typeof(s)}(path, s)
     end
 end
 

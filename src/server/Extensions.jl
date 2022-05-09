@@ -1,4 +1,11 @@
 using Dates
+
+"""
+Must contain field
+SE.type!
+"""
+abstract type ServerExtension end
+
 """
 ### Logger
 out::String
@@ -22,7 +29,8 @@ Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
                     out::String = pwd() * "logs/log.txt")
 Logger(; out::String = pwd() * "/logs/log.txt")
 """
-mutable struct Logger
+mutable struct Logger <: ServerExtension
+    type::Symbol
     out::String
     levels::Dict
     log::Function
@@ -30,7 +38,7 @@ mutable struct Logger
         log(level::Int64, message::String) = _log(level, message, levels, out)
         log(message::String) = _log(1, message, levels, out)
         log(http::HTTP.Stream, message::String) = _log(http, message)
-        new(out::String, levels::Dict, log::Function)
+        new(:connection, out::String, levels::Dict, log::Function)
     end
     function Logger(; out = pwd() * "/logs/log.txt")
         if contains(out, "src")
@@ -88,4 +96,38 @@ log(http::HTTP.Stream, message::String) = _log(http, message)
 """
 function _log(http::HTTP.Stream, message::String)
     write(http, "<script>console.log('" * message * "');</script>")
+end
+
+
+
+function route_from_dir(dir::String)
+    dirs::Vector{String} = readdir(dir)
+    routes::Vector{String} = []
+    for directory in dirs
+        if isfile("$dir/" * directory)
+            push!(routes, "$dir/$directory")
+        else
+            if ~(directory in routes)
+                newread::String = dir * "/$directory"
+                newrs::Vector{String} = route_from_dir(newread)
+                [push!(routes, r) for r in newrs]
+            end
+        end
+    end
+    routes::Vector{String}
+end
+
+"""
+"""
+mutable struct Files <: ServerExtension
+    directory::String
+    f::Function
+    function Files(dir::String = "public")
+        f(r::Dict) = begin
+            for path in route_from_dir(directory)
+                push!(r, path => File(path))
+            end
+        end
+        new(dir, f)
+    end
 end

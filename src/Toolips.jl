@@ -8,48 +8,37 @@ authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
 - TODO Incoming user information would be nice.
-- TODO Secret keys.
 - TODO Authentication. (UUID's would be nice)
-- TODO Parsing envvariables and CLI from main in the generated file (this file,
-create_serverdeps(name::String)
 - TODO improve default project files a tad.
 - TODO Load environment in default files
 - TODO Setup the Pkg environment with the given loaded files
-- TODO Add data-bases (via ODdb.jl, soon after a 0.1.0 release of it)
-- TODO Simple internal calls for get() and post requests.
-- TODO PUBLIC ROUTES STILL BROKEN
-- RIP
-- TODO Implement some kind of classes structure for CSS styling to be easier.
-      Might end up making some CSS Julia equivalent types.
-- TODO Add more properties for servables
+- TODO Finish Servable 4.0 rework
+- TODO Load directories using extensions.
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
-include("interface/servables.jl")
+include("interface/Servables.jl")
 # Core Server
-export Route, ServerTemplate, Logger, stop!
-# Components
-export html, html_file, file, css, css_file, js, js_file, fn
-export Button, Form, TextArea, TextBox, RadioSet, Slider
-export Canvas
-export List, UnorderedList, A, DropDown
-# Structure servables (frontend)
-export Header, Page
+export ServerTemplate, Logger, Files, stop!
+# Function returns
+export html, css, js, fn
+# Servables
+export File, Component, Container
+export Input, TextArea, Button, P, Option, RadioInput, SliderInput
+export Form, Link, MetaData, Header, Div, Animation, Style
 # High-level api
-export route, serve, anim!, style!, set!
-# Style Servables
-
-
+export route, routes, route!, get_text, write!
 # Methods
 export getargs, getarg, getpost, write_file, lists
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
+    Pkg.activate(name)
+    #  Uncomment after 0.0.9 push:
+    # Pkg.add("Toolips")
     dir = pwd() * "/"
     src = dir * name * "/src"
-    public = dir * name * "/public"
     logs = dir * name * "/logs"
-    mkdir(public)
     mkdir(logs)
     touch(name * "/dev.jl")
     touch(name * "/prod.jl")
@@ -58,55 +47,69 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, """
-# Welcome to your new Toolips server!
-using Main.Toolips\n
-function main()
-        # Essentials
-    global LOGGER = Logger()
-    routes = make_routes()
-    server_template = ServerTemplate(IP, PORT, routes)
-    global TLSERVER = server_template.start()
+function main(routes::Vector{Route})
+    server = ServerTemplate(IP, PORT, routes, extensions = [logger])
+    TLSERVER = server.start()
     return(TLSERVER)
 end
 \n
-# Routes
-function make_routes()
-        # Pages
-    four04 = html("<h1>404, Page not found!</h1>")
-    index = html("<h1>Hello world!</h1>")
-        # Routes
-    routes = []
-    homeroute = Route("/", index)
-    four04route = Route("404", four04)
-    push!(routes, homeroute)
-    push!(routes, four04route)
-    routes
+                   #      vvv ?(Connection)
+hello_world = route("/") do c
+    write!(c, P("hello", text = "hello world!"))
 end
-\n
-main()
+
+fourofour = route("404", P("404", text = "404, not found!"))
+rs = routes(hello_world, fourofour)
+main(rs)
         """)
     end
+
+end
+function new_app(name::String = "ToolipsApp")
+    create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
+        using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        PUBLIC = "../public"
+        logger = Logger()
         include("src/$name.jl")
         """)
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
+        using Toolips
         IP = "127.0.0.1"
         PORT = 8000
-        PUBLIC = "../public"
+        logger = Logger()
         include("src/$name.jl")
         """)
     end
 end
+
 function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        using Toolips
+        IP = "127.0.0.1"
+        PORT = 8000
+        extensions = [Logger(), Files("public")]
+        include("src/$name.jl")
+        """)
+    end
+    open(name * "/prod.jl", "w") do io
+        write(io, """
+        using Toolips
+        IP = "127.0.0.1"
+        PORT = 8000
+        extensions = [Logger(), Files("public")]
+        include("src/$name.jl")
+        """)
+    end
+    public = pwd() * "/$name/public"
+    mkdir(public)
 end
-
 export new_webapp
 # --
 

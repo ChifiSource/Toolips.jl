@@ -20,7 +20,7 @@ using Sockets, HTTP, Pkg
 include("interface/Servables.jl")
 include("interface/Interface.jl")
 # Core Server
-export ServerTemplate, Logger, Files, stop!, Route
+export ServerTemplate, Logger, Files, stop!, Route, Connection
 # Function returns
 export html, css, js, fn
 # Servables

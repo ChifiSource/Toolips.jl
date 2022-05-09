@@ -79,19 +79,26 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     return(add, remove, start)
 end
 
-function _start(routes::AbstractVector, ip::String, port::Integer, extensions::Vector{Any})
+function _start(routes::AbstractVector, ip::String, port::Integer,
+     extensions::Vector{Any})
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    logger = extensions[1]
-    logger.log(1, "Toolips Server starting on port " * string(port))
+    try
+        logger = extensions[:logger]
+        logger.log(1, "Toolips Server starting on port " * string(port))
+    catch
+        logger = nothing
+    end
     routefunc = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
-    logger.log(2, "Successfully started server on port " * string(port))
-    logger.log(1,
-    "You may visit it now at http://" * string(ip) * ":" * string(port))
+    if logger != nothing
+        logger.log(2, "Successfully started server on port " * string(port))
+        logger.log(1,
+        "You may visit it now at http://" * string(ip) * ":" * string(port))
+    end
     return(server)
 end
 
-function generate_router(routes::AbstractVector, server, extensions::Any)
+function generate_router(routes::AbstractVector, server, extensions::Vector)
     route_paths = Dict([route.path => route.page for route in routes])
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()

@@ -2,15 +2,13 @@ include("Extensions.jl")
 mutable struct Connection
     routes::Dict
     http::HTTP.Stream
-    extensions::Vector{Any}
+    extensions::Dict
     function Connection(routes::Dict, http::HTTP.Stream,extensions::Vector{Any})
         new(routes, http, extensions)::Connection
     end
 end
 write!(c::Connection, s::Any) = write!(http, s)
 write!(c::Connection, s::Servable) = write(http, s.f(c))
-
-
 
 """
 ### Route{T}

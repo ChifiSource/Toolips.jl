@@ -120,8 +120,8 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
         c::Connection = Connection(route_paths, http, ces)
         if fullpath in keys(route_paths)
             if typeof(route_paths[fullpath]) <: Servable
-                route_paths[fullpath].f(c)
                 [extension.f(c) for extension in fes]
+                route_paths[fullpath].f(c)
             else
                 route_paths[fullpath](c)
             end

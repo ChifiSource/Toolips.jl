@@ -46,6 +46,12 @@ function fn(f::Function)
     end
 end
 #==
+Indexing/iter
+==#
+properties(s::Servable) = s.properties
+getindex(s::Servable, symb::Symbol) = s.properties[symb]
+setindex!(s::Servable, symb::Symbol, a::Any) = s.properties[symb] = s
+#==
 Styles
 ==#
 animate!(s::StyleComponent, a::Animation) = s.rules[:animation] = a.name
@@ -78,6 +84,8 @@ macro keyframes!(anim::Animation, method::Symbol, expr::Expr)
         anim.keyframes[string(method)] = eval(expr)
     end
 end
+
+
 
 #==
 Serving/Routing

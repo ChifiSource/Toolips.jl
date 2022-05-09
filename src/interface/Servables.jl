@@ -1,10 +1,27 @@
 #==
 Servables!
 ==#
+"""
+### Servable
+Consistencies
+- f::Function - Function whose output to be written to http().
+- properties::Dict - The properties of a given Servable.
+"""
 abstract type Servable end
 
 include("../server/Core.jl")
 
+"""
+### File <: Servable
+dir::String
+f::Function
+------------------
+- dir::String - The directory of a file to serve.
+- f::Function - Function whose output to be written to http().
+------------------
+##### constructors
+File(dir::String)
+"""
 mutable struct File <: Servable
     dir::String
     f::Function
@@ -15,14 +32,18 @@ mutable struct File <: Servable
 end
 
 """
-### Component
+### Component <: Servable
 name::String
 f::Function
 properties::Dict
 ------------------
-
+- name::String - The name field is the way that a component is denoted in code.
+- f::Function - The function that gets called with the Connection as an
+argument.
+- properties::Dict - A dictionary of symbols and values.
 ------------------
-
+##### constructors
+Component(name::String, tag::String, properties::Dict)
 """
 mutable struct Component <: Servable
     name::String
@@ -49,14 +70,18 @@ mutable struct Component <: Servable
 end
 
 """
-### Container
+### Container <: Servable
 name::String
+tag::String
+components::Vector{Component}
 f::Function
 properties::Dict
+add!::Function
 ------------------
-
+- name::String -
 ------------------
-
+##### constructors
+Component(name::String, tag::String, properties::Dict)
 """
 mutable struct Container <: Servable
     name::String
@@ -155,9 +180,13 @@ function Header(title::String = "Toolips App";
     Container(name, "head", cs)::Container
 end
 
-function Div(name::String, properties::Dict = Dict(),
-    cs::Vector{Component} = [])
+function Div(name::String,
+    cs::Vector{Component} = []; properties::Dict = Dict())
     Container(name, "tag", cs)
+end
+
+function A(name::String; text::String = "")
+    Component(name, link, Dict(:text => text))
 end
 
 #==

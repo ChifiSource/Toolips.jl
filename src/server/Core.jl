@@ -56,21 +56,20 @@ mutable struct ServerTemplate
     ip::String
     port::Integer
     routes::Vector{Route}
-    extensions::Vector{Any}
+    extensions::Dict
     remove::Function
     add::Function
     start::Function
     function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
         routes::Vector{Route} = Vector{Route}();
         extensions::Dict = Dict(:logger => Logger()))
-        extensions::Vector = [e for e in extensions]
         add, remove, start = serverfuncdefs(routes, ip, port, extensions)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
     end
 end
 
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
-    extensions::Vector)
+    extensions::Dict)
     add(r::Route{Function}) = push!(routes, r)
     add(r::Route{Servable}) = push!(routes, r)
     add(e::Any ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
@@ -80,7 +79,7 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
 end
 
 function _start(routes::AbstractVector, ip::String, port::Integer,
-     extensions::Vector{Any})
+     extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     try
         logger = extensions[:logger]
@@ -98,7 +97,7 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
     return(server)
 end
 
-function generate_router(routes::AbstractVector, server, extensions::Vector)
+function generate_router(routes::AbstractVector, server, extensions::Dict)
     route_paths = Dict([route.path => route.page for route in routes])
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()

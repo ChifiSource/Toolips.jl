@@ -62,36 +62,30 @@ function copystyle!(c::Servable, c2::Servable)
     c.properties[:class] = c2.properties[:class]
 end
 
-macro keyframes!(anim::Animation, percentage::Float64, expr::Expr)
-    percent = _percentage_text(percentage)
-    try
-        anim.keyframes[string(percentage)] = vcat(anim.keyframes[string(method)],
-        eval(expr))
-    catch
-        anim.keyframes[Symbol("$percent")] = eval(expr)
+macro keyframe!(anim::Symbol, keyframes::Any ...)
+    anim::Animation = eval(anim)
+    kf = [string(frame) for frame in keyframes]
+    keyframe!(anim, kf)
+end
+
+function keyframe!(anim::Animation, frames::Vector{String})
+    prop = string(frames[2]) * ": "
+    value = string(frames[3]) * "; "
+    if string(frames[1]) in keys(anim.keyframes)
+        anim.keyframes[frames[1]] = anim.keyframes[frames[1]] * "$prop $value"
+    else
+        push!(anim.keyframes, frames[1] => "$prop $value")
     end
 end
 
-macro keyframes!(anim::Animation, percentage::Int64, expr::Expr)
-    keyframes!(anim, float(percentage), expr)
-end
-
-macro keyframes!(anim::Animation, method::Symbol, expr::Expr)
-    try
-        anim.keyframes[string(method)] = vcat(anim.keyframes[string(method)],
-        eval(expr))
-    catch
-        anim.keyframes[string(method)] = eval(expr)
-    end
-end
-
-
+push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 
 #==
 Serving/Routing
 ==#
 write!(c::Connection, s::Servable) = write(c.http, s.f(c))
 
+write!(c::Connection, s::Vector{Servable}) = [write!(c, s) for c in s]
 write!(c::Connection, s::String) = write(c.http, s)
 
 route!(c::Connection, route::Route) = push!(c.routes, route.path => route.page)

@@ -203,14 +203,20 @@ mutable struct Animation <: StyleComponent
     f::Function
     delay::Float64
     length::Float64
-    function Animation(name::String = "animation"; delay::Float64 = 0,
-        length::Float64 = 0)
-        f(http) = begin
-
+    function Animation(name::String = "animation"; delay::Float64 = 0.0,
+        length::Float64 = 5.2)
+        f(c) = begin
+            s::String = "<style> @keyframes $name {"
+            for anim in keys(keyframes)
+                vals = keyframes[anim]
+                s = s * "$anim {" * vals * "}"
+            end
+            s * "}</style>"
         end
+        keyframes::Dict = Dict()
+        new(name, keyframes, f, delay, length)
     end
 end
-
 mutable struct Style <: StyleComponent
     name::String
     f::Function

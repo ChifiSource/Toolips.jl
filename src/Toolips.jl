@@ -19,6 +19,7 @@ using Crayons
 using Sockets, HTTP, Pkg
 include("interface/Servables.jl")
 include("interface/Interface.jl")
+import Base: getindex, setindex!, push!
 # Core Server
 export ServerTemplate, Logger, Files, Route, Connection
 # Function returns

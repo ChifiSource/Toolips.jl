@@ -173,28 +173,114 @@ push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 #==
 Serving/Routing
 ==#
+"""
+### write!(::Connection, ::Servable) -> _
+------------------
+Writes a Servable's return to a Connection's stream.
+#### example
+
+"""
 write!(c::Connection, s::Servable) = write(c.http, s.f(c))
 
+"""
+### properties!(::Servable, ::Servable) -> _
+------------------
+Copies properties from s,properties into c.properties.
+#### example
+
+"""
 properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
+"""
+### write!(c::Connection, s::Vector{Servable}) -> _
+------------------
+Writes, in order of element, each Servable inside of a Vector of Servables.
+#### example
+
+"""
 write!(c::Connection, s::Vector{Servable}) = [write!(c, s) for c in s]
 
+"""
+### write!(::Connection, ::String) -> _
+------------------
+Writes the String into the Connection as HTML.
+#### example
+
+"""
 write!(c::Connection, s::String) = write(c.http, s)
 
+"""
+### write!(::Connection, ::Any) -> _
+------------------
+Attempts to write any type to the Connection's stream.
+#### example
+
+"""
 write!(c::Connection, s::Any) = write(http, s)
+
+"""
+### startread!(::Connection) -> _
+------------------
+Resets the seek on the Connection.
+#### example
+
+"""
 startread!(c::Connection) = startread(http)
+
+"""
+### route!(::Connection, ::Route) -> _
+------------------
+Modifies the routes on the Connection.
+#### example
+
+"""
 route!(c::Connection, route::Route) = push!(c.routes, route.path => route.page)
 
-startwrite!(c::Connection) = startwrite(c.http)
+"""
+### unroute!(::Connection, ::String) -> _
+------------------
+Removes the route with the key equivalent to the String.
+#### example
 
+"""
 unroute!(c::Connection, r::String) = delete!(c.routes, r)
 
+"""
+### route!(::Function, ::Connection, ::String) -> _
+------------------
+Routes a given String to the Function.
+#### example
+
+"""
 route!(f::Function, c::Connection, route::String) = push!(c.routes, route => f)
 
+"""
+### route(::Function, ::String) -> ::Route
+------------------
+Creates a route from the Function.
+#### example
+
+"""
 route(f::Function, route::String) = Route(route, f)::Route
 
+"""
+### route(::String, ::Servable) -> ::Route
+------------------
+Creates a route from a Servable.
+#### example
+
+"""
 route(route::String, s::Servable) = Route(route, s)::Route
 
+"""
+### routes(::Route ...) -> ::Vector{Route}
+------------------
+Turns routes provided as arguments into a Vector{Route} with indexable routes.
+This is useful because this is the type that the ServerTemplate constructor
+likes.
+#### example
+
+"""
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
 function navigate!(c::Connection, url::String)
@@ -209,7 +295,7 @@ end
 Request/Args
 ==#
 """
-### getargs(::HTTP.Stream) -> ::Dict
+### getargs(::Connection) -> ::Dict
 ------------------
 The getargs method returns arguments from the HTTP header (GET requests.)
 Returns a full dictionary of these values.
@@ -229,7 +315,7 @@ function getargs(c::Connection)
 end
 
 """
-### getargs(::HTTP.Stream, ::Symbol) -> ::Vector
+### getargs(::Connection, ::Symbol) -> ::Vector
 ------------------
 Returns the requested arguments from the target.
 
@@ -239,7 +325,7 @@ function getarg(c::Connection, s::Symbol)
 end
 
 """
-### getarg(::HTTP.Stream, ::Symbol, ::Type) -> ::Vector
+### getarg(::Connection, ::Symbol, ::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
 parsed as type T(). Note that "Cannot convert..." errors are possible with this

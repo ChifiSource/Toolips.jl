@@ -3,7 +3,10 @@
 </div>
 
 **Toolips.jl** is a multi-paradigm web-development framework built around function calls and [HTTP.jl](https://github.com/JuliaWeb/HTTP.jl). This is Julia's first true **full-stack** web-development framework, and it is likely that by a stable release you will be able to do just about anything you may elsewhere with Toolips.jl. **Here are some of the features that the framework includes:**
-- Extendable servers.
+##### Extendability
+A core value of the Toolips.jl project is to be as modular as possible. Keeping components small and simple keeps larger systems from breaking. That being said, extendability is incredibly important to the project. The module includes methods for extending the server, which has a multitude of capabilities, extending servables, pretty much everything in here can be extended very easily.
+##### High-level
+In some cases, the Toolips syntax can actually be easier than it is inside of markup, things are simple, functional, and easy to understand.
 - Extendable components.
 - A library of servables.
 - A high-level routing interface.

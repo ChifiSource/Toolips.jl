@@ -14,9 +14,9 @@ authentication.
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
+import Base: getindex, setindex!, push!
 include("interface/Servables.jl")
 include("interface/Interface.jl")
-import Base: getindex, setindex!, push!
 # Core Server
 export ServerTemplate, Route, Connection
 # Server Extensions

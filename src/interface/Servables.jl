@@ -15,25 +15,6 @@ abstract type Servable end
 
 include("../server/Core.jl")
 
-"""
-### File <: Servable
-dir::String
-f::Function
-------------------
-- dir::String - The directory of a file to serve.
-- f::Function - Function whose output to be written to http().
-------------------
-##### constructors
-File(dir::String)
-"""
-mutable struct File <: Servable
-    dir::String
-    f::Function
-    function File(dir::String)
-        f(c::Connection) = HTTP.Response(200, read(dir))
-        new(dir, f)
-    end
-end
 
 """
 ### Component <: Servable

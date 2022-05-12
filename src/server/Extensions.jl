@@ -123,6 +123,30 @@ function route_from_dir(dir::String)
 end
 
 """
+### File
+dir::String
+f::Function
+------------------
+- dir::String - The directory of a file to serve.
+- f::Function - Function whose output to be written to http().
+------------------
+##### constructors
+File(dir::String)
+"""
+mutable struct File
+    dir::String
+    f::Function
+    function File(dir::String)
+        f(c::Connection) = begin
+            HTTP.setheader(c.http, "Content-Type" => "image/png")
+            HTTP.Response(200, read(dir))
+        end
+        new(dir, f)
+    end
+end
+
+
+"""
 """
 mutable struct Files <: ServerExtension
     type::Symbol

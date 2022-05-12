@@ -1,9 +1,12 @@
 #==
 Servables!
 ==#
+
 """
-### Servable
-Consistencies
+### abstract type Servable
+Servables are components that can be rendered into HTML via thier f()
+function with the properties provided in their properties dict.
+##### Consistencies
 - f::Function - Function whose output to be written to http().
 - properties::Dict - The properties of a given Servable. These are written
 into the servable on the calling of f().
@@ -79,7 +82,14 @@ f::Function
 properties::Dict
 add!::Function
 ------------------
-- name::String -
+- name::String - The name of the container. This is used in a lot of different
+places, and can be referenced in HTML.
+- tag::String - The HTML tag that this component ultimately will become.
+- components::Vector{Component} - The components to contain in the container.
+- f::Function - The servable f function. Writes the servable, with its
+properties, then writes the Components contained in components into the
+component.
+- properties::Dict - A dictionary of property values to keys.
 ------------------
 ##### constructors
 Component(name::String, tag::String, properties::Dict)
@@ -90,10 +100,8 @@ mutable struct Container <: Servable
     components::Vector{Component}
     f::Function
     properties::Dict
-    add!::Function
     function Container(name::String, tag::String = "",
         components::Vector{Component} = []; properties::Dict = Dict())
-        add!(c::Component)::Function = push!(components, c)
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
             write(http, open_tag)
@@ -101,62 +109,69 @@ mutable struct Container <: Servable
             cs::String = join([c.f(http) for c in components])
             open_tag * ">$cs</$tag>"
         end
-        new(name, tag, components, f, properties, add!)
+        new(name, tag, components, f, properties)
     end
 end
 
 """
 ### Input(name::String, type::String = "text") -> ::Component
-Constructs an input component with the type. This is called by other
-constructors in some instances.
+Constructs an input component.
 #### example
 
 """
-function Input(name::String, type::String = "text")
+function input(name::String, type::String = "text")
     Component(name, "input", Dict(:type => type))::Component
 end
 
 """
-### TextArea(name::String, type::String = "text") -> ::Component
-
+### TextArea(name::String ;
+     maxlength::Int64 = 25, rows::Int64 = 25, cols::Int64 = 25,
+     text::String = "") -> ::Component
+Constructs a TextArea component.
 #### example
 
 """
-function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
+function textarea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
                 cols::Int64 = 50, text::String = "")
         Component(name, "textarea", Dict(:maxlength => maxlength, :rows => rows,
          :text => text, :cols => cols))::Component
 end
 
-function Button(name::String = "Button"; text::String = "", value::Integer = "",
-                action::String = "/")
-    Component(name, "button", Dict(:text => text, :value => 5))::Component
+"""
+### Button(name::String ;
+     text::String = "", value::Integer = "", action::String =) -> ::Component
+Constructs a Button Component
+#### example
+
+"""
+function button(name::String = "Button"; text::String = "", value::Integer = "")
+    Component(name, "button", Dict(:text => text, :value => value))::Component
 end
 
-function P(name::String = ""; maxlength::Int64 = 25, text::String = "")
+function p(name::String = ""; maxlength::Int64 = 25, text::String = "")
     Component(name, "p", Dict(:maxlength => maxlength, :text => text))::Component
 end
 
-FileInput(name::String) = Input(name, "file")::Component
+fileinput(name::String) = Input(name, "file")::Component
 
-function Option(name::String = ""; value::String = "", text::String = "")
+function option(name::String = ""; value::String = "", text::String = "")
     Component(name, "option", Dict())::Component
 end
 
-function RadioInput(name::String = "", selected::String = first(options).name,
+function radioinput(name::String = "", selected::String = first(options).name,
         options::Vector{Component} = Vector{Component}(),
          multiple::Bool = false)
     Container(name, "select", options, properties = Dict())::Container
 end
 
-function SliderInput(name::String = ""; range::UnitRange = 0:100,
+function sliderinput(name::String = ""; range::UnitRange = 0:100,
                     text::String = "")
     Input(name, "range")::Component
 end
 
 """
 """
-function Form(name::String = "",
+function form(name::String = "",
     components::Vector{Component} = Vector{Component}(); post::String = "",
     get::String = "")
     method::String = ""
@@ -174,32 +189,37 @@ function Form(name::String = "",
     :action => action))::Container
 end
 
-function Link(name::String; rel::String = "stylesheet", href::String = "")
+function link(name::String; rel::String = "stylesheet", href::String = "")
     Component(name, "link", Dict(:rel => string(rel), :href => href))::Component
 end
 
-function MetaData(name::String = "charset", content::String = "UTF-8" )
+function metadata(name::String = "charset", content::String = "UTF-8" )
     Component(name, "meta", Dict(:content => string(content)))::Component
 end
 
-function Header(title::String = "Toolips App";
+function header(title::String = "Toolips App";
     icon::String = "", keywords::Array{String} = [], author::String = "",
     description::String = "", links::Vector{Component} = Vector{Component}())
     cs::Vector{Component} = Vector{Component}()
-    push!(cs, MetaData())
-    push!(cs, Link("icon", rel = "icon", href = icon))
-    push!(cs, MetaData("keywords", join(keywords, ",")))
-    push!(cs, MetaData("description", description))
+    push!(cs, metadata())
+    push!(cs, link("icon", rel = "icon", href = icon))
+    push!(cs, metadata("keywords", join(keywords, ",")))
+    push!(cs, metadata("description", description))
     [push!(cs, link) for link in cs]
     Container(name, "head", cs)::Container
 end
 
-function Div(name::String,
-    cs::Vector{Component} = []; properties::Dict = Dict())
-    Container(name, "tag", cs)
+function div(name::String,
+    cs::Vector{Component} = Vector{Component}(); properties::Dict = Dict())
+    Container(name, "div", cs, properties = properties)::Container
 end
 
-function A(name::String; text::String = "")
+function body(name::String, cs::Vector{Component} = Vector{Component}();
+    properties::Dict = Dict())
+    Container(name, "body", cs, properties = properties)::Container
+end
+
+function a(name::String; text::String = "")
     Component(name, link, Dict(:text => text))
 end
 
@@ -234,7 +254,7 @@ end
 mutable struct Style <: StyleComponent
     name::String
     f::Function
-    rules::Dict
+    properties::Dict
     function Style(name::String; animation::Animation = nothing)
         f(c::Connection) = begin
             css = "<style>$name { "
@@ -242,13 +262,13 @@ mutable struct Style <: StyleComponent
                 anim = animation.name
                 css = css * "animation: $anim;"
             end
-            for rule in keys(rules)
+            for rule in keys(properties)
                 property = string(rule)
-                value = string(rules[rule])
+                value = string(properties[rule])
                 css = css * "$property: $value; "
             end
             css * "}</style>"
         end
-        new(name::String, f::Function, rules::Dict)
+        new(name::String, f::Function, properties::Dict)
     end
 end

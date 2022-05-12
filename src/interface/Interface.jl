@@ -67,6 +67,22 @@ Method binding for Servable.properties.
 properties(s::Servable) = s.properties
 
 
+push!(s::Container, c::Component) = push!(s.components, c)
+
+function push!(s::Container, c::Component ...)
+    cs::Vector{Component} = push!(s.components, c)
+end
+
+function push!(s::Component, d::Component ...)
+    v::Vector{Component} = Vector{Component}(d)
+    Container(s.name, s.tag. v, properties = s.properties)::Container
+end
+
+function push!(s::Component, d::Component)
+    Container(s.name, s.tag. Vector{Component}([d]),
+    properties = s.properties)::Container
+end
+
 getindex(s::Servable, symb::Symbol) = s.properties[symb]
 
 
@@ -83,7 +99,7 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 #### example
 
 """
-animate!(s::StyleComponent, a::Animation) = s.rules[:animation] = a.name
+animate!(s::StyleComponent, a::Animation) = s.properties[:animation] = a.name
 
 """
 ### style!(::Servable, ::Style) -> _
@@ -97,11 +113,11 @@ style!(c::Servable, s::Style) = c.properties[:class] = s.name
 """
 ### style!(::Style, ::Style) -> _
 ------------------
-Copies the rules from the second style into the first style.
+Copies the properties from the second style into the first style.
 #### example
 
 """
-style!(s::Style, s2::Style) = merge!(s.rules, s2.rules)
+style!(s::Style, s2::Style) = merge!(s.properties, s2.properties)
 
 """
 ### @keyframe!(::Symbol, ::Style) -> _

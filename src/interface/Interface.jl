@@ -283,10 +283,24 @@ likes.
 """
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
+"""
+### navigate!(::Connection, ::String) -> _
+------------------
+Routes a connected stream to a given URL.
+#### example
+
+"""
 function navigate!(c::Connection, url::String)
     HTTP.get(url, response_stream = c.http, status_exception = false)
 end
 
+"""
+### stop!(x::Any) -> _
+------------------
+An alternate binding for close(x). Stops a server from running.
+#### example
+
+"""
 function stop!(x::Any)
     close(x)
 end
@@ -299,6 +313,7 @@ Request/Args
 ------------------
 The getargs method returns arguments from the HTTP header (GET requests.)
 Returns a full dictionary of these values.
+#### example
 
 """
 function getargs(c::Connection)
@@ -315,10 +330,10 @@ function getargs(c::Connection)
 end
 
 """
-### getargs(::Connection, ::Symbol) -> ::Vector
+### getargs(::Connection, ::Symbol) -> ::Dict
 ------------------
 Returns the requested arguments from the target.
-
+#### example
 """
 function getarg(c::Connection, s::Symbol)
     getargs(c)[s]
@@ -330,32 +345,64 @@ end
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
 parsed as type T(). Note that "Cannot convert..." errors are possible with this
 method.
-
+#### example
 """
 function getarg(c::Connection, s::Symbol, T::Type)
     parse(getargs(http)[s], T)
 end
 
 """
+### postarg(::Connection, ::Symbol) -> ::Any
+------------------
+Get a body argument of a POST response by name.
+#### example
 
 """
 function postarg(c::Connection, s::Symbol)
 
 end
 
+"""
+### postarg(::Connection, ::Symbol, ::Type) -> ::Any
+------------------
+Get a body argument of a POST response by name. Will be parsed into the
+provided type.
+#### example
 
 """
+function postarg(c::Connection, s::Symbol, T::Type)
+
+end
 
 """
-function postargs(http::HTTP.Stream)
+### postargs(::Connection, ::Symbol, ::Type) -> ::Dict
+------------------
+Get arguments from the request body.
+#### example
+
+"""
+function postargs(c::Connection)
     http.message.body
 end
 
+"""
+### get() -> ::Dict
+------------------
+Quick binding for an HTTP GET request.
+#### example
 
-function get()
+"""
+function get(url::String)
 
 end
 
-function post()
+"""
+### post() ->
+------------------
+Quick binding for an HTTP POST request.
+#### example
+
+"""
+function post(url::String)
 
 end

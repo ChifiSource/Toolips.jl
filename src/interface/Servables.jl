@@ -5,7 +5,8 @@ Servables!
 ### Servable
 Consistencies
 - f::Function - Function whose output to be written to http().
-- properties::Dict - The properties of a given Servable.
+- properties::Dict - The properties of a given Servable. These are written
+into the servable on the calling of f().
 """
 abstract type Servable end
 
@@ -104,10 +105,23 @@ mutable struct Container <: Servable
     end
 end
 
+"""
+### Input(name::String, type::String = "text") -> ::Component
+Constructs an input component with the type. This is called by other
+constructors in some instances.
+#### example
+
+"""
 function Input(name::String, type::String = "text")
     Component(name, "input", Dict(:type => type))::Component
 end
 
+"""
+### TextArea(name::String, type::String = "text") -> ::Component
+
+#### example
+
+"""
 function TextArea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
                 cols::Int64 = 50, text::String = "")
         Component(name, "textarea", Dict(:maxlength => maxlength, :rows => rows,

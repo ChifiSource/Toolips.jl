@@ -1,4 +1,3 @@
-include("Extensions.jl")
 mutable struct Connection
     routes::Dict
     http::HTTP.Stream
@@ -8,6 +7,8 @@ mutable struct Connection
     end
 end
 getindex(c::Connection, s::Symbol) = c.extensions[s]
+
+include("Extensions.jl")
 
 """
 ### Route{T}

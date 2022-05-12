@@ -131,10 +131,7 @@ mutable struct Files <: ServerExtension
     function Files(directory::String = "public")
         f(r::Dict) = begin
             for path in route_from_dir(directory)
-                route::Route = route("/" * path) do c
-                    write!(c.http, File(path))
-                end
-                push!(r, route)
+                push!(r, "/" * path => c::Connection -> write!(c, File(path)))
             end
         end
         new(:routing, directory, f)

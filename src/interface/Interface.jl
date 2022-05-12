@@ -146,7 +146,7 @@ animation = Animation("hello")
 """
 macro keyframe!(anim::Symbol, keyframes::Any ...)
     kf = [string(frame) for frame in keyframes]
-    xname = getfield(__module__, Symbol(x))
+    xname = getfield(__module__, Symbol(anim))
     keyframe!(xname, kf)
 end
 

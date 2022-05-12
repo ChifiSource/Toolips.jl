@@ -20,7 +20,7 @@ import Base: getindex, setindex!, push!
 # Core Server
 export ServerTemplate, Route, Connection
 # Server Extensions
-export Logger, Files,
+export Logger, Files
 # Function returns
 export html, css, js, fn
 # Servables

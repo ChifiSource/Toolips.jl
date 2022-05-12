@@ -146,7 +146,8 @@ animation = Animation("hello")
 """
 macro keyframe!(anim::Symbol, keyframes::Any ...)
     kf = [string(frame) for frame in keyframes]
-    keyframe!(s, kf)
+    xname = getfield(__module__, Symbol(x))
+    keyframe!(xname, kf)
 end
 
 """
@@ -175,8 +176,7 @@ You can apply animations to Styles using the animate! method.
 animation = Animation("hello")
 @keyframe! animation "%50" opacity "5o%"
 """
-function keyframe!(anim::Symbol, frames::Vector{String})
-    anim::Animation = eval(anim)
+function keyframe!(anim::Animation, frames::Vector{String})
     prop = string(frames[2]) * ": "
     value = string(frames[3]) * "; "
     if string(frames[1]) in keys(anim.keyframes)

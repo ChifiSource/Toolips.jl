@@ -30,7 +30,7 @@ export form, link, metadata, header, div, body
 export Animation, Style, StyleSheet
 # High-level api
 export properties, push!, getindex, setindex!, properties!
-export animate!, style!, keyframe!, delete_keyframe!
+export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export getargs, getarg, postargs, postarg, get, post
 

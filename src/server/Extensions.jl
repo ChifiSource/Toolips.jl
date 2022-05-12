@@ -131,7 +131,7 @@ mutable struct Files <: ServerExtension
     function Files(directory::String = "public")
         f(r::Dict) = begin
             for path in route_from_dir(directory)
-                push!(r, path => File(path))
+                push!(r, "/" * path => File(path))
             end
         end
         new(:routing, directory, f)

@@ -7,8 +7,6 @@ mutable struct Connection
         new(routes, http, extensions)::Connection
     end
 end
-write!(c::Connection, s::Any) = write!(http, s)
-write!(c::Connection, s::Servable) = write(http, s.f(c))
 getindex(c::Connection, s::Symbol) = c.extensions[s]
 
 """

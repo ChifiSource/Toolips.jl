@@ -1,8 +1,13 @@
 using Dates
 
 """
-Must contain field
-SE.type!
+### abstract type ServerExtension
+Server extensions are loaded into the server on startup, and
+can have a few different abilities according to their type
+field's value. There are three types to be aware of.
+-
+##### Consistencies
+
 """
 abstract type ServerExtension end
 
@@ -37,7 +42,7 @@ mutable struct Logger <: ServerExtension
     function Logger(levels::Dict; out::String = pwd() * "logs/log.txt")
         log(level::Int64, message::String) = _log(level, message, levels, out)
         log(message::String) = _log(1, message, levels, out)
-        log(http::HTTP.Stream, message::String) = _log(http, message)
+        log(c::Connection, message::String) = _log(c.http, message)
         new(:connection, out::String, levels::Dict, log::Function)
     end
     function Logger(; out = pwd() * "/logs/log.txt")

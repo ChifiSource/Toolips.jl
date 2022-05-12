@@ -1,12 +1,21 @@
-mutable struct Header
+abstract type ScalableComponent <: Component end
+
+mutable struct Area <: ScalableComponent
     name::String
     f::Function
     html::String
     components::AbstractArray
-    align::Symbol
+    align::String
+    function Area(name::String, components::Vector{Component} = [];
+         align = "left")
+         html = """<div></div>"""
+         f(http::HTTP.Stream) = begin
+             "<div></div>"
+    end
 end
 
-mutable struct Navbar
+
+mutable struct Navbar <: ScalableComponent
     name::String
     f::Function
     comps::AbstractArray
@@ -23,13 +32,7 @@ mutable struct Navbar
     end
 end
 
-mutable struct Body
-    name::String
-    f::Function
-    align::Symbol
-end
-
-mutable struct Columns
+mutable struct Columns <: ScalableComponent
     name::String
     f::Function
     html::String
@@ -59,7 +62,11 @@ mutable struct Columns
             open = "<style>$col_rowcss</style><div class='row'>"
             for i in 1:n
                 open = open * """<div class="column">"""
-                open = open * join([l.f(http) for l in comparrays[i]])
+                try
+                    open = open * join([l.f(http) for l in comparrays[i]])
+                catch
+                    open = open * join([w(http) for w in comparrays[i]])
+                end
                 open = open * "</div>"
             end
             open * "</div>"

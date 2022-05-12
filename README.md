@@ -3,64 +3,20 @@
 </div>
 
 **Toolips.jl** is a multi-paradigm web-development framework built around function calls and [HTTP.jl](https://github.com/JuliaWeb/HTTP.jl). This is Julia's first true **full-stack** web-development framework, and it is likely that by a stable release you will be able to do just about anything you may elsewhere with Toolips.jl. **Here are some of the features that the framework includes:**
-- Customizable loggers.
-- Private directory scopes and routing, everything gets returned in Julia.
-- A function pipeline system.
-- Simple single-argument constructors.
-- Asynchronicity
-- A library of interactive components.
-- A furthered library of front-end components.
-- Canvases
-- Extensions
-- HTTP.jl consistency
-- Object-oriented syntax
-- Request handling
-- Server management
+##### Extendability
+A core value of the Toolips.jl project is to be as modular as possible. Keeping components small and simple keeps larger systems from breaking. That being said, extendability is incredibly important to the project. The module includes methods for extending the server, which has a multitude of capabilities, extending servables, pretty much everything in here can be extended very easily.
+##### High-level
+In some cases, the Toolips syntax can actually be easier than it is inside of markup, things are simple, functional, and easy to understand.
+- Extendable components.
+- A library of servables.
+- A high-level routing interface.
+- A simple library of request methods.
+- Dynamic Routing.
 ```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add https://github.com/ChifiSource/Toolips.jl
 ```
-<details class="details-overlay">
-  <summary class="btn"><h2>What's inside?</h2></summary>
-<div>
-  <h4>Create a project</h4>
-  <li>new_webapp</li>
-  <h4>Server</h4>
-  <li>ServerTemplate</li>
-  <li>Route</li>
-  <li>Logger</li>
-  <h4>Methods</h4>
-  <li>stop!</li>
-  <li>write_file</li>
-  <li>getargs</li>
-  <li>getarg</li>
-  <li>lists</li>
-  <h4>Servables</h4>
-  <h5>Raw Components</h5>
-  <li>html</li>
-  <li>html files</li>
-  <li>css</li>
-  <li>css_file</li>
-  <li>js</li>
-  <li>js_file</li>
-  <li>css_file</li>
-  <li>functions</li>
-  <h5>Form Components</h5>
-  <li>button</li>
-  <li>text area</li>
-  <li>text box</li>
-  <li>radio set</li>
-  <li>slider</li>
-  <li>forms</li>
-  <h5>Other</h5>
-  <li>pages</li>
-  <li>canvas</li>
-  <li>list</li>
-  <li>unordered list</li>
-  <li>drop downs</li>
-  </div>
-  </details>
   <details class="details-overlay">
   <summary class="btn"><h2>Using Toolips</h2></summary>
 <div>

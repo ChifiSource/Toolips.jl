@@ -7,13 +7,10 @@ coming to spruce up this code base to better facilitate things like
 authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
-- TODO Incoming user information would be nice.
-- TODO Authentication. (UUID's would be nice)
-- TODO improve default project files a tad.
 - TODO Load environment in default files
 - TODO Setup the Pkg environment with the given loaded files
-- TODO Finish Servable 4.0 rework
-- TODO Load directories using extensions.
+- TODO Finish docs
+- TODO
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -21,23 +18,27 @@ include("interface/Servables.jl")
 include("interface/Interface.jl")
 import Base: getindex, setindex!, push!
 # Core Server
-export ServerTemplate, Logger, Files, Route, Connection
+export ServerTemplate, Route, Connection
+# Server Extensions
+export Logger, Files,
 # Function returns
 export html, css, js, fn
 # Servables
 export File, Component, Container
-export Input, TextArea, Button, P, Option, RadioInput, SliderInput
-export Form, Link, MetaData, Header, Div, Animation, Style
+export input, textarea, button, p, option, radioinput, sliderinput
+export form, link, metadata, header, div, body
+export Animation, Style, StyleSheet
 # High-level api
-export route, routes, route!, get_text, write!, stop!
-# Methods
-export getargs, getarg, getpost, write_file, lists
+export properties, push!, getindex, setindex!, properties!
+export animate!, style!, keyframe!, delete_keyframe!
+export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
+export getargs, getarg, postargs, postarg, get, post
+
 
 function create_serverdeps(name::String)
     Pkg.generate(name)
     Pkg.activate(name)
-    #  Uncomment after 0.0.9 push:
-    # Pkg.add("Toolips")
+    Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
     dir = pwd() * "/"
     src = dir * name * "/src"
     logs = dir * name * "/logs"
@@ -111,6 +112,7 @@ function new_webapp(name::String = "ToolipsApp")
     end
     public = pwd() * "/$name/public"
     mkdir(public)
+#    Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
 end
 export new_webapp, new_app
 # --

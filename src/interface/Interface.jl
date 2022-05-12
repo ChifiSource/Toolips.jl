@@ -66,6 +66,15 @@ Method binding for Servable.properties.
 """
 properties(s::Servable) = s.properties
 
+"""
+### properties!(::Servable, ::Servable) -> _
+------------------
+Copies properties from s,properties into c.properties.
+#### example
+
+"""
+properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
+
 
 push!(s::Container, c::Component) = push!(s.components, c)
 
@@ -198,14 +207,6 @@ Writes a Servable's return to a Connection's stream.
 """
 write!(c::Connection, s::Servable) = write(c.http, s.f(c))
 
-"""
-### properties!(::Servable, ::Servable) -> _
-------------------
-Copies properties from s,properties into c.properties.
-#### example
-
-"""
-properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
 ### write!(c::Connection, s::Vector{Servable}) -> _

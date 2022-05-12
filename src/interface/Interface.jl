@@ -233,7 +233,7 @@ Attempts to write any type to the Connection's stream.
 #### example
 
 """
-write!(c::Connection, s::Any) = write(http, s)
+write!(c::Connection, s::Any) = write(c.http, s)
 
 """
 ### startread!(::Connection) -> _
@@ -242,7 +242,7 @@ Resets the seek on the Connection.
 #### example
 
 """
-startread!(c::Connection) = startread(http)
+startread!(c::Connection) = startread(c.http)
 
 """
 ### route!(::Connection, ::Route) -> _

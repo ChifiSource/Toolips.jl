@@ -90,6 +90,7 @@ function _log(level::Int64, message::String, levels::Dict, out::String)
      string(time), Crayon(foreground = :light_gray, bold = true), "]: ",
      message)
 end
+
 """
 ### _log(http::HTTP.Stream, message::String) -> _
 ------------------
@@ -104,7 +105,14 @@ function _log(http::HTTP.Stream, message::String)
 end
 
 
-
+"""
+### route_from_dir(dir::String) -> ::Vector{String}
+------------------
+Recursively appends filenames for a directory AND all subsequent directories.
+------------------
+### example
+x::Vector{String} = route_from_dir("mypath")
+"""
 function route_from_dir(dir::String)
     dirs::Vector{String} = readdir(dir)
     routes::Vector{String} = []
@@ -147,6 +155,21 @@ end
 
 
 """
+### Files
+type::Symbol
+directory::String
+f::Function
+------------------
+- type::Symbol - The type of extension. There are three different selections
+you can choose from. **:connection :routing :func**. A :connection extension
+will be provided in Connection.extensions. A :routing function is passed a
+Dict of routes as an argument. The last is a function argument, which is just a
+specific function to run from the top-end to the server.
+- directory::String - The directory to route the files from.
+- f::Function - The function f() called with a Connection.
+------------------
+##### constructors
+Files(dir::String)
 """
 mutable struct Files <: ServerExtension
     type::Symbol

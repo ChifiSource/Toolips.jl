@@ -57,7 +57,7 @@ mutable struct Logger <: ServerExtension
         Logger(levels; out = out)
     end
 end
-# print(, "In red. ", Crayon(bold = true), "Red and bold")
+
 """
 ### _log(level::Int64, message::String, levels::Dict, out::String) -> _
 ------------------

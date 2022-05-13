@@ -109,9 +109,8 @@ end
 """
 ### new_web app(::String) -> _
 ------------------
-Creates a minimalistic app, usually used for creating endpoints -- but can
-be used for anything. For an app with a real front-end, it might make sense to
-add some extensions.
+Creates a fully-featured web-app. Adds CanonicalToolips.jl to provide more
+high-level interface origrannubg from Julia.
 #### example
 
 """

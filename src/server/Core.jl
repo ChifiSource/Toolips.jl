@@ -1,3 +1,21 @@
+"""
+### Connection
+- routes::Dict
+- http::HTTP.Stream
+- extensions::Dict
+------------------
+##### Field Info
+- **routes::Dict** - A dictionary of routes where the keys
+are the routed URL and the values are the functions to
+those keys.
+- **http::HTTP.Stream** - The stream for this current peer's connection.
+- **extensions::Dict** - A dictionary of extensions to load with the
+name to reference as keys and the extension as the pair.
+------------------
+##### Constructors
+- Route(path::String, f::Function)
+- Route(path::String, s::Servable)
+"""
 mutable struct Connection
     routes::Dict
     http::HTTP.Stream

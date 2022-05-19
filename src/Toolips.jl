@@ -10,7 +10,7 @@ authentication.
 - TODO Load environment in default files
 - TODO Setup the Pkg environment with the given loaded files
 - TODO Finish docs
-- TODO Testingss
+- TODO Testings
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -63,10 +63,10 @@ function main(routes::Vector{Route})
 end
 \n
 hello_world::Route = route("/") do c
-    write!(c, P("hello", text = "hello world!"))
+    write!(c, p("hello", text = "hello world!"))
 end
 
-fourofour::Route = route("404", P("404", text = "404, not found!"))
+fourofour::Route = route("404", p("404", text = "404, not found!"))
 rs = routes(hello_world, fourofour)
 main(rs)
 

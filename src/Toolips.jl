@@ -10,7 +10,7 @@ authentication.
 - TODO Load environment in default files
 - TODO Setup the Pkg environment with the given loaded files
 - TODO Finish docs
-- TODO
+- TODO Testings
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -34,7 +34,13 @@ export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export getargs, getarg, postargs, postarg, get, post
 
+"""
+### create_serverdeps(::String) -> _
+------------------
+Creates the essential portions of the webapp file structure.
+#### example
 
+"""
 function create_serverdeps(name::String)
     Pkg.generate(name)
     Pkg.activate(name)
@@ -57,10 +63,10 @@ function main(routes::Vector{Route})
 end
 \n
 hello_world::Route = route("/") do c
-    write!(c, P("hello", text = "hello world!"))
+    write!(c, p("hello", text = "hello world!"))
 end
 
-fourofour::Route = route("404", P("404", text = "404, not found!"))
+fourofour::Route = route("404", p("404", text = "404, not found!"))
 rs = routes(hello_world, fourofour)
 main(rs)
 
@@ -68,6 +74,16 @@ main(rs)
     end
 
 end
+
+"""
+### new_app(::String) -> _
+------------------
+Creates a minimalistic app, usually used for creating endpoints -- but can
+be used for anything. For an app with a real front-end, it might make sense to
+add some extensions.
+#### example
+
+"""
 function new_app(name::String = "ToolipsApp")
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
@@ -90,6 +106,14 @@ function new_app(name::String = "ToolipsApp")
     end
 end
 
+"""
+### new_web app(::String) -> _
+------------------
+Creates a fully-featured web-app. Adds CanonicalToolips.jl to provide more
+high-level interface origrannubg from Julia.
+#### example
+
+"""
 function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io

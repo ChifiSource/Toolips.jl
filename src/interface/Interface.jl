@@ -75,13 +75,34 @@ Copies properties from s,properties into c.properties.
 """
 properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
+"""
+### push!(::Container, ::Component) -> _
+------------------
+Moves Component into Container.components.
+#### example
 
+"""
 push!(s::Container, c::Component) = push!(s.components, c)
 
+"""
+### push!(::Container, ::Component ...) -> _
+------------------
+Moves Components into Container component.
+#### example
+
+"""
 function push!(s::Container, c::Component ...)
     cs::Vector{Component} = push!(s.components, c)
 end
 
+"""
+### push!(::Component, ::Component ...) -> ::Container
+------------------
+Combines two servables into a container and clones fields from the first
+component.
+#### example
+
+"""
 function push!(s::Component, d::Component ...)
     v::Vector{Component} = Vector{Component}(d)
     Container(s.name, s.tag. v, properties = s.properties)::Container

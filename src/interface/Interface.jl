@@ -117,6 +117,10 @@ getindex(s::Servable, symb::Symbol) = s.properties[symb]
 
 
 setindex!(s::Servable, symb::Symbol, a::Any) = s.properties[symb] = s
+
+setindex!(s::Servable, symb::String, a::Any) = s.properties[symb] = s
+
+getindex(s::Servable, symb::String) = s.properties[symb]
 #==
 Styles
 ==#

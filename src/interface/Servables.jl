@@ -274,7 +274,8 @@ mutable struct Style <: StyleComponent
     name::String
     f::Function
     properties::Dict
-    function Style(name::String; animation::Animation = nothing)
+    function Style(name::String)
+        properties::Dict = Dict()
         f(c::Connection) = begin
             css = "<style>$name { "
             if animation != nothing

@@ -150,28 +150,6 @@ Copies the properties from the second style into the first style.
 style!(s::Style, s2::Style) = merge!(s.properties, s2.properties)
 
 """
-### @keyframe!(::Symbol, ::Style) -> _
-------------------
-Adds a new keyframe to the animation servable. Note that the animation is
-the symbol in this dispatch. Puts the frame arguments into a vector.
-Use percentages, from/to, or pixels abbreviated in a string in order to
-input values (). There should be three elements to every call, and it will not
-follow Julian syntax. The first element will be the position, a percentage OR
-from/to. The second is the style rule to modify, the third is the value to
-change it to.
-You can apply animations to Styles using the animate! method. This macro calls
-keyframe!(anim::Symbol, frames::Vector{String}).
-#### example
-animation = Animation("hello")
-@keyframe! animation "%50" opacity "5o%"
-"""
-macro keyframe!(anim::Symbol, keyframes::Any ...)
-    kf = [string(frame) for frame in keyframes]
-    xname = getfield(__module__, Symbol(anim))
-    keyframe!(xname, kf)
-end
-
-"""
 ### delete_keyframe!(::Animation, ::String) -> _
 ------------------
 Deletes a given keyframe from an animation by keyframe name.
@@ -182,31 +160,26 @@ function delete_keyframe!(s::Animation, key::String)
     delete!(s.keyframes, key)
 end
 
-"""
-### keyframe!(::Symbol, ::Style) -> _
-------------------
-Adds a new keyframe to the animation servable. Note that the animation is
-the symbol in this dispatch. Puts the frame arguments into a vector.
-Use percentages, from/to, or pixels abbreviated in a string in order to
-input values (). There should be three elements to every call, and it will not
-follow Julian syntax. The first element will be the position, a percentage OR
-from/to. The second is the style rule to modify, the third is the value to
-change it to.
-You can apply animations to Styles using the animate! method.
-#### example
-animation = Animation("hello")
-@keyframe! animation "%50" opacity "5o%"
-"""
-function keyframe!(anim::Animation, frames::Vector{String})
-    prop = string(frames[2]) * ": "
-    value = string(frames[3]) * "; "
-    if string(frames[1]) in keys(anim.keyframes)
+function setindex!(anim::Animation, set::Pair, n::Int64)
+    prop = string(set[1]) * ": "
+    value = string(set[2]) * "; "
+    if n in keys(anim.keyframes)
         anim.keyframes[frames[1]] = anim.keyframes[frames[1]] * "$prop $value"
     else
-        push!(anim.keyframes, frames[1] => "$prop $value")
+        push!(anim.keyframes, "%$n" => "$prop $value")
     end
 end
 
+function setindex!(anim::Animation, set::Pair, n::Symbol)
+    prop = string(set[1]) * ": "
+    value = string(set[2]) * "; "
+    n = string(n)
+    if n in keys(anim.keyframes)
+        anim.keyframes[frames[1]] = anim.keyframes[frames[1]] * "$prop $value"
+    else
+        push!(anim.keyframes, "$n" => "$prop $value")
+    end
+end
 """
 ### push!(::Animation, p::Pair) -> _
 ------------------

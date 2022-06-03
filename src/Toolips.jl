@@ -59,14 +59,12 @@ function create_serverdeps(name::String)
 function main(routes::Vector{Route})
     server = ServerTemplate(IP, PORT, routes, extensions = extensions)
     server.start()
-    return(TLSERVER)
 end
 \n
-hello_world::Route = route("/") do c
+hello_world = route("/") do c
     write!(c, p("hello", text = "hello world!"))
 end
-
-fourofour::Route = route("404", p("404", text = "404, not found!"))
+fourofour = route("404", p("404", text = "404, not found!"))
 rs = routes(hello_world, fourofour)
 main(rs)
 
@@ -107,7 +105,7 @@ function new_app(name::String = "ToolipsApp")
 end
 
 """
-### new_web app(::String) -> _
+### new_webapp(::String) -> _
 ------------------
 Creates a fully-featured web-app. Adds CanonicalToolips.jl to provide more
 high-level interface origrannubg from Julia.

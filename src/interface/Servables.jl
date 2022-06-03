@@ -171,12 +171,24 @@ function radioinput(name::String = "", selected::String = first(options).name,
     Container(name, "select", options, properties = Dict())::Container
 end
 
+"""
+sliderinput(name::String;
+ range::UnitRange = 0:100, text::String) -> ::Component
+Returns a slider input with the range **range**.
+ #### example
+"""
 function sliderinput(name::String = ""; range::UnitRange = 0:100,
                     text::String = "")
-    Input(name, "range")::Component
+    input(name, "range")::Component
 end
 
 """
+form(name::String,
+ components::Vector{Component}; post = "") -> ::Component
+Returns a form which posts to **post** or navigates to **get**, depending on
+which kwarg is used. **components** in this instance should be a vector of
+input components.
+ #### example
 """
 function form(name::String = "",
     components::Vector{Component} = Vector{Component}(); post::String = "",

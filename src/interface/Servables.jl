@@ -95,7 +95,7 @@ mutable struct Container <: Servable
 end
 
 """
-### Input(name::String, type::String = "text") -> ::Component
+### input(name::String, type::String = "text") -> ::Component
 Constructs an input component.
 #### example
 
@@ -105,7 +105,7 @@ function input(name::String, type::String = "text")
 end
 
 """
-### TextArea(name::String ;
+### textarea(name::String ;
      maxlength::Int64 = 25, rows::Int64 = 25, cols::Int64 = 25,
      text::String = "") -> ::Component
 Constructs a TextArea component.
@@ -119,7 +119,7 @@ function textarea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
 end
 
 """
-### Button(name::String ;
+### button(name::String ;
      text::String = "", value::Integer = "", action::String =) -> ::Component
 Constructs a Button Component
 #### example
@@ -129,28 +129,66 @@ function button(name::String = "Button"; text::String = "", value::Integer = "")
     Component(name, "button", Dict(:text => text, :value => value))::Component
 end
 
+"""
+p(name::String;
+ maxlength::Int64 = 25, text::String = "") -> ::Component
+ Constructs a "p" (paragraph) tag in HTML.
+ #### example
+"""
 function p(name::String = ""; maxlength::Int64 = 25, text::String = "")
     Component(name, "p", Dict(:maxlength => maxlength, :text => text))::Component
 end
 
+"""
+fileinput(name::String;
+ maxlength::Int64 = 25, text::String = "") -> ::Component
+Returns a file-input component.
+ #### example
+"""
 fileinput(name::String) = Input(name, "file")::Component
 
+"""
+option(name::String;
+ value::String = "", text::String = "") -> ::Component
+Returns a option-input component. Preferable application belongs in a radioinput
+form, for more info try ?(radioinput)
+ #### example
+"""
 function option(name::String = ""; value::String = "", text::String = "")
     Component(name, "option", Dict())::Component
 end
 
+"""
+radioinput(name::String;
+ value::String = "", text::String = "") -> ::Container
+Returns a option-input component. Preferable application belongs in a radioinput
+form, for more info try ?(radioinput)
+ #### example
+"""
 function radioinput(name::String = "", selected::String = first(options).name,
         options::Vector{Component} = Vector{Component}(),
          multiple::Bool = false)
     Container(name, "select", options, properties = Dict())::Container
 end
 
+"""
+sliderinput(name::String;
+ range::UnitRange = 0:100, text::String) -> ::Component
+Returns a slider input with the range **range**.
+ #### example
+"""
 function sliderinput(name::String = ""; range::UnitRange = 0:100,
                     text::String = "")
-    Input(name, "range")::Component
+    input(name, "range")::Component
 end
 
 """
+form(name::String,
+ components::Vector{Component}; post = "") -> ::Component
+Returns a form which posts to **post** or navigates to **get**, depending on
+which kwarg is used. **components** in this instance should be a vector of
+input components.
+ #### example
 """
 function form(name::String = "",
     components::Vector{Component} = Vector{Component}(); post::String = "",

@@ -278,10 +278,6 @@ mutable struct Style <: StyleComponent
         properties::Dict = Dict()
         f(c::Connection) = begin
             css = "<style>$name { "
-            if animation != nothing
-                anim = animation.name
-                css = css * "animation: $anim;"
-            end
             for rule in keys(properties)
                 property = string(rule)
                 value = string(properties[rule])

@@ -98,7 +98,7 @@ end
 """
 ### push!(::Component, ::Component ...) -> ::Container
 ------------------
-Combines two servables into a container and clones fields from the first
+Combines two or more servables into a container and clones fields from the first
 component.
 #### example
 
@@ -108,19 +108,55 @@ function push!(s::Component, d::Component ...)
     Container(s.name, s.tag. v, properties = s.properties)::Container
 end
 
+"""
+### push!(::Component, ::Component) -> ::Container
+------------------
+Adds a component into a container and clones fields from the first
+component.
+#### example
+
+"""
 function push!(s::Component, d::Component)
     Container(s.name, s.tag. Vector{Component}([d]),
     properties = s.properties)::Container
 end
 
+"""
+### getindex(::Servable, ::Symbol) -> ::Any
+------------------
+Returns a property value by symbol or name.
+#### example
+
+"""
 getindex(s::Servable, symb::Symbol) = s.properties[symb]
 
+"""
+### getindex(::Servable, ::String) -> ::Any
+------------------
+Returns a property value by string or name.
+#### example
 
+"""
+getindex(s::Servable, symb::String) = s.properties[symb]
+
+"""
+### setindex!(::Servable, ::Symbol, ::Any) -> ::Any
+------------------
+Sets the property represented by the symbol to the provided value.
+#### example
+
+"""
 setindex!(s::Servable, symb::Symbol, a::Any) = s.properties[symb] = s
 
+"""
+### setindex!(::Servable, ::String, ::Any) -> ::Any
+------------------
+Sets the property represented by the string to the provided value.
+#### example
+
+"""
 setindex!(s::Servable, symb::String, a::Any) = s.properties[symb] = s
 
-getindex(s::Servable, symb::String) = s.properties[symb]
 #==
 Styles
 ==#
@@ -184,6 +220,7 @@ function setindex!(anim::Animation, set::Pair, n::Symbol)
         push!(anim.keyframes, "$n" => "$prop $value")
     end
 end
+
 """
 ### push!(::Animation, p::Pair) -> _
 ------------------

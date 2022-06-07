@@ -3,6 +3,7 @@
     Functions
 ==#
 """
+**Interface**
 ### html(::String) -> ::Function
 ------------------
 Creates a servable from the provided string, which should be HTML.
@@ -10,7 +11,9 @@ Creates a servable from the provided string, which should be HTML.
 
 """
 html(hypertxt::String) = c::Connection -> write!(c, hypertxt)::Function
+
 """
+**Interface**
 ### html(::String) -> ::Function
 ------------------
 Creates a servable from the provided string, which should be CSS.
@@ -19,6 +22,7 @@ Creates a servable from the provided string, which should be CSS.
 css(css::String) = http::Connection -> "<style>" * css * "</style>"::Function
 
 """
+**Interface**
 ### html(::String) -> ::Function
 ------------------
 Creates a servable from the provided string, which should be JavaScript.
@@ -29,6 +33,7 @@ js(js::String) = http::Connection -> "<script>" * js * "</script>"::Function
 Functions
 ==#
 """
+**Interface**
 ### fn(::Function) -> ::Function
 ------------------
 Turns any function into a servable. Functions can optionally take the single
@@ -58,6 +63,7 @@ end
 Indexing/iter
 ==#
 """
+**Interface**
 ### properties(::Servable) -> ::Dict
 ------------------
 Method binding for Servable.properties.
@@ -67,6 +73,7 @@ Method binding for Servable.properties.
 properties(s::Servable) = s.properties
 
 """
+**Interface**
 ### properties!(::Servable, ::Servable) -> _
 ------------------
 Copies properties from s,properties into c.properties.
@@ -76,6 +83,7 @@ Copies properties from s,properties into c.properties.
 properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
+**Interface**
 ### push!(::Container, ::Component) -> _
 ------------------
 Moves Component into Container.components.
@@ -85,6 +93,7 @@ Moves Component into Container.components.
 push!(s::Container, c::Component) = push!(s.components, c)
 
 """
+**Interface**
 ### push!(::Container, ::Component ...) -> _
 ------------------
 Moves Components into Container component.
@@ -96,6 +105,7 @@ function push!(s::Container, c::Component ...)
 end
 
 """
+**Interface**
 ### push!(::Component, ::Component ...) -> ::Container
 ------------------
 Combines two or more servables into a container and clones fields from the first
@@ -109,6 +119,7 @@ function push!(s::Component, d::Component ...)
 end
 
 """
+**Interface**
 ### push!(::Component, ::Component) -> ::Container
 ------------------
 Adds a component into a container and clones fields from the first
@@ -122,6 +133,7 @@ function push!(s::Component, d::Component)
 end
 
 """
+**Interface**
 ### getindex(::Servable, ::Symbol) -> ::Any
 ------------------
 Returns a property value by symbol or name.
@@ -131,6 +143,7 @@ Returns a property value by symbol or name.
 getindex(s::Servable, symb::Symbol) = s.properties[symb]
 
 """
+**Interface**
 ### getindex(::Servable, ::String) -> ::Any
 ------------------
 Returns a property value by string or name.
@@ -140,6 +153,7 @@ Returns a property value by string or name.
 getindex(s::Servable, symb::String) = s.properties[symb]
 
 """
+**Interface**
 ### setindex!(::Servable, ::Symbol, ::Any) -> ::Any
 ------------------
 Sets the property represented by the symbol to the provided value.
@@ -149,6 +163,7 @@ Sets the property represented by the symbol to the provided value.
 setindex!(s::Servable, symb::Symbol, a::Any) = s.properties[symb] = s
 
 """
+**Interface**
 ### setindex!(::Servable, ::String, ::Any) -> ::Any
 ------------------
 Sets the property represented by the string to the provided value.
@@ -161,6 +176,7 @@ setindex!(s::Servable, symb::String, a::Any) = s.properties[symb] = s
 Styles
 ==#
 """
+**Interface**
 ### animate!(::StyleComponent, ::Animation) -> _
 ------------------
 Sets the Animation as a rule for the StyleComponent. Note that the
@@ -172,6 +188,7 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 animate!(s::StyleComponent, a::Animation) = s.properties[:animation] = a.name
 
 """
+**Interface**
 ### style!(::Servable, ::Style) -> _
 ------------------
 Applies the style to a servable.
@@ -181,6 +198,7 @@ Applies the style to a servable.
 style!(c::Servable, s::Style) = c.properties[:class] = s.name
 
 """
+**Interface**
 ### style!(::Style, ::Style) -> _
 ------------------
 Copies the properties from the second style into the first style.
@@ -190,6 +208,7 @@ Copies the properties from the second style into the first style.
 style!(s::Style, s2::Style) = merge!(s.properties, s2.properties)
 
 """
+**Interface**
 ### delete_keyframe!(::Animation, ::String) -> _
 ------------------
 Deletes a given keyframe from an animation by keyframe name.
@@ -222,6 +241,7 @@ function setindex!(anim::Animation, set::Pair, n::Symbol)
 end
 
 """
+**Interface**
 ### push!(::Animation, p::Pair) -> _
 ------------------
 Pushes a keyframe pair into an animation.
@@ -234,6 +254,7 @@ push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 Serving/Routing
 ==#
 """
+**Interface**
 ### write!(::Connection, ::Servable) -> _
 ------------------
 Writes a Servable's return to a Connection's stream.
@@ -244,6 +265,7 @@ write!(c::Connection, s::Servable) = write(c.http, s.f(c))
 
 
 """
+**Interface**
 ### write!(c::Connection, s::Vector{Servable}) -> _
 ------------------
 Writes, in order of element, each Servable inside of a Vector of Servables.
@@ -253,6 +275,7 @@ Writes, in order of element, each Servable inside of a Vector of Servables.
 write!(c::Connection, s::Vector{Servable}) = [write!(c, s) for c in s]
 
 """
+**Interface**
 ### write!(::Connection, ::String) -> _
 ------------------
 Writes the String into the Connection as HTML.
@@ -262,6 +285,7 @@ Writes the String into the Connection as HTML.
 write!(c::Connection, s::String) = write(c.http, s)
 
 """
+**Interface**
 ### write!(::Connection, ::Any) -> _
 ------------------
 Attempts to write any type to the Connection's stream.
@@ -271,6 +295,7 @@ Attempts to write any type to the Connection's stream.
 write!(c::Connection, s::Any) = write(c.http, s)
 
 """
+**Interface**
 ### startread!(::Connection) -> _
 ------------------
 Resets the seek on the Connection.
@@ -280,6 +305,7 @@ Resets the seek on the Connection.
 startread!(c::Connection) = startread(c.http)
 
 """
+**Interface**
 ### route!(::Connection, ::Route) -> _
 ------------------
 Modifies the routes on the Connection.
@@ -289,6 +315,7 @@ Modifies the routes on the Connection.
 route!(c::Connection, route::Route) = push!(c.routes, route.path => route.page)
 
 """
+**Interface**
 ### unroute!(::Connection, ::String) -> _
 ------------------
 Removes the route with the key equivalent to the String.
@@ -298,6 +325,7 @@ Removes the route with the key equivalent to the String.
 unroute!(c::Connection, r::String) = delete!(c.routes, r)
 
 """
+**Interface**
 ### route!(::Function, ::Connection, ::String) -> _
 ------------------
 Routes a given String to the Function.
@@ -307,6 +335,7 @@ Routes a given String to the Function.
 route!(f::Function, c::Connection, route::String) = push!(c.routes, route => f)
 
 """
+**Interface**
 ### route(::Function, ::String) -> ::Route
 ------------------
 Creates a route from the Function.
@@ -316,6 +345,7 @@ Creates a route from the Function.
 route(f::Function, route::String) = Route(route, f)::Route
 
 """
+**Interface**
 ### route(::String, ::Servable) -> ::Route
 ------------------
 Creates a route from a Servable.
@@ -325,6 +355,7 @@ Creates a route from a Servable.
 route(route::String, s::Servable) = Route(route, s)::Route
 
 """
+**Interface**
 ### routes(::Route ...) -> ::Vector{Route}
 ------------------
 Turns routes provided as arguments into a Vector{Route} with indexable routes.
@@ -336,6 +367,7 @@ likes.
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
 """
+**Interface**
 ### navigate!(::Connection, ::String) -> _
 ------------------
 Routes a connected stream to a given URL.
@@ -347,6 +379,7 @@ function navigate!(c::Connection, url::String)
 end
 
 """
+**Interface**
 ### stop!(x::Any) -> _
 ------------------
 An alternate binding for close(x). Stops a server from running.
@@ -361,6 +394,7 @@ end
 Request/Args
 ==#
 """
+**Interface**
 ### getargs(::Connection) -> ::Dict
 ------------------
 The getargs method returns arguments from the HTTP header (GET requests.)
@@ -382,6 +416,7 @@ function getargs(c::Connection)
 end
 
 """
+**Interface**
 ### getargs(::Connection, ::Symbol) -> ::Dict
 ------------------
 Returns the requested arguments from the target.
@@ -392,6 +427,7 @@ function getarg(c::Connection, s::Symbol)
 end
 
 """
+**Interface**
 ### getarg(::Connection, ::Symbol, ::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
@@ -404,6 +440,7 @@ function getarg(c::Connection, s::Symbol, T::Type)
 end
 
 """
+**Interface**
 ### postarg(::Connection, ::Symbol) -> ::Any
 ------------------
 Get a body argument of a POST response by name.
@@ -415,6 +452,7 @@ function postarg(c::Connection, s::Symbol)
 end
 
 """
+**Interface**
 ### postarg(::Connection, ::Symbol, ::Type) -> ::Any
 ------------------
 Get a body argument of a POST response by name. Will be parsed into the
@@ -427,6 +465,7 @@ function postarg(c::Connection, s::Symbol, T::Type)
 end
 
 """
+**Interface**
 ### postargs(::Connection, ::Symbol, ::Type) -> ::Dict
 ------------------
 Get arguments from the request body.
@@ -438,6 +477,7 @@ function postargs(c::Connection)
 end
 
 """
+**Interface**
 ### get() -> ::Dict
 ------------------
 Quick binding for an HTTP GET request.
@@ -449,6 +489,7 @@ function get(url::String)
 end
 
 """
+**Interface**
 ### post() ->
 ------------------
 Quick binding for an HTTP POST request.

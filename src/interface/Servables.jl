@@ -85,6 +85,7 @@ mutable struct Container <: Servable
         components::Vector{Component} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
+            http::HTTP.Stream = c.http
             write(http, open_tag)
             write(http, join([c.f(http) for c in components]))
             cs::String = join([c.f(http) for c in components])

@@ -239,7 +239,12 @@ function body(name::String, cs::Vector{Component} = Vector{Component}();
 end
 
 function a(name::String; text::String = "")
-    Component(name, link, Dict(:text => text))
+    Component(name, "a", Dict(:text => text))
+end
+
+function img(name::String; src::String = "", href::String = "",
+    text::String = "")
+    Component(name, "img", Dict(:text => text, :src => src, :href => href))
 end
 
 #==

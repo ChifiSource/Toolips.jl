@@ -91,11 +91,9 @@ mutable struct Container <: Servable
                 open_tag = open_tag * " $key = $val"
             end
             open_tag = open_tag * ">"
-            http::HTTP.Stream = c.http
-            write(http, open_tag)
-            write(http, join([co.f(c) for co in components]))
-            cs::String = join([co.f(c) for co in components])
-            open_tag * ">$cs</$tag>"
+            write!(c, open_tag)
+            [write!(c, s) for s in components]
+            write!(c, "</$tag>")
         end
         new(name, tag, components, f, properties)
     end

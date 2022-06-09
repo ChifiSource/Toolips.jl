@@ -187,7 +187,7 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 """
 function animate!(s::StyleComponent, a::Animation)
     s["animation-name"] = a.name
-    s["animation-length"] = a.length * "s"
+    s["animation-length"] = string(a.length) * "s"
 end
 
 """

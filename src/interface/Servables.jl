@@ -82,7 +82,7 @@ mutable struct Container <: Servable
     f::Function
     properties::Dict
     function Container(name::String, tag::String = "",
-        components::Vector{Any} = []; properties::Dict = Dict())
+        components::Vector{Component} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
             for prop in keys(properties)

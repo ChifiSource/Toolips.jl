@@ -85,7 +85,7 @@ mutable struct Container <: Servable
         components::Vector{Component} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
-            for prop in keys(properties)
+            for prop in properties
                 val = string(properties[prop])
                 open_tag = open_tag * " $prop = $val"
             end
@@ -287,7 +287,7 @@ mutable struct Style <: StyleComponent
         properties::Dict = Dict()
         f(c::Connection) = begin
             css = "<style>$name { "
-            for rule in keys(properties)
+            for rule in properties
                 property = string(rule)
                 value = string(properties[rule])
                 css = css * "$property: $value; "

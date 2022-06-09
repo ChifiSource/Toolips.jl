@@ -187,7 +187,7 @@ function sliderinput(name::String = ""; range::UnitRange = 0:100,
 end
 
 function imageinput(name::String = ""; alt::String = "image", src::String = "/")
-    Component(name, "input", properties = Dict(:alt => alt, :src => src))
+    Component(name, "input", Dict(:alt => alt, :src => src))
 end
 
 """

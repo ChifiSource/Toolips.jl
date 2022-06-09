@@ -3,6 +3,20 @@
 - routes::Dict
 - http::HTTP.Stream
 - extensions::Dict
+The connection type is passed into route functions and pages as an argument.
+This is both for functions, as well as Servable.f() methods. This constructor
+    should not be called directly. Instead, it is called by the server and
+    passed through the function pipeline. Indexing a Connection will return
+        the extension named with that symbol.
+##### example
+```
+                  #  v The Connection
+home = route("/") do c
+    c[:logger].log("We can index extensions.")
+    c.routes["/"] = c::Connection -> write!(c, "rerouting!")
+    httpstream = c.http
+end
+```
 ------------------
 ##### Field Info
 - **routes::Dict** - A dictionary of routes where the keys
@@ -13,8 +27,7 @@ those keys.
 name to reference as keys and the extension as the pair.
 ------------------
 ##### Constructors
-- Route(path::String, f::Function)
-- Route(path::String, s::Servable)
+- Connection
 """
 mutable struct Connection
     routes::Dict
@@ -32,15 +45,39 @@ include("Extensions.jl")
 ### Route{T}
 - path::String
 - page::T
+A route is added to a ServerTemplate using either its constructor, or the
+ServerTemplate.add(::Route) method. Each route calls either a particular
+servable or function; the type of which denoted by T. The Route type is
+    commonly constructed using the do syntax with the route(::Function, String)
+    method.
+##### example
+```
+# Constructors
+route = Route("/", p(text = "hello"))
+
+function example(c::Connection)
+    write!(c, "hello")
+end
+
+route = Route("/", example)
+
+# method
+route = route("/") do c
+    write!(c, "Hello world!")
+    write!(c, p(text = "hello"))
+    # we can also use extensions!
+    c[:logger].log("hello world!")
+end
+```
 ------------------
-##### Field Info
+##### fields
 - **path::String**
 The path, e.g. "/" at which to direct to the given component.
 - **page::T** (::Function || T <: Component)
 The servable to serve at this given route.
 ------------------
-##### Constructors
-- Route(path::String, f::Function)
+##### constructors
+- Route(path::String, f::Function) **where**
 - Route(path::String, s::Servable)
 """
 mutable struct Route{T}
@@ -59,14 +96,24 @@ end
 - ip**::String**
 - port**::Integer**
 - routes**::Vector{Route}**
-- extensions
+- extensions**::Dict**
+- remove**::Function**
+- add**::Function**
+- start**::Function**
+The ServerTemplate is used to configure a server before
+running. These are usually made and started inside of a main server file. 
 ------------------
 ##### Field Info
 - ip**::String**
 - port**::Integer**
 - routes**::Vector{Route}**
+- extensions**::Dict**
+- remove**::Function**
+- add**::Function**
+- start**::Function**
 ------------------
 ##### Constructors
+ServerTemplate(ip::String, port::Int64, routes::Dict; extensions::Dict)
 """
 mutable struct ServerTemplate
     ip::String
@@ -84,6 +131,16 @@ mutable struct ServerTemplate
     end
 end
 
+"""
+**Core**
+### serverfuncdefs(::AbstractVector, ::String, ::Integer,
+::Dict) -> (::Function, ::Function, ::Function)
+------------------
+This method is used internally by a constructor to generate the functions add,
+start, and remove for the ServerTemplate.
+#### example
+
+"""
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     extensions::Dict)
     add(r::Route{Function}) = push!(routes, r)
@@ -93,7 +150,24 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     start() = _start(routes, ip, port, extensions)
     return(add, remove, start)
 end
+#==
+TODO
+Okay, so similar to how the Connection is handled on requests, and the
+HTTP.Stream is wrapped in that type, we need to wrap the HTTP server as well so
+that more Toolips data, routes for example, is introspectable. That will also
+make debugging far easier, especially on the particular problem of Files not
+being served.
+==#
+"""
+**Core**
+### _start(routes::AbstractVector, ip::String, port::Integer,
+extensions::Dict) -> (::Sockets.HTTPServer)
+------------------
+This is an internal function for the ServerTemplate. This function is binded to
+    the ServerTemplate.start field.
+#### example
 
+"""
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
@@ -114,6 +188,15 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
     return(server)
 end
 
+"""
+**Core**
+### generate_router(routes::AbstractVector, server::Any, extensions::Dict)
+------------------
+This method is used internally by the **_start** method. It returns a closure
+function that both routes and calls functions.
+#### example
+
+"""
 function generate_router(routes::AbstractVector, server, extensions::Dict)
     route_paths = Dict([route.path => route.page for route in routes])
     # Load Extensions

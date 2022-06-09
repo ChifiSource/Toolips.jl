@@ -85,10 +85,14 @@ mutable struct Container <: Servable
         components::Vector{Component} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
-            write(http, open_tag)
-            write(http, join([c.f(http) for c in components]))
-            cs::String = join([c.f(http) for c in components])
-            open_tag * ">$cs</$tag>"
+            for prop in keys(properties)
+                val = string(properties[prop])
+                open_tag = open_tag * " $prop = $val"
+            end
+            open_tag = open_tag * ">"
+            write!(c, open_tag)
+            write!(c, components)
+            write!(c, "</$tag>")
         end
         new(name, tag, components, f, properties)
     end
@@ -182,6 +186,10 @@ function sliderinput(name::String = ""; range::UnitRange = 0:100,
     input(name, "range")::Component
 end
 
+function imageinput(name::String = ""; alt::String = "image", src::String = "/")
+    Component(name, "input", properties = Dict(:alt => alt, :src => src))
+end
+
 """
 form(name::String,
  components::Vector{Component}; post = "") -> ::Component
@@ -204,7 +212,7 @@ function form(name::String = "",
             action = post
         end
     end
-    Container(name, "form", properties = Dict(:method => method,
+    Container(name, "form", components, properties = Dict(:method => method,
     :action => action))::Container
 end
 
@@ -239,7 +247,12 @@ function body(name::String, cs::Vector{Component} = Vector{Component}();
 end
 
 function a(name::String; text::String = "")
-    Component(name, link, Dict(:text => text))
+    Component(name, "a", Dict(:text => text))
+end
+
+function img(name::String; src::String = "", href::String = "",
+    text::String = "")
+    Component(name, "img", Dict(:text => text, :src => src, :href => href))
 end
 
 #==
@@ -270,17 +283,15 @@ mutable struct Animation <: StyleComponent
         new(name, keyframes, f, delay, length)
     end
 end
+
 mutable struct Style <: StyleComponent
     name::String
     f::Function
     properties::Dict
-    function Style(name::String; animation::Animation = nothing)
+    function Style(name::String)
+        properties::Dict = Dict()
         f(c::Connection) = begin
             css = "<style>$name { "
-            if animation != nothing
-                anim = animation.name
-                css = css * "animation: $anim;"
-            end
             for rule in keys(properties)
                 property = string(rule)
                 value = string(properties[rule])

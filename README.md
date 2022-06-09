@@ -17,6 +17,42 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   <details class="details-overlay">
   <summary class="btn"><h2>Using Toolips</h2></summary>
 <div>
- Currently, there is no documentation really put together for Toolips.jl. The package is still relatively new, and I am still trying to get a decent enough candadite for release, although I am most definitely getting close! If you would like to learn how to use the package without the docs, I would suggest referencing this sample application:
-  https://github.com/emmettgb/ToolipsApp.jl
+  
+## Links
+  **Documentation**
+  - [Interactive Documentation]()
+  - [Juliahub Documentation]() \
+  **Examples**
+  - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl)
+  - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl)
+  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+## Basics
+  Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Servers are created with the ServerTemplate type.
+```julia
+  using Toolips
+  using JLD2
+  IP = "127.0.0.1"
+PORT = 8000
+  
+  r = route("/") do c
+    write!(c, "Hello world!")
+  end
+  
+  model = @load "mymodel.jld2"
+  
+  model = route("/model") do c
+    x = getarg(:x)
+    write!(c, model.predict([x]))
+  end
+  
+  rts = routes(model, r)
+  
+  servertemp = ServerTemplate(IP, PORT, rts)
+  server = servertemp.start()
+  
+  ```
+  Alternatively, we can also create a preset Toolips.jl file-structure using the **new_app** and **new_webapp** methods respectively.
+  ```julia
+  
+  ```
   

@@ -2,6 +2,9 @@
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
 </div>
 
+
+###### Note: 0.0.7 is not a full release of Toolips.jl, and stable supported usage should begin with version 0.1.0
+
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework written in Julia. Here is Toolips.jl in a nutshell:
 - Fast and secure.
 - HTTPS capable, load balancer friendly.

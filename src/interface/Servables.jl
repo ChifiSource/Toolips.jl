@@ -78,11 +78,11 @@ Component(name::String, tag::String, properties::Dict)
 mutable struct Container <: Servable
     name::String
     tag::String
-    components::Vector{Servable}
+    components::Vector{Any}
     f::Function
     properties::Dict
     function Container(name::String, tag::String = "",
-        components::Vector{Servable} = []; properties::Dict = Dict())
+        components::Vector{Any} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
             for prop in keys(properties)
@@ -238,9 +238,10 @@ function header(title::String = "Toolips App";
 end
 
 function div(name::String,
-    cs::Vector{Servable} = Vector{Servable}(); properties::Dict = Dict())
+    cs::Vector{Any} = Vector{Any}(); properties::Dict = Dict())
     Container(name, "div", cs, properties = properties)::Container
 end
+
 
 function body(name::String, cs::Vector{Component} = Vector{Component}();
     properties::Dict = Dict())

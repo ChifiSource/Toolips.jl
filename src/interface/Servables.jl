@@ -186,6 +186,10 @@ function sliderinput(name::String = ""; range::UnitRange = 0:100,
     input(name, "range")::Component
 end
 
+function imageinput(name::String = ""; alt::String = "image", src::String = "/")
+    Component(name, "input", properties = Dict(:alt => alt, :src => src))
+end
+
 """
 form(name::String,
  components::Vector{Component}; post = "") -> ::Component
@@ -208,7 +212,7 @@ function form(name::String = "",
             action = post
         end
     end
-    Container(name, "form", properties = Dict(:method => method,
+    Container(name, "form", components, properties = Dict(:method => method,
     :action => action))::Container
 end
 

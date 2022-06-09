@@ -254,9 +254,9 @@ function setindex!(anim::Animation, set::Pair, n::Symbol)
     value = string(set[2]) * "; "
     n = string(n)
     if n in keys(anim.keyframes)
-        anim.keyframes[frames[1]] = anim.keyframes[frames[1]] * "$prop $value"
+        anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
     else
-        push!(anim.keyframes, "$n" => "$prop $value")
+        push!(anim.keyframes, "%$n" => "$prop: $value; ")
     end
 end
 

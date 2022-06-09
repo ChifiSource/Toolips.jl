@@ -160,7 +160,7 @@ Sets the property represented by the symbol to the provided value.
 #### example
 
 """
-setindex!(s::Servable, symb::Symbol, a::Any) = s.properties[symb] = s
+setindex!(s::Servable, a::Any, symb::Symbol) = s.properties[symb] = a
 
 """
 **Interface**
@@ -170,7 +170,7 @@ Sets the property represented by the string to the provided value.
 #### example
 
 """
-setindex!(s::Servable, symb::String, a::Any) = s.properties[symb] = s
+setindex!(s::Servable, a::Any, symb::String) = s.properties[symb] = s
 
 #==
 Styles

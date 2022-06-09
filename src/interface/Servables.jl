@@ -11,7 +11,7 @@ function with the properties provided in their properties dict.
 - properties::Dict - The properties of a given Servable. These are written
 into the servable on the calling of f().
 """
-abstract type Servable end
+abstract type Servable <: Any end
 
 include("../server/Core.jl")
 
@@ -238,10 +238,13 @@ function header(title::String = "Toolips App";
 end
 
 function div(name::String,
+    cs::Vector{Component} = Vector{Component}(); properties::Dict = Dict())
+    Container(name, "div", cs, properties = properties)::Container
+end
+function div(name::String,
     cs::Vector{Any} = Vector{Any}(); properties::Dict = Dict())
     Container(name, "div", cs, properties = properties)::Container
 end
-
 
 function body(name::String, cs::Vector{Component} = Vector{Component}();
     properties::Dict = Dict())

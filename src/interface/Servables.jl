@@ -87,12 +87,11 @@ mutable struct Container <: Servable
             open_tag::String = "<$tag name = $name id = $name"
             for prop in keys(properties)
                 val = string(properties[prop])
-                key = string(properties[prop])
-                open_tag = open_tag * " $key = $val"
+                open_tag = open_tag * " $prop = $val"
             end
             open_tag = open_tag * ">"
             write!(c, open_tag)
-            [write!(c, s) for s in components]
+            write!(c, components)
             write!(c, "</$tag>")
         end
         new(name, tag, components, f, properties)

@@ -185,7 +185,10 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 #### example
 
 """
-animate!(s::StyleComponent, a::Animation) = s.properties[:animation] = a.name
+function animate!(s::StyleComponent, a::Animation)
+    s["animation-name"] = a.name
+    s["animation-length"] = a.length * "s"
+end
 
 """
 **Interface**
@@ -219,16 +222,33 @@ function delete_keyframe!(s::Animation, key::String)
     delete!(s.keyframes, key)
 end
 
+"""
+**Interface**
+### setindex!(::Animation, ::Pair, ::Int64) -> _
+------------------
+Sets the animation at the percentage of the Int64 to modify the properties of
+pair.
+#### example
+
+"""
 function setindex!(anim::Animation, set::Pair, n::Int64)
     prop = string(set[1]) * ": "
     value = string(set[2]) * "; "
     if n in keys(anim.keyframes)
-        anim.keyframes[frames[1]] = anim.keyframes[frames[1]] * "$prop $value"
+        anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
     else
-        push!(anim.keyframes, "%$n" => "$prop $value")
+        push!(anim.keyframes, "%$n" => "$prop: $value; ")
     end
 end
 
+"""
+**Interface**
+### setindex!(::Animation, ::Pair, ::Int64) -> _
+------------------
+Sets the animation at the corresponding key-word's position.
+#### example
+
+"""
 function setindex!(anim::Animation, set::Pair, n::Symbol)
     prop = string(set[1]) * ": "
     value = string(set[2]) * "; "

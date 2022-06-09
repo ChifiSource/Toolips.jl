@@ -25,7 +25,7 @@ export Logger, Files
 export html, css, js, fn
 # Servables
 export File, Component, Container
-export input, textarea, button, p, option, radioinput, sliderinput
+export input, textarea, button, p, option, radioinput, sliderinput, imageinput
 export form, link, metadata, header, div, body, img
 export Animation, Style, StyleSheet
 # High-level api

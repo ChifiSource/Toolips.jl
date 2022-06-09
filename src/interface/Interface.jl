@@ -250,13 +250,13 @@ Sets the animation at the corresponding key-word's position.
 
 """
 function setindex!(anim::Animation, set::Pair, n::Symbol)
-    prop = string(set[1]) * ": "
-    value = string(set[2]) * "; "
+    prop = string(set[1])
+    value = string(set[2])
     n = string(n)
     if n in keys(anim.keyframes)
-        anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
+        anim.keyframes[n] = anim.keyframes[n] * "$prop: $value; "
     else
-        push!(anim.keyframes, "%$n" => "$prop: $value; ")
+        push!(anim.keyframes, "$n" => "$prop: $value; ")
     end
 end
 

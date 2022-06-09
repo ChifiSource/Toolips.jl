@@ -292,8 +292,11 @@ Writes, in order of element, each Servable inside of a Vector of Servables.
 #### example
 
 """
-write!(c::Connection, s::Vector{Servable}) = [write!(c, comp) for comp in s]
-
+function write!(c::Connection, s::Vector{Servable})
+    for comp in s
+        write!(c, comp)
+    end
+end
 """
 **Interface**
 ### write!(::Connection, ::String) -> _

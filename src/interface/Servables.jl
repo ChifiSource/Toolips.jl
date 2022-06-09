@@ -279,6 +279,7 @@ mutable struct Animation <: StyleComponent
         new(name, keyframes, f, delay, length)
     end
 end
+
 mutable struct Style <: StyleComponent
     name::String
     f::Function

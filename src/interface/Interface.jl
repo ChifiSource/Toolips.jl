@@ -170,7 +170,7 @@ Sets the property represented by the string to the provided value.
 #### example
 
 """
-setindex!(s::Servable, a::Any, symb::String) = s.properties[symb] = s
+setindex!(s::Servable, a::Any, symb::String) = s.properties[symb] = a
 
 #==
 Styles
@@ -186,7 +186,7 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 
 """
 function animate!(s::StyleComponent, a::Animation)
-    s["animation-name"] = a.name
+    s["animation-name"] = string(a.name)
     s["animation-length"] = string(a.length) * "s"
 end
 

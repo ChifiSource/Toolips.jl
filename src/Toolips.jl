@@ -26,7 +26,7 @@ export html, css, js, fn
 # Servables
 export File, Component, Container
 export input, textarea, button, p, option, radioinput, sliderinput, imageinput
-export form, link, metadata, header, div, body, img
+export form, link, metadata, header, div, body, img, h
 export Animation, Style, StyleSheet
 # High-level api
 export properties, push!, getindex, setindex!, properties!

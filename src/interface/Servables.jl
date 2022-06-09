@@ -78,11 +78,11 @@ Component(name::String, tag::String, properties::Dict)
 mutable struct Container <: Servable
     name::String
     tag::String
-    components::Vector{Component}
+    components::Vector{Servable}
     f::Function
     properties::Dict
     function Container(name::String, tag::String = "",
-        components::Vector{Component} = []; properties::Dict = Dict())
+        components::Vector{Servable} = []; properties::Dict = Dict())
         f(c::Connection) = begin
             open_tag::String = "<$tag name = $name id = $name"
             for prop in keys(properties)
@@ -200,7 +200,7 @@ input components.
  #### example
 """
 function form(name::String = "",
-    components::Vector{Component} = Vector{Component}(); post::String = "",
+    components::Vector{Servable} = Vector{Servable}(); post::String = "",
     get::String = "")
     method::String = ""
     action::String = ""
@@ -238,7 +238,7 @@ function header(title::String = "Toolips App";
 end
 
 function div(name::String,
-    cs::Vector{Component} = Vector{Component}(); properties::Dict = Dict())
+    cs::Vector{Servable} = Vector{Servable}(); properties::Dict = Dict())
     Container(name, "div", cs, properties = properties)::Container
 end
 
@@ -254,6 +254,10 @@ end
 function img(name::String; src::String = "", href::String = "",
     text::String = "")
     Component(name, "img", Dict(:text => text, :src => src, :href => href))
+end
+
+function h(name::String, level::Int64; text::String = "")
+    Component(name, "h$level")::Component
 end
 
 #==

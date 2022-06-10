@@ -63,7 +63,7 @@ mutable struct Component <: Servable
          new(name, f, properties)::Component
     end
     Component(name::String, tag::String, props::Base.Pairs) = begin
-        Component(name, tag, Dict(props))
+        Component(name, tag, Dict{Any, Any}(props))
     end
 end
 #==

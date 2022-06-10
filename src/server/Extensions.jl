@@ -146,8 +146,7 @@ mutable struct File
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-            HTTP.setheader(c.http, "Content-Type" => "image/png")
-            write(c.http, HTTP.Response( 200, body = read(dir) ))
+            return(HTTP.Response( 200, body = read(dir) ))
         end
         new(dir, f)
     end

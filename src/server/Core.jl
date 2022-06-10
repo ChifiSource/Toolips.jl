@@ -101,7 +101,7 @@ end
 - add**::Function**
 - start**::Function**
 The ServerTemplate is used to configure a server before
-running. These are usually made and started inside of a main server file. 
+running. These are usually made and started inside of a main server file.
 ------------------
 ##### Field Info
 - ip**::String**
@@ -213,7 +213,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     end
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
-        HTTP.setheader(http, "Content-Type" => "text/html")
+#        HTTP.setheader(http, "Content-Type" => "text/html")
         fullpath::String = http.message.target
         if contains(fullpath, '?')
             fullpath = split(http.message.target, '?')[1]

@@ -60,7 +60,7 @@ fourofour = route("404") do c
 end
 
 
-function start(IP::String, PORT::String, extensions::Dict)
+function start(IP::String, PORT::Integer, extensions::Dict)
     rs = routes(hello_world, fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()

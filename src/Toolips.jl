@@ -46,7 +46,7 @@ function create_serverdeps(name::String)
     touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
-    server_name = name * "Server"
+    servername = name * "Server"
     open(src * "/$name.jl", "w") do io
         write(io, """
 module $name

@@ -292,6 +292,7 @@ Creates a route from the Function.
 """
 route(f::Function, route::String) = Route(route, f)::Route
 
+route(route::String, f::Function) = route(f, route)
 """
 **Interface**
 ### route(::String, ::Servable) -> ::Route

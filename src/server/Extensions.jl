@@ -146,7 +146,7 @@ mutable struct File
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-            return(HTTP.Response( 200, body = read(dir) ))
+            return(HTTP.Response( 200, body = read(dir, String) ))
         end
         new(dir, f)
     end

@@ -449,7 +449,7 @@ Downloads a file to a given user's computer.
 #### example
 """
 function download!(c::Connection, uri::String)
-
+    write(c.http, HTTP.Response( 200, body = read(uri) ))
 end
 
 """

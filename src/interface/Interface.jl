@@ -101,10 +101,11 @@ Applies the style to a servable.
 
 """
 style!(c::Servable, s::Style) = begin
+    nme = s.name
     if contains(s.name, ".")
         c.properties[:class] = string(split(s.name, ".")[2])
     else
-        c.properties[:class] = s.name
+        c.properties[:class] = ".$nme"
     end
 end
 

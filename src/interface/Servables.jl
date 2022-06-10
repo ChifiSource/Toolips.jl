@@ -133,6 +133,9 @@ mutable struct Style <: StyleComponent
     function Style(name::String)
         properties::Dict = Dict()
         f(c::Connection) = begin
+            if ~(contains(name, "."))
+                name = ".$name"
+            end
             css = "<style>$name { "
             for rule in keys(properties)
                 property = string(rule)

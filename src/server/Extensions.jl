@@ -146,7 +146,7 @@ mutable struct File <: Servable
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-            write(c.http, HTTP.Response( 200, body = read(dir, String) ))
+            write(c.http, HTTP.Response( 200, body = read(dir) ))
         end
         new(dir, f)
     end

@@ -105,7 +105,7 @@ style!(c::Servable, s::Style) = begin
     if contains(s.name, ".")
         c.properties[:class] = string(split(s.name, ".")[2])
     else
-        c.properties[:class] = ".$nme"
+        c.properties[:class] = s.name
     end
 end
 

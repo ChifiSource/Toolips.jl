@@ -34,9 +34,9 @@ Component(name::String, tag::String, properties::Dict)
 mutable struct Component <: Servable
     name::String
     f::Function
-    properties::Dict
+    properties::Dict{Any, Any}
     function Component(name::String = "", tag::String = "",
-         properties::Dict = Dict())
+         properties::Dict = Dict{Any, Any}())
          properties[:children] = Vector{Any}()
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
@@ -75,7 +75,7 @@ link(name::String = ""; args ...) = Component(name, "link", args)::Component
 meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
 input(name::String = ""; args ...) = Component(name, "input", args)::Component
 a(name::String = ""; args ...) = Component(name, "a", args)::Component
-p(name::String = ""; args ...) = Component(name, "h", args)::Component
+p(name::String = ""; args ...) = Component(name, "p", args)::Component
 h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n", args)::Component
 button(name::String = ""; args ...) = Component(name, "button", args)::Component
 ul(name::String = ""; args ...) = Component(name, "ul", args)::Component

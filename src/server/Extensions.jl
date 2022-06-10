@@ -141,18 +141,20 @@ f::Function
 ##### constructors
 File(dir::String)
 """
-mutable struct File
+mutable struct File <: Servable
     dir::String
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-            HTTP.setheader(c.http, "Content-Type" => "image/png")
-            HTTP.Response(200, read(dir))
+        #    write(c.http, HTTP.Response( 200, body = read(dir) ))
+        open(dir) do f
+            write(c.http, f)
+        end
         end
         new(dir, f)
     end
 end
-
+write!(c::Connection, f::File) = f.f(c)
 
 """
 ### Files

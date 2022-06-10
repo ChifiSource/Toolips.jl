@@ -11,7 +11,7 @@ function with the properties provided in their properties dict.
 - properties::Dict - The properties of a given Servable. These are written
 into the servable on the calling of f().
 """
-abstract type Servable end
+abstract type Servable <: Any end
 
 include("../server/Core.jl")
 
@@ -78,7 +78,7 @@ Component(name::String, tag::String, properties::Dict)
 mutable struct Container <: Servable
     name::String
     tag::String
-    components::Vector{Component}
+    components::Vector{Any}
     f::Function
     properties::Dict
     function Container(name::String, tag::String = "",
@@ -186,8 +186,9 @@ function sliderinput(name::String = ""; range::UnitRange = 0:100,
     input(name, "range")::Component
 end
 
-function imageinput(name::String = ""; alt::String = "image", src::String = "/")
-    Component(name, "input", properties = Dict(:alt => alt, :src => src))
+function imageinput(name::String = ""; alt::String = "image", src::String = "/",
+    value::Any = "button")
+    Component(name, "input", Dict(:alt => alt, :src => src, :type => "image"))
 end
 
 """
@@ -199,7 +200,7 @@ input components.
  #### example
 """
 function form(name::String = "",
-    components::Vector{Component} = Vector{Component}(); post::String = "",
+    components::Vector{Servable} = Vector{Servable}(); post::String = "",
     get::String = "")
     method::String = ""
     action::String = ""
@@ -240,6 +241,10 @@ function div(name::String,
     cs::Vector{Component} = Vector{Component}(); properties::Dict = Dict())
     Container(name, "div", cs, properties = properties)::Container
 end
+function div(name::String,
+    cs::Vector{Any} = Vector{Any}(); properties::Dict = Dict())
+    Container(name, "div", cs, properties = properties)::Container
+end
 
 function body(name::String, cs::Vector{Component} = Vector{Component}();
     properties::Dict = Dict())
@@ -253,6 +258,10 @@ end
 function img(name::String; src::String = "", href::String = "",
     text::String = "")
     Component(name, "img", Dict(:text => text, :src => src, :href => href))
+end
+
+function h(name::String, level::Int64; text::String = "")
+    Component(name, "h$level")::Component
 end
 
 #==

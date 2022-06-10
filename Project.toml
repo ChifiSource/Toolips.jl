@@ -1,7 +1,7 @@
 name = "Toolips"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
 authors = ["emmac "]
-version = "0.0.6"
+version = "0.0.7"
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"

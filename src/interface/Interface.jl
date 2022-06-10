@@ -27,7 +27,7 @@ push!(s::Component, d::Component ...) = [push!(s[:children], c) for c in d]
 #### example
 
 """
-function push!(s::Component, d::Component) = push!(s[:children], d)
+push!(s::Component, d::Component) = push!(s[:children], d)
 
 """
 **Interface**

@@ -5,18 +5,21 @@
 
 ###### Note: 0.0.7 is not a full release of Toolips.jl, and stable supported usage should begin with version 0.1.0
 
-**Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework written in Julia. Here is Toolips.jl in a nutshell:
-- Fast and secure.
-- HTTPS capable, load balancer friendly.
-- Extendable servers, components, and modules.
-- Modular server environments.
-- Server introspection and live server maintenance/development.
+**Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
+- Fast and secure. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
+- HTTPS capable, load balancer friendly. Can easily be deployed with SSL.
+- Extendable servers, components, and modules. Everything is modular and extendable. Core portions of the server, such as the ability to serve files or the ability to log messages, are done via ServerExtensions.
+- Modular applications. Toolips applications are modular, which means 
+- Regular Julia project files. 
+- Server introspection
+- Live updating of routes for developing and maintaining with no downtime.
 - Declarative, high-level syntax.
 - An ever-expanding library of extensions.
 - Easy animation and interaction tools.
-- Extremely low memory usage.
-- Asynchronisoty.
-- Front-end development.
+- Extremely low memory usage. Something that is held of very high priority with this project is keeping memory usage low while keeping features rich. The result is something that can run multiple full-stack web-pages without even eating a gigabyte of RAM.
+- Styling. Toolips makes it easy to develop front-ends and style them straight from Julia with indexing.
+- Asynchronisoty. Run multiple functions at the same time as you serve to each incoming request.
+- Front-end development. Toolips.jl is a full-stack web-framework, and it does that exactly!
 - 100% Julia websites.
 ```julia
 julia> # Press ] to enter your Pkg REPL
@@ -33,7 +36,8 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   - [Juliahub Documentation]() \
   **Examples**
   - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl)
-  - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl)
+  - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
+  https://ems.computer/
   - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
 ## Basics
   Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Servers are created with the ServerTemplate type.
@@ -161,3 +165,21 @@ shell> tree .
 shell> 
 
   ```
+Here is our resulting website in a file!
+  ```julia
+  function main(routes::Vector{Route})
+    server = ServerTemplate(IP, PORT, routes, extensions = extensions)
+    server.start()
+end
+
+
+hello_world = route("/") do c
+    write!(c, p("hello", text = "hello world!"))
+end
+fourofour = route("404", p("404", text = "404, not found!"))
+rs = routes(hello_world, fourofour)
+main(rs)
+  ```
+  We can include "dev.jl" to start our development server!
+## Crash Course
+There are different portions of Toolips.jl that we need to be aware of in order to better understand Toolips. Firstly, there is the interface portion, which is split into two parts; Servables and Interface. The other portion of Toolips is the Server portion, which is also split into two parse: Extensions, and the Core Server. 

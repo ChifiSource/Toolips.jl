@@ -89,6 +89,7 @@ function animate!(s::StyleComponent, a::Animation)
         s["animation-iteration-count"] = "infinite"
     else
         s["animation-iteration-count"] = string(a.iterations)
+    end
 end
 
 """

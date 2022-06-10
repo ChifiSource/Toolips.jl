@@ -1,16 +1,10 @@
 module Toolips
+clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 #==
-Toolips.jl, a module created for light-weight interaction with Javascript via
-bursts of HTML and Javascript working in tandem. There might be entirely new
-intentions for this design, and dramatic changes. There are numerous features
-coming to spruce up this code base to better facilitate things like
-authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
-- TODO Load environment in default files
-- TODO Setup the Pkg environment with the given loaded files
 - TODO Finish docs
-- TODO Testings
+- TODO Testing
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -18,15 +12,13 @@ import Base: getindex, setindex!, push!
 include("interface/Servables.jl")
 include("interface/Interface.jl")
 # Core Server
-export ServerTemplate, Route, Connection
+export ServerTemplate, Route, Connection, WebServer
 # Server Extensions
 export Logger, Files
-# Function returns
-export html, css, js, fn
 # Servables
-export File, Component, Container
-export input, textarea, button, p, option, radioinput, sliderinput, imageinput
-export form, link, metadata, header, div, body, img, h
+export File, Component
+export img, link, meta, input, a, p, h, button, ul, li, divider, form, br
+export header
 export Animation, Style, StyleSheet
 # High-level api
 export properties, push!, getindex, setindex!, properties!
@@ -56,18 +48,25 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, """
-function main(routes::Vector{Route})
-    server = ServerTemplate(IP, PORT, routes, extensions = extensions)
+module $name
+using Toolips
+
+hello_world = route("/") do c
+    write!(c, p("helloworld", text = "hello world!"))
+end
+
+fourofour = route("404") do c
+    write!(c, p("404message", text = "404, not found!"))
+end
+
+
+function start(IP::String, PORT::Integer, extensions::Dict)
+    rs = routes(hello_world, fourofour)
+    server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
 end
-\n
-hello_world = route("/") do c
-    write!(c, p("hello", text = "hello world!"))
-end
-fourofour = route("404", p("404", text = "404, not found!"))
-rs = routes(hello_world, fourofour)
-main(rs)
 
+end # - module
         """)
     end
 
@@ -84,22 +83,27 @@ add some extensions.
 """
 function new_app(name::String = "ToolipsApp")
     create_serverdeps(name)
+    servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
+        using Pkg; Pkg.activate(".")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger())
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
+        using Pkg; Pkg.activate(".")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger())
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
 end
@@ -113,6 +117,7 @@ high-level interface origrannubg from Julia.
 
 """
 function new_webapp(name::String = "ToolipsApp")
+    servername = name * "Server"
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
@@ -121,6 +126,7 @@ function new_webapp(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     open(name * "/prod.jl", "w") do io
@@ -130,13 +136,12 @@ function new_webapp(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     public = pwd() * "/$name/public"
     mkdir(public)
-#    Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
 end
-export new_webapp, new_app
 # --
 
 end

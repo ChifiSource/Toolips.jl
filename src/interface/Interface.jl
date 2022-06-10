@@ -1,77 +1,4 @@
-#==
- text/html
-    Functions
-==#
-"""
-**Interface**
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be HTML.
-#### example
-
-"""
-html(hypertxt::String) = c::Connection -> write!(c, hypertxt)::Function
-
-"""
-**Interface**
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be CSS.
-#### example
-"""
-css(css::String) = http::Connection -> "<style>" * css * "</style>"::Function
-
-"""
-**Interface**
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be JavaScript.
-#### example
-"""
-js(js::String) = http::Connection -> "<script>" * js * "</script>"::Function
-#==
-Functions
-==#
-"""
-**Interface**
-### fn(::Function) -> ::Function
-------------------
-Turns any function into a servable. Functions can optionally take the single
-    positional argument of type Connection.
-#### example
-function example()
-
-end
-
-page = fn(example)
-
-function example(c::Connection)
-    c[:logger].log(c, "hello world!")
-end
-"""
-function fn(f::Function)
-    m::Method = first(methods(f))
-    if m.nargs > 2 | m.nargs < 1
-        throw(ArgumentError("Expected either 1 or 2 arguments."))
-    elseif m.nargs == 2
-        http::Connection -> f(http)::Function
-    else
-        http::Connection -> f()::Function
-    end
-end
-#==
-Indexing/iter
-==#
-"""
-**Interface**
-### properties(::Servable) -> ::Dict
-------------------
-Method binding for Servable.properties.
-#### example
-
-"""
-properties(s::Servable) = s.properties
-
+# Interface.jl
 """
 **Interface**
 ### properties!(::Servable, ::Servable) -> _
@@ -84,53 +11,23 @@ properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
 **Interface**
-### push!(::Container, ::Component) -> _
+### push!(::Component, ::Component ...) -> ::Component
 ------------------
-Moves Component into Container.components.
+
 #### example
 
 """
-push!(s::Container, c::Component) = push!(s.components, c)
+push!(s::Component, d::Component ...) = [push!(s[:children], c) for c in d]
 
 """
 **Interface**
-### push!(::Container, ::Component ...) -> _
+### push!(::Component, ::Component) ->
 ------------------
-Moves Components into Container component.
+
 #### example
 
 """
-function push!(s::Container, c::Component ...)
-    cs::Vector{Component} = push!(s.components, c)
-end
-
-"""
-**Interface**
-### push!(::Component, ::Component ...) -> ::Container
-------------------
-Combines two or more servables into a container and clones fields from the first
-component.
-#### example
-
-"""
-function push!(s::Component, d::Component ...)
-    v::Vector{Component} = Vector{Component}(d)
-    Container(s.name, s.tag. v, properties = s.properties)::Container
-end
-
-"""
-**Interface**
-### push!(::Component, ::Component) -> ::Container
-------------------
-Adds a component into a container and clones fields from the first
-component.
-#### example
-
-"""
-function push!(s::Component, d::Component)
-    Container(s.name, s.tag. Vector{Component}([d]),
-    properties = s.properties)::Container
-end
+push!(s::Component, d::Component) = push!(s[:children], d)
 
 """
 **Interface**
@@ -188,6 +85,11 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 function animate!(s::StyleComponent, a::Animation)
     s["animation-name"] = string(a.name)
     s["animation-duration"] = string(a.length) * "s"
+    if a.iterations == 0
+        s["animation-iteration-count"] = "infinite"
+    else
+        s["animation-iteration-count"] = string(a.iterations)
+    end
 end
 
 """
@@ -198,7 +100,14 @@ Applies the style to a servable.
 #### example
 
 """
-style!(c::Servable, s::Style) = c.properties[:class] = s.name
+style!(c::Servable, s::Style) = begin
+    nme = s.name
+    if contains(s.name, ".")
+        c.properties[:class] = string(split(s.name, ".")[2])
+    else
+        c.properties[:class] = ".$nme"
+    end
+end
 
 """
 **Interface**
@@ -237,7 +146,7 @@ function setindex!(anim::Animation, set::Pair, n::Int64)
     if n in keys(anim.keyframes)
         anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
     else
-        push!(anim.keyframes, "%$n" => "$prop: $value; ")
+        push!(anim.keyframes, "$n%" => "$prop: $value; ")
     end
 end
 
@@ -281,7 +190,7 @@ Writes a Servable's return to a Connection's stream.
 #### example
 
 """
-write!(c::Connection, s::Servable) = write(c.http, s.f(c))
+write!(c::Connection, s::Servable) = s.f(c)
 
 
 """
@@ -386,18 +295,9 @@ likes.
 """
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
-"""
-**Interface**
-### navigate!(::Connection, ::String) -> _
-------------------
-Routes a connected stream to a given URL.
-#### example
-
-"""
-function navigate!(c::Connection, url::String)
-    HTTP.get(url, response_stream = c.http, status_exception = false)
-end
-
+#==
+    Server
+==#
 """
 **Interface**
 ### stop!(x::Any) -> _
@@ -406,10 +306,19 @@ An alternate binding for close(x). Stops a server from running.
 #### example
 
 """
-function stop!(x::Any)
-    close(x)
+function stop!(ws::WebServer)
+    close(ws.server)
 end
 
+function route!(f::Function, ws::WebServer, r::String)
+    ws.routes[r] = f
+end
+
+function getindex(ws::WebServer, s::Symbol)
+    ws[extensions][s]
+end
+
+getindex(c::Connection, s::Symbol) = c.extensions[s]
 #==
 Request/Args
 ==#
@@ -518,4 +427,27 @@ Quick binding for an HTTP POST request.
 """
 function post(url::String)
 
+end
+
+"""
+**Interface**
+### download!() ->
+------------------
+Downloads a file to a given user's computer.
+#### example
+"""
+function download!(c::Connection, uri::String)
+
+end
+
+"""
+**Interface**
+### navigate!(::Connection, ::String) -> _
+------------------
+Routes a connected stream to a given URL.
+#### example
+
+"""
+function navigate!(c::Connection, url::String)
+    HTTP.get(url, response_stream = c.http, status_exception = false)
 end

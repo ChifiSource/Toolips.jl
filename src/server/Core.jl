@@ -1,3 +1,5 @@
+abstract type ToolipsServer end
+
 """
 ### Connection
 - routes::Dict
@@ -37,7 +39,6 @@ mutable struct Connection
         new(routes, http, extensions)::Connection
     end
 end
-getindex(c::Connection, s::Symbol) = c.extensions[s]
 
 include("Extensions.jl")
 
@@ -150,14 +151,16 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     start() = _start(routes, ip, port, extensions)
     return(add, remove, start)
 end
-#==
-TODO
-Okay, so similar to how the Connection is handled on requests, and the
-HTTP.Stream is wrapped in that type, we need to wrap the HTTP server as well so
-that more Toolips data, routes for example, is introspectable. That will also
-make debugging far easier, especially on the particular problem of Files not
-being served.
-==#
+
+"""
+"""
+mutable struct WebServer <: ToolipsServer
+    host::String
+    routes::Dict
+    extensions::Dict
+    server::Any
+end
+
 """
 **Core**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
@@ -178,14 +181,14 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
     catch
         logger = nothing
     end
-    routefunc = generate_router(routes, server, extensions)
+    routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
     if logger != nothing
         logger.log(2, "Successfully started server on port " * string(port))
         logger.log(1,
         "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
-    return(server)
+    return(WebServer(ip, rdct, extensions, server))
 end
 
 """
@@ -213,7 +216,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     end
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
-#        HTTP.setheader(http, "Content-Type" => "text/html")
+        HTTP.setheader(http, "Content-Type" => "text/html")
         fullpath::String = http.message.target
         if contains(fullpath, '?')
             fullpath = split(http.message.target, '?')[1]
@@ -234,7 +237,6 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
                 route_paths["404"](c)
             end
         end
-
     end # serve()
-    return(routeserver)
+    return(routeserver, route_paths, extensions)
 end

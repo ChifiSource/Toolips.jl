@@ -46,7 +46,6 @@ function create_serverdeps(name::String)
     touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
-    servername = name * "Server"
     open(src * "/$name.jl", "w") do io
         write(io, """
 module $name
@@ -84,6 +83,7 @@ add some extensions.
 """
 function new_app(name::String = "ToolipsApp")
     create_serverdeps(name)
+    servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
@@ -117,6 +117,7 @@ high-level interface origrannubg from Julia.
 
 """
 function new_webapp(name::String = "ToolipsApp")
+    servername = name * "Server"
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
@@ -140,9 +141,7 @@ function new_webapp(name::String = "ToolipsApp")
     end
     public = pwd() * "/$name/public"
     mkdir(public)
-#    Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
 end
-export new_webapp, new_app
 # --
 
 end

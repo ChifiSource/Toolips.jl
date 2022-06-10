@@ -101,7 +101,6 @@ Applies the style to a servable.
 
 """
 style!(c::Servable, s::Style) = begin
-    nme = s.name
     if contains(s.name, ".")
         c.properties[:class] = string(split(s.name, ".")[2])
     else
@@ -144,7 +143,7 @@ function setindex!(anim::Animation, set::Pair, n::Int64)
     prop = string(set[1]) * ": "
     value = string(set[2]) * "; "
     if n in keys(anim.keyframes)
-        anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
+        anim.keyframes[n] = anim.keyframes[n] * "$prop: $value;"
     else
         push!(anim.keyframes, "$n%" => "$prop: $value; ")
     end

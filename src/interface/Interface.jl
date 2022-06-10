@@ -11,6 +11,8 @@ macro L_str(s::String)
     s
 end
 
+
+
 """
 **Interface**
 ### properties!(::Servable, ::Servable) -> _
@@ -205,6 +207,8 @@ Writes a Servable's return to a Connection's stream.
 write!(c::Connection, s::Servable) = s.f(c)
 
 
+components(cs::Servable ...) = Vector{Component}([s for s in cs])
+
 """
 **Interface**
 ### write!(c::Connection, s::Vector{Servable}) -> _
@@ -213,8 +217,11 @@ Writes, in order of element, each Servable inside of a Vector of Servables.
 #### example
 
 """
-write!(c::Connection, s::Vector{Component}) = [write!(c, comp) for comp in s]
-
+function write!(c::Connection, s::Vector{Component})
+    for s::Component in s
+        write!(c, s)
+    end
+end
 """
 **Interface**
 ### write!(::Connection, ::String) -> _
@@ -449,7 +456,7 @@ Downloads a file to a given user's computer.
 #### example
 """
 function download!(c::Connection, uri::String)
-    write(c.http, HTTP.Response( 200, body = HTTP.request("GET", uri)))
+    write(c.http, HTTP.Response( 200, body = read(uri, String)))
 end
 
 """

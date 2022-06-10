@@ -70,7 +70,7 @@ end
 Base
     Components
 ==#
-img(name::String = ""; args ...) = Component(name, "link", args)::Component
+img(name::String = ""; args ...) = Component(name, "img", args)::Component
 link(name::String = ""; args ...) = Component(name, "link", args)::Component
 meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
 input(name::String = ""; args ...) = Component(name, "input", args)::Component

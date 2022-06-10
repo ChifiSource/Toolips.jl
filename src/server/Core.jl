@@ -216,6 +216,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     end
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
+        HTTP.setheader(http, "Content-Type" => "text/html")
         fullpath::String = http.message.target
         if contains(fullpath, '?')
             fullpath = split(http.message.target, '?')[1]

@@ -1,6 +1,18 @@
 # Interface.jl
 """
 **Interface**
+### L_str -> _
+------------------
+Creates a literal string
+#### example
+
+"""
+macro L_str(s::String)
+    s
+end
+
+"""
+**Interface**
 ### properties!(::Servable, ::Servable) -> _
 ------------------
 Copies properties from s,properties into c.properties.

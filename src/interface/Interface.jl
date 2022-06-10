@@ -290,9 +290,9 @@ Creates a route from the Function.
 #### example
 
 """
-route(f::Function, route::String) = Route(route, f)::Route
+route(f::Function, r::String) = Route(r, f)::Route
 
-route(route::String, f::Function) = route(f, route)
+route(r::String, f::Function) = route(f, r)
 """
 **Interface**
 ### route(::String, ::Servable) -> ::Route
@@ -301,7 +301,7 @@ Creates a route from a Servable.
 #### example
 
 """
-route(route::String, s::Servable) = Route(route, s)::Route
+route(r::String, s::Servable) = Route(r, s)::Route
 
 """
 **Interface**

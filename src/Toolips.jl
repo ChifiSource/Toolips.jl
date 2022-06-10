@@ -51,19 +51,22 @@ function create_serverdeps(name::String)
         write(io, """
 module $name
 using Toolips
-function main(routes::Vector{Route})
-    server = ServerTemplate(IP, PORT, routes, extensions = extensions)
+
+hello_world = route("/") do c
+    write!(c, p("helloworld", text = "hello world!"))
+end
+
+fourofour = route("404") do c
+    write!(c, p("404message", text = "404, not found!"))
+end
+
+
+function start(IP::String, PORT::String, extensions::Dict)
+    rs = routes(hello_world, fourofour)
+    server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
 end
-\n
-hello_world = route("/") do c
-    write!(c, p("hello", text = "hello world!"))
-end
-fourofour = route("404", p("404", text = "404, not found!"))
-rs = routes(hello_world, fourofour)
 
-$servername = main(rs)
-export $servername
 end # - module
         """)
     end
@@ -89,6 +92,7 @@ function new_app(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger())
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     open(name * "/prod.jl", "w") do io
@@ -99,6 +103,7 @@ function new_app(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger())
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
 end

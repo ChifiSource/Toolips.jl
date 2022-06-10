@@ -182,4 +182,10 @@ main(rs)
   ```
   We can include "dev.jl" to start our development server!
 ## Crash Course
-There are different portions of Toolips.jl that we need to be aware of in order to better understand Toolips. Firstly, there is the interface portion, which is split into two parts; Servables and Interface. The other portion of Toolips is the Server portion, which is also split into two parse: Extensions, and the Core Server. 
+There are different portions of Toolips.jl that we need to be aware of in order to better understand Toolips. Firstly, there is the interface portion, which is split into two parts; Servables and Interface. The other portion of Toolips is the Server portion, which is also split into two parse: Extensions, and the Core Server. The most declarative of these is of course the Interface.
+  #### Servables
+  #### Interface
+  #### Core
+  #### ServerExtensions
+  
+## Basic Example

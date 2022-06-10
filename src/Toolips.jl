@@ -1,16 +1,10 @@
 module Toolips
+clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 #==
-Toolips.jl, a module created for light-weight interaction with Javascript via
-bursts of HTML and Javascript working in tandem. There might be entirely new
-intentions for this design, and dramatic changes. There are numerous features
-coming to spruce up this code base to better facilitate things like
-authentication.
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
-- TODO Load environment in default files
-- TODO Setup the Pkg environment with the given loaded files
 - TODO Finish docs
-- TODO Testings
+- TODO Testing
 ==#
 using Crayons
 using Sockets, HTTP, Pkg
@@ -18,15 +12,13 @@ import Base: getindex, setindex!, push!
 include("interface/Servables.jl")
 include("interface/Interface.jl")
 # Core Server
-export ServerTemplate, Route, Connection
+export ServerTemplate, Route, Connection, WebServer
 # Server Extensions
 export Logger, Files
-# Function returns
-export html, css, js, fn
 # Servables
 export File, Component
-export input, textarea, button, p, option, radioinput, sliderinput, imageinput
-export form, link, metadata, header, div, body, img, h
+export img, link, meta, input, a, p, h, button, ul, li, divider, form, br
+export header
 export Animation, Style, StyleSheet
 # High-level api
 export properties, push!, getindex, setindex!, properties!
@@ -54,8 +46,11 @@ function create_serverdeps(name::String)
     touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
+    server_name = name * "Server"
     open(src * "/$name.jl", "w") do io
         write(io, """
+module $name
+using Toolips
 function main(routes::Vector{Route})
     server = ServerTemplate(IP, PORT, routes, extensions = extensions)
     server.start()
@@ -66,8 +61,10 @@ hello_world = route("/") do c
 end
 fourofour = route("404", p("404", text = "404, not found!"))
 rs = routes(hello_world, fourofour)
-main(rs)
 
+$servername = main(rs)
+export $servername
+end # - module
         """)
     end
 
@@ -86,6 +83,7 @@ function new_app(name::String = "ToolipsApp")
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
+        using Pkg; Pkg.activate(".")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000
@@ -95,6 +93,7 @@ function new_app(name::String = "ToolipsApp")
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
+        using Pkg; Pkg.activate(".")
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000

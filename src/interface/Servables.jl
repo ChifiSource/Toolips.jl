@@ -70,13 +70,20 @@ end
 Base
     Components
 ==#
-img(name::String; args ...) = Component(name, "link", args)::Component
-link(name::String; args ...) = Component(name, "link", args)::Component
-meta(name::String = "charset"; args ...) = Component(name, "meta", args)::Component
+img(name::String = ""; args ...) = Component(name, "link", args)::Component
+link(name::String = ""; args ...) = Component(name, "link", args)::Component
+meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
+input(name::String = ""; args ...) = Component(name, "input", args)::Component
+a(name::String = ""; args ...) = Component(name, "a", args)::Component
+p(name::String = ""; args ...) = Component(name, "h", args)::Component
+h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n", args)::Component
+button(name::String = ""; args ...) = Component(name, "button", args)::Component
+ul(name::String = ""; args ...) = Component(name, "ul", args)::Component
+li(name::String = ""; args ...) = Component(name, "li", args)::Component
+divider(name::String = ""; args ...) = Component(name, "div", args)::Component
+form(name::String = ""; args ...) = Component(name, "form", args)::Component
+br(name::String = ""; args ...) = Component(name, "/br", args)::Component
 
-function form()
-
-end
 
 function header(title::String = "Toolips App";
     icon::String = "", keywords::Array{String} = [], author::String = "",

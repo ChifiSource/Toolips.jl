@@ -283,18 +283,9 @@ likes.
 """
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
-"""
-**Interface**
-### navigate!(::Connection, ::String) -> _
-------------------
-Routes a connected stream to a given URL.
-#### example
-
-"""
-function navigate!(c::Connection, url::String)
-    HTTP.get(url, response_stream = c.http, status_exception = false)
-end
-
+#==
+    Server
+==#
 """
 **Interface**
 ### stop!(x::Any) -> _
@@ -303,10 +294,19 @@ An alternate binding for close(x). Stops a server from running.
 #### example
 
 """
-function stop!(x::Any)
-    close(x)
+function stop!(ws::WebServer)
+    close(ws.server)
 end
 
+function route!(f::Function, ws::WebServer, r::String)
+    ws.routes[r] = f
+end
+
+function getindex(ws::WebServer, s::Symbol)
+    ws[extensions][s]
+end
+
+getindex(c::Connection, s::Symbol) = c.extensions[s]
 #==
 Request/Args
 ==#
@@ -426,4 +426,16 @@ Downloads a file to a given user's computer.
 """
 function download!(c::Connection, uri::String)
 
+end
+
+"""
+**Interface**
+### navigate!(::Connection, ::String) -> _
+------------------
+Routes a connected stream to a given URL.
+#### example
+
+"""
+function navigate!(c::Connection, url::String)
+    HTTP.get(url, response_stream = c.http, status_exception = false)
 end

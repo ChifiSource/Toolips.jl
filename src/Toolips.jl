@@ -21,7 +21,7 @@ export img, link, meta, input, a, p, h, button, ul, li, divider, form, br
 export header
 export Animation, Style, StyleSheet
 # High-level api
-export properties, push!, getindex, setindex!, properties!
+export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export getargs, getarg, postargs, postarg, get, post

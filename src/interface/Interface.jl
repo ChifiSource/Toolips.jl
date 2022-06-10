@@ -334,6 +334,8 @@ function route!(f::Function, ws::WebServer, r::String)
     ws.routes[r] = f
 end
 
+route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
+
 function getindex(ws::WebServer, s::Symbol)
     ws[extensions][s]
 end

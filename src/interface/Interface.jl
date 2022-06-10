@@ -122,6 +122,15 @@ style!(c::Servable, s::Style) = begin
     end
 end
 
+function style!(c::Servable, s::Pair ...; name::String = c.name * "style")
+    n = c.name
+    style_c = Style(name)
+    for p in s
+        style_c[p[1]] = p[2]
+    end
+    style_c
+end
+
 """
 **Interface**
 ### style!(::Style, ::Style) -> _
@@ -206,8 +215,11 @@ Writes a Servable's return to a Connection's stream.
 """
 write!(c::Connection, s::Servable) = s.f(c)
 
+function on(f::Function, symb::Symbol = :click, s::Servable)
 
-components(cs::Servable ...) = Vector{Component}([s for s in cs])
+end
+
+components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """
 **Interface**
@@ -217,8 +229,8 @@ Writes, in order of element, each Servable inside of a Vector of Servables.
 #### example
 
 """
-function write!(c::Connection, s::Vector{Component})
-    for s::Component in s
+function write!(c::Connection, s::Vector{Servable})
+    for s::Servable in s
         write!(c, s)
     end
 end

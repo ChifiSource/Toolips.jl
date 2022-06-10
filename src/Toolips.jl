@@ -37,6 +37,7 @@ function create_serverdeps(name::String)
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
+    Pkg.add("Revise")
     dir = pwd() * "/"
     src = dir * name * "/src"
     logs = dir * name * "/logs"
@@ -88,6 +89,7 @@ function new_app(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
+        using Revise
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger())
@@ -121,6 +123,7 @@ function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
+        using Revise
         using Toolips
         IP = "127.0.0.1"
         PORT = 8000

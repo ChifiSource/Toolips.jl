@@ -87,8 +87,8 @@ br(name::String = ""; args ...) = Component(name, "/br", args)::Component
 
 function header(title::String = "Toolips App";
     icon::String = "", keywords::Array{String} = [], author::String = "",
-    description::String = "", links::Vector{Component} = Vector{Component}())
-    cs::Vector{Component} = Vector{Component}()
+    description::String = "", links::Vector{Servable} = Vector{Servable}())
+    cs::Vector{Servable} = Vector{Servable}()
     push!(cs, metadata())
     push!(cs, link("icon", rel = "icon", href = icon))
     push!(cs, metadata("keywords", join(keywords, ",")))

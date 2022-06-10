@@ -125,6 +125,7 @@ function new_webapp(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     open(name * "/prod.jl", "w") do io
@@ -134,6 +135,7 @@ function new_webapp(name::String = "ToolipsApp")
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
         include("src/$name.jl")
+        $servername = $name.start(IP, PORT, extensions)
         """)
     end
     public = pwd() * "/$name/public"

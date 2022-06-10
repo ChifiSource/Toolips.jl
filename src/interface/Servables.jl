@@ -110,8 +110,9 @@ mutable struct Animation <: StyleComponent
     f::Function
     delay::Float64
     length::Float64
+    iterations::Integer
     function Animation(name::String = "animation"; delay::Float64 = 0.0,
-        length::Float64 = 5.2)
+        length::Float64 = 5.2, iterations::Integer = 00)
         f(c::Connection) = begin
             s::String = "<style> @keyframes $name {"
             for anim in keys(keyframes)
@@ -121,7 +122,7 @@ mutable struct Animation <: StyleComponent
             write!(c, string(s * "}</style>"))
         end
         keyframes::Dict = Dict()
-        new(name, keyframes, f, delay, length)
+        new(name, keyframes, f, delay, length, iterations)
     end
 end
 

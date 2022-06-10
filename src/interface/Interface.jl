@@ -85,6 +85,10 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 function animate!(s::StyleComponent, a::Animation)
     s["animation-name"] = string(a.name)
     s["animation-duration"] = string(a.length) * "s"
+    if a.iterations == 0
+        s["animation-iteration-count"] = "infinite"
+    else
+        s["animation-iteration-count"] = string(a.iterations)
 end
 
 """
@@ -95,7 +99,13 @@ Applies the style to a servable.
 #### example
 
 """
-style!(c::Servable, s::Style) = c.properties[:class] = s.name
+style!(c::Servable, s::Style) = begin
+    if contains(s.name, ".")
+        c.properties[:class] = string(split(s.name, ".")[2])
+    else
+        c.properties[:class] = s.name
+    end
+end
 
 """
 **Interface**

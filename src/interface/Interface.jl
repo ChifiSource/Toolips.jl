@@ -215,10 +215,6 @@ Writes a Servable's return to a Connection's stream.
 """
 write!(c::Connection, s::Servable) = s.f(c)
 
-function on(f::Function, symb::Symbol = :click, s::Servable)
-
-end
-
 components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """

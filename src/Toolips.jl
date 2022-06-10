@@ -24,7 +24,7 @@ export Logger, Files
 # Function returns
 export html, css, js, fn
 # Servables
-export File, Component, Container
+export File, Component
 export input, textarea, button, p, option, radioinput, sliderinput, imageinput
 export form, link, metadata, header, div, body, img, h
 export Animation, Style, StyleSheet

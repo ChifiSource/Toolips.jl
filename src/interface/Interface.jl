@@ -145,7 +145,7 @@ function setindex!(anim::Animation, set::Pair, n::Int64)
     if n in keys(anim.keyframes)
         anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
     else
-        push!(anim.keyframes, "%$n" => "$prop: $value; ")
+        push!(anim.keyframes, "$n%" => "$prop: $value; ")
     end
 end
 

@@ -112,7 +112,7 @@ mutable struct Animation <: StyleComponent
     length::Float64
     iterations::Integer
     function Animation(name::String = "animation"; delay::Float64 = 0.0,
-        length::Float64 = 5.2, iterations::Integer = 00)
+        length::Float64 = 5.2, iterations::Integer = 1)
         f(c::Connection) = begin
             s::String = "<style> @keyframes $name {"
             for anim in keys(keyframes)

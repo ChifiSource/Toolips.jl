@@ -459,7 +459,7 @@ Quick binding for an HTTP GET request.
 """
 function get(url::String)
     r = HTTP.request("GET", url)
-    b = string(convertuint(b))
+    b = string(convertuint(r))
     JSON.parse(b)
 end
 

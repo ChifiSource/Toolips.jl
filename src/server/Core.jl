@@ -174,18 +174,14 @@ This is an internal function for the ServerTemplate. This function is binded to
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    logger = nothing
-    try
-        logger = extensions[:logger]
-        logger.log(1, "Toolips Server starting on port " * string(port))
-    catch
-        logger = nothing
-    end
+    if :logger in extensions
+        extensions[:logger].log(1, "Toolips Server starting on port " * string(port))
     routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
-    if logger != nothing
-        logger.log(2, "Successfully started server on port " * string(port))
-        logger.log(1,
+    if :logger in extensions
+        extensions[:logger].log(2,
+         "Successfully started server on port " * string(port))
+        extensions[:logger].log(1,
         "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
     return(WebServer(ip, rdct, extensions, server))

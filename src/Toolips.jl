@@ -7,7 +7,7 @@ clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 - TODO Testing
 ==#
 using Crayons
-using Sockets, HTTP, Pkg
+using Sockets, HTTP, Pkg, JSON
 import Base: getindex, setindex!, push!
 include("interface/Servables.jl")
 include("interface/Interface.jl")
@@ -19,7 +19,7 @@ export Logger, Files
 export File, Component
 export img, link, meta, input, a, p, h, button, ul, li, divider, form, br
 export header
-export Animation, Style, StyleSheet
+export Animation, Style
 # High-level api
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
@@ -87,13 +87,19 @@ function new_app(name::String = "ToolipsApp")
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
+        #==
+        dev.jl is an environment file. This file loads and starts servers, and
+        defines environmental variables, setting the scope a lexical step higher
+        with modularity.
+        ==#
         using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
+
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger())
-        include("src/$name.jl")
+        using $name
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -101,10 +107,11 @@ function new_app(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
+
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger())
-        include("src/$name.jl")
+        using $name
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -123,22 +130,29 @@ function new_webapp(name::String = "ToolipsApp")
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
-        using Revise
+        #==
+        dev.jl is an environment file. This file loads and starts servers, and
+        defines environmental variables, setting the scope a lexical step higher
+        with modularity.
+        ==#
         using Toolips
+        using Revise
+
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
-        include("src/$name.jl")
+        using $name
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
         using Toolips
+
         IP = "127.0.0.1"
         PORT = 8000
         extensions = Dict(:logger => Logger(), :public => Files("public"))
-        include("src/$name.jl")
+        using $name
         $servername = $name.start(IP, PORT, extensions)
         """)
     end

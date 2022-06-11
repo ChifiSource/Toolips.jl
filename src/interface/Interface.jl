@@ -230,6 +230,9 @@ function write!(c::Connection, s::Vector{Servable})
         write!(c, s)
     end
 end
+
+write!(c::Connection, s::Servable ...) = write!(c, Vector{Servable}(s))
+
 """
 **Interface**
 ### write!(::Connection, ::String) -> _
@@ -365,15 +368,18 @@ function getargs(c::Connection)
     target::String = split(c.http.message.target, '?')[2]
     target = replace(target, "+" => " ")
     args = split(target, '&')
-    arg_dict = Dict()
+    argsplit(args)
+end
+
+function argsplit(args::Any)
+    arg_dict::Dict = Dict()
     for arg in args
         keyarg = split(arg, '=')
-        x = tryparse(keyarg[2])
+        x = ParseNotEval.parse(keyarg[2])
         push!(arg_dict, Symbol(keyarg[1]) => x)
     end
     return(arg_dict)
 end
-
 """
 **Interface**
 ### getargs(::Connection, ::Symbol) -> ::Dict
@@ -400,27 +406,14 @@ end
 
 """
 **Interface**
-### postarg(::Connection, ::Symbol) -> ::Any
+### postarg(::Connection, ::String) -> ::Any
 ------------------
 Get a body argument of a POST response by name.
 #### example
 
 """
-function postarg(c::Connection, s::Symbol)
-
-end
-
-"""
-**Interface**
-### postarg(::Connection, ::Symbol, ::Type) -> ::Any
-------------------
-Get a body argument of a POST response by name. Will be parsed into the
-provided type.
-#### example
-
-"""
-function postarg(c::Connection, s::Symbol, T::Type)
-
+function postarg(c::Connection, s::String)
+    JSON.parse(string(http.message.body))[s]
 end
 
 """
@@ -432,7 +425,7 @@ Get arguments from the request body.
 
 """
 function postargs(c::Connection)
-    http.message.body
+    JSON.parse(string(http.message.body))
 end
 
 """
@@ -444,7 +437,8 @@ Quick binding for an HTTP GET request.
 
 """
 function get(url::String)
-
+    r = HTTP.request("GET", url)
+    JSON.parse(string(r.body))
 end
 
 """
@@ -456,7 +450,8 @@ Quick binding for an HTTP POST request.
 
 """
 function post(url::String)
-
+    r = HTTP.request("POST", url)
+    JSON.parse(string(r.body))
 end
 
 """

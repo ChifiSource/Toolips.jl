@@ -122,13 +122,14 @@ style!(c::Servable, s::Style) = begin
     end
 end
 
-function style!(c::Servable, s::Pair ...; name::String = c.name * "style")
-    n = c.name
-    style_c = Style(name)
-    for p in s
-        style_c[p[1]] = p[2]
+function style!(c::Servable, s::Pair ...)
+    if (:style in keys(c.properties))
+        c[:style] = ""
     end
-    style_c
+    for style in s
+        k, v = style[1], style[2]
+        c[:style] = c[:style] * "$k: $v; " 
+    end
 end
 
 """

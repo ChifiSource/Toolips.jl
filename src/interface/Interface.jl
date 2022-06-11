@@ -433,6 +433,7 @@ function postargs(c::Connection)
     JSON.parse(string(http.message.body))
 end
 
+convertuint(r) = String(UInt8.(r))
 """
 **Interface**
 ### get() -> ::Dict
@@ -443,7 +444,11 @@ Quick binding for an HTTP GET request.
 """
 function get(url::String)
     r = HTTP.request("GET", url)
-    JSON.parse(string(r.body))
+    b = string(r.body)
+    if typeof(b) != String
+        b = convertuint(b)
+    end
+    JSON.parse(b)
 end
 
 """

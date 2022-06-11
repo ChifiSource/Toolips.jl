@@ -8,7 +8,7 @@ clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 ==#
 using Crayons
 using Sockets, HTTP, Pkg, JSON, ParseNotEval
-import Base: getindex, setindex!, push!, get
+import Base: getindex, setindex!, push!, get, string
 include("interface/Servables.jl")
 include("interface/Interface.jl")
 # Core Server

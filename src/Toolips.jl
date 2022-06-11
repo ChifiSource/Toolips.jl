@@ -24,7 +24,7 @@ export Animation, Style
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
-export getargs, getarg, postargs, postarg, get, post
+export getargs, getarg, postargs, postarg, GET, POST
 
 """
 ### create_serverdeps(::String) -> _

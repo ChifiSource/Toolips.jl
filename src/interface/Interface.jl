@@ -409,6 +409,21 @@ function getarg(c::Connection, s::Symbol, T::Type)
     parse(getargs(http)[s], T)
 end
 
+function getip(c::Connection)
+           str = c.http.message["User-Agent"]
+           spl = split(str, "/")
+           ipstr = ""
+           for sub in spl
+               if contains(sub, ".")
+                   if length(findall(".", sub)) > 1
+                       ipstr = split(sub, " ")[1]
+                   end
+               end
+           end
+           return(ipstr)
+end
+
+
 """
 **Interface**
 ### postarg(::Connection, ::String) -> ::Any
@@ -444,8 +459,7 @@ Quick binding for an HTTP GET request.
 """
 function get(url::String)
     r = HTTP.request("GET", url)
-    b = string(r.body)
-        b = convertuint(b)
+    b = string(convertuint(b))
     JSON.parse(b)
 end
 

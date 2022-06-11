@@ -459,7 +459,7 @@ Quick binding for an HTTP GET request.
 """
 function get(url::String)
     r = HTTP.request("GET", url)
-    r.body
+    string(r.body)
 end
 
 """
@@ -472,7 +472,7 @@ Quick binding for an HTTP POST request.
 """
 function post(url::String)
     r = HTTP.request("POST", url)
-    r.body
+    string(r.body)
 end
 
 """

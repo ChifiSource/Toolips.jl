@@ -7,7 +7,7 @@ clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 - TODO Testing
 ==#
 using Crayons
-using Sockets, HTTP, Pkg, JSON
+using Sockets, HTTP, Pkg, JSON, ParseNotEval
 import Base: getindex, setindex!, push!, get
 include("interface/Servables.jl")
 include("interface/Interface.jl")

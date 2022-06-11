@@ -174,13 +174,13 @@ This is an internal function for the ServerTemplate. This function is binded to
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    if :logger in extensions
+    if :logger in keys(extensions)
         extensions[:logger].log(1,
          "Toolips Server starting on port " * string(port))
     end
     routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
-    if :logger in extensions
+    if :logger in keys(extensions)
         extensions[:logger].log(2,
          "Successfully started server on port " * string(port))
         extensions[:logger].log(1,
@@ -207,11 +207,9 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
         if typeof(extension[2].type) == Symbol
             if extension[2].type == :connection
                 push!(ces, extension)
-            end
-            if extension[2].type == :routing
+        elseif extension[2].type == :routing
                 extension[2].f(route_paths, extensions)
-            end
-            if extension[2].type == :func
+            elseif extension[2].type == :func
                 push!(fes, extension[2])
             end
         else

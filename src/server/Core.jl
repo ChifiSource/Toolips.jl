@@ -175,7 +175,9 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     if :logger in extensions
-        extensions[:logger].log(1, "Toolips Server starting on port " * string(port))
+        extensions[:logger].log(1,
+         "Toolips Server starting on port " * string(port))
+    end
     routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
     if :logger in extensions

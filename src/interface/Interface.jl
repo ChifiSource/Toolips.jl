@@ -440,7 +440,7 @@ Quick binding for an HTTP GET request.
 #### example
 
 """
-function GET(url::String)
+function get(url::String)
     r = HTTP.request("GET", url)
     JSON.parse(string(r.body))
 end
@@ -453,7 +453,7 @@ Quick binding for an HTTP POST request.
 #### example
 
 """
-function POST(url::String)
+function post(url::String)
     r = HTTP.request("POST", url)
     JSON.parse(string(r.body))
 end

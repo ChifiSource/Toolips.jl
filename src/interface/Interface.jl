@@ -445,9 +445,7 @@ Quick binding for an HTTP GET request.
 function get(url::String)
     r = HTTP.request("GET", url)
     b = string(r.body)
-    if typeof(b) != String
         b = convertuint(b)
-    end
     JSON.parse(b)
 end
 

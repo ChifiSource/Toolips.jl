@@ -177,7 +177,7 @@ mutable struct Files <: ServerExtension
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Dict) = begin
+        f(r::Dict, e::Dict) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
                 push!(r, path[l:length(path)] => c::Connection -> write!(c, File(path)))

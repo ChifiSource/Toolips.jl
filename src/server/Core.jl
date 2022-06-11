@@ -206,11 +206,16 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     ces::Dict = Dict()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
-        if extension[2].type == :connection
+        if extension[2].type == :connection || contains(extension[2].type,
+             :connection)
             push!(ces, extension)
-        elseif extension[2].type == :routing
-            extension[2].f(route_paths)
-        elseif extension[2].type == :func
+        end
+        if extension[2].type == :routing || contains(extension[2].type,
+             :routing)
+            extension[2].f(route_paths, extensions)
+        end
+        if extension[2].type == :func || contains(extension[2].type,
+             :func)
             push!(fes, extension[2])
         end
     end

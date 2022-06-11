@@ -352,6 +352,10 @@ function getindex(ws::WebServer, s::Symbol)
 end
 
 getindex(c::Connection, s::Symbol) = c.extensions[s]
+getindex(c::Connection, s::String) = c.routes[s]
+
+setindex!(c::Connection, val::Function, s::String) = c.routes[s] = val
+
 #==
 Request/Args
 ==#

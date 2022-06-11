@@ -202,6 +202,7 @@ Pushes a keyframe pair into an animation.
 """
 push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 
+push!(c::Connection, data::Any) = write!(c.http, Response(200, body = data))
 #==
 Serving/Routing
 ==#

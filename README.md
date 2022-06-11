@@ -6,21 +6,15 @@
 ###### Note: 0.0.9 is not a full release of Toolips.jl, and stable supported usage should begin with version 0.1.0
 
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
-- Fast and secure. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
-- HTTPS capable, load balancer friendly. Can easily be deployed with SSL.
-- Extendable servers, components, and modules. Everything is modular and extendable. Core portions of the server, such as the ability to serve files or the ability to log messages, are done via ServerExtensions.
-- Modular applications. Toolips applications are modular, which means 
-- Regular Julia project files. 
-- Server introspection
-- Live updating of routes for developing and maintaining with no downtime.
-- Declarative, high-level syntax.
-- An ever-expanding library of extensions.
-- Easy animation and interaction tools.
-- Extremely low memory usage. Something that is held of very high priority with this project is keeping memory usage low while keeping features rich. The result is something that can run multiple full-stack web-pages without even eating a gigabyte of RAM.
-- Styling. Toolips makes it easy to develop front-ends and style them straight from Julia with indexing.
-- Asynchronisoty. Run multiple functions at the same time as you serve to each incoming request.
-- Front-end development. Toolips.jl is a full-stack web-framework, and it does that exactly!
-- 100% Julia websites.
+- **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
+- **HTTPS capable**, load balancer friendly. Can easily be deployed with SSL.
+- **Extendable** servers, components, and methods, they are all extendable!
+- **Modular** applications. Toolips applications are modular!
+- **Regular Julia** projects.
+- **Declarative**, high-level syntax.
+- Extremely **low memory usage**.
+- **Asynchronous**. Run multiple functions at the same time as you serve to each incoming request.
+- **Versatile**. Toolips.jl can be used for all scenarios, from full-stack web-development to APIs.
 ```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]

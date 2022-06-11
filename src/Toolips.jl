@@ -24,7 +24,7 @@ export Animation, Style
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
-export getargs, getarg, postargs, postarg, get, post
+export getargs, getarg, postargs, postarg, get, post, getip
 
 """
 ### create_serverdeps(::String) -> _
@@ -135,6 +135,7 @@ function new_webapp(name::String = "ToolipsApp")
         defines environmental variables, setting the scope a lexical step higher
         with modularity.
         ==#
+        using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
 
@@ -147,6 +148,7 @@ function new_webapp(name::String = "ToolipsApp")
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
+        using Pkg; Pkg.activate(".")
         using Toolips
 
         IP = "127.0.0.1"

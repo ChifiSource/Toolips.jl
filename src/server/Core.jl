@@ -206,15 +206,28 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     ces::Dict = Dict()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
-        if extension[2].type == :connection || :connection in extension[2].type
-            push!(ces, extension)
+        if typeof(extension[2].type) == Symbol
+            if extension[2].type == :connection
+                push!(ces, extension)
+            end
+            if extension[2].type == :routing
+                extension[2].f(route_paths, extensions)
+            end
+            if extension[2].type == :func
+                push!(fes, extension[2])
+            end
+        else
+            if :connection in extension[2].type
+                push!(ces, extension)
+            end
+            if :routing in extension[2].type
+                extension[2].f(route_paths, extensions)
+            end
+            if :func in extension[2].type
+                push!(fes, extension[2])
+            end
         end
-        if extension[2].type == :routing || :routing in extension[2].type
-            extension[2].f(route_paths, extensions)
-        end
-        if extension[2].type == :func || :func in extension[2].type
-            push!(fes, extension[2])
-        end
+
     end
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)

@@ -448,7 +448,7 @@ function postargs(c::Connection)
     JSON.parse(string(http.message.body))
 end
 
-convertuint(r) = String(UInt8.(r))
+string(r::Vector{UInt8}) = String(UInt8.(r))
 """
 **Interface**
 ### get() -> ::Dict
@@ -459,8 +459,7 @@ Quick binding for an HTTP GET request.
 """
 function get(url::String)
     r = HTTP.request("GET", url)
-    b = string(convertuint(r))
-    JSON.parse(b)
+    r.body
 end
 
 """
@@ -473,7 +472,7 @@ Quick binding for an HTTP POST request.
 """
 function post(url::String)
     r = HTTP.request("POST", url)
-    JSON.parse(string(r.body))
+    r.body
 end
 
 """

@@ -9,7 +9,7 @@ module Toolips
 - TODO Testing
 ==#
 using Crayons
-using Sockets, HTTP, Pkg, ParseNotEval
+using Sockets, HTTP, Pkg, ParseNotEval, Dates
 import Base: getindex, setindex!, push!, get, string
 
 #==

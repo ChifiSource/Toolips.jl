@@ -114,6 +114,7 @@ mutable struct Style <: StyleComponent
     extras::String
     function Style(name::String; props ...)
         properties::Dict = Dict{Any, Any}(props)
+        extras::String = ""
         f(c::Connection) = begin
             css = "<style>$name { "
             for rule in keys(properties)
@@ -124,6 +125,6 @@ mutable struct Style <: StyleComponent
             css = css * "}</style>" * extras
             write!(c, css)
         end
-        new(name::String, f::Function, properties::Dict, "")
+        new(name::String, f::Function, properties::Dict, extras)::Style
     end
 end

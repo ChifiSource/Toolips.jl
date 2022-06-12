@@ -88,7 +88,7 @@ mutable struct Connection
 end
 
 include("interface/Servables.jl")
-include("../server/Core.jl")
+include("server/Core.jl")
 include("interface/Interface.jl")
 
 # Core Server

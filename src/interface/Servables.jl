@@ -112,7 +112,7 @@ mutable struct Style <: StyleComponent
     f::Function
     properties::Dict
     extras::String
-    function Style(name::String; properties::Any ...)
+    function Style(name::String; properties ...)
         properties::Dict = Dict(properties)
         f(c::Connection) = begin
             css = "<style>$name { "

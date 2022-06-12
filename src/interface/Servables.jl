@@ -1,22 +1,3 @@
-# Servables.jl
-#==
-Servable
-    Core
-==#
-"""
-### abstract type Servable
-Servables are components that can be rendered into HTML via thier f()
-function with the properties provided in their properties dict.
-##### Consistencies
-- f::Function - Function whose output to be written to http().
-- properties::Dict - The properties of a given Servable. These are written
-into the servable on the calling of f().
-"""
-abstract type Servable <: Any end
-
-include("../server/Core.jl")
-
-
 """
 ### Component <: Servable
 name::String
@@ -77,33 +58,25 @@ input(name::String = ""; args ...) = Component(name, "input", args)::Component
 a(name::String = ""; args ...) = Component(name, "a", args)::Component
 p(name::String = ""; args ...) = Component(name, "p", args)::Component
 h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n", args)::Component
-button(name::String = ""; args ...) = Component(name, "button", args)::Component
 ul(name::String = ""; args ...) = Component(name, "ul", args)::Component
 li(name::String = ""; args ...) = Component(name, "li", args)::Component
 divider(name::String = ""; args ...) = Component(name, "div", args)::Component
-form(name::String = ""; args ...) = Component(name, "form", args)::Component
 br(name::String = ""; args ...) = Component(name, "/br", args)::Component
-
-
-function header(title::String = "Toolips App";
-    icon::String = "", keywords::Array{String} = [], author::String = "",
-    description::String = "", links::Vector{Servable} = Vector{Servable}())
-    cs::Vector{Servable} = Vector{Servable}()
-    push!(cs, metadata())
-    push!(cs, link("icon", rel = "icon", href = icon))
-    push!(cs, metadata("keywords", join(keywords, ",")))
-    push!(cs, metadata("description", description))
-    [push!(cs, link) for link in cs]
-    newc = Component("", "header")
-    newc[:children] = cs
-    newc::Component
-end
+i(name::String = ""; args ...) = Component(name, "i", args)::Component
+title(name::String = ""; args ...) = Component(name, "title", args)::Component
+span(name::String = ""; args ...) = Component(name, "span", args)::Component
+iframe(name::String = ""; args ...) = Component(name, "iframe", args)::Component
+svg(name::String = "";, args ...) = Component(name, "svg", args)::Component
+element(name::String = ""; args ...) = Component(name, "element", args)::Component
+label(name::String = ""; args ...) = Component(name, "label", args)::Component
+script(name::String = ""; args ...) = Component(name, "script", args)::Component
+nav(name::String = ""; args ...) = Component(name, "nav", args)::Component
+button(name::String = ""; args ...) = Component(name, "button", args)::Component
+form(name::String = ""; args ...) = Component(name, "form", args)::Component
 #==
 Style
     Components
     ==#
-abstract type StyleComponent <: Servable end
-
 mutable struct Animation <: StyleComponent
     name::String
     keyframes::Dict
@@ -121,6 +94,14 @@ mutable struct Animation <: StyleComponent
             end
             write!(c, string(s * "}</style>"))
         end
+        f() = begin
+            s::String = "<style> @keyframes $name {"
+            for anim in keys(keyframes)
+                vals = keyframes[anim]
+                s = s * "$anim {" * vals * "}"
+            end
+            string(s * "}</style>")::String
+        end
         keyframes::Dict = Dict()
         new(name, keyframes, f, delay, length, iterations)
     end
@@ -130,21 +111,21 @@ mutable struct Style <: StyleComponent
     name::String
     f::Function
     properties::Dict
-    function Style(name::String)
-        properties::Dict = Dict()
+    extras::String
+    function Style(name::String; properties::Any ...)
+        properties::Dict = Dict(properties)
         f(c::Connection) = begin
-            if ~(contains(name, "."))
-                name = ".$name"
-            end
             css = "<style>$name { "
             for rule in keys(properties)
                 property = string(rule)
                 value = string(properties[rule])
                 css = css * "$property: $value; "
             end
-            css = css * "}</style>"
+            css = css * "}</style>" * extras
             write!(c, css)
         end
-        new(name::String, f::Function, properties::Dict)
+        new(name::String, f::Function, properties::Dict, "")
     end
 end
+
+function

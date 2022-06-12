@@ -1,5 +1,3 @@
-abstract type ToolipsServer end
-
 """
 ### Connection
 - routes::Dict
@@ -226,6 +224,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
 
     end
     # Routing func
+
     routeserver::Function = function serve(http::HTTP.Stream)
         fullpath::String = http.message.target
         if contains(fullpath, '?')

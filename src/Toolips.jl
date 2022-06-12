@@ -1,5 +1,7 @@
+"""
+
+"""
 module Toolips
-clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 #==
 ~ TODO LIST ~ If you want to help out, you can try implementing the following:
 =========================
@@ -7,19 +9,58 @@ clone(name::String = ""; args ...) = Component(name, "clone", args)::Component
 - TODO Testing
 ==#
 using Crayons
-using Sockets, HTTP, Pkg, JSON, ParseNotEval
+using Sockets, HTTP, Pkg, ParseNotEval
 import Base: getindex, setindex!, push!, get, string
+
+#==
+SuperTypes
+==#
+"""
+### abstract type Servable
+Servables are components that can be rendered into HTML via thier f()
+function with the properties provided in their properties dict.
+##### Consistencies
+- f::Function - Function whose output to be written to http().
+- properties::Dict - The properties of a given Servable. These are written
+into the servable on the calling of f().
+"""
+abstract type Servable <: Any end
+
+"""
+"""
+abstract type StyleComponent <: Servable end
+
+"""
+"""
+abstract type ToolipsServer end
+
+
+"""
+### abstract type ServerExtension
+Server extensions are loaded into the server on startup, and
+can have a few different abilities according to their type
+field's value. There are three types to be aware of.
+-
+##### Consistencies
+
+"""
+abstract type ServerExtension end
+
 include("interface/Servables.jl")
+include("../server/Core.jl")
 include("interface/Interface.jl")
+
 # Core Server
 export ServerTemplate, Route, Connection, WebServer
 # Server Extensions
-export Logger, Files
+export Logger, Files, Document
 # Servables
 export File, Component
-export img, link, meta, input, a, p, h, button, ul, li, divider, form, br
-export header
 export Animation, Style
+
+export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
+export title, span, iframe, svg, element, label, script, nav, button, form
+export element, label, script, nav, button, form
 # High-level api
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
@@ -141,7 +182,14 @@ function new_webapp(name::String = "ToolipsApp")
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger(), :public => Files("public"))
+        #==
+        Extension description
+        :logger -> Logs messages into both a file folder and the terminal.
+        :public -> Routes the files from the public directory.
+        :document -> Registers and performs do calls, allows to modify servable.
+        ==#
+        extensions = Dict(:logger => Logger(), :public => Files("public"),
+        :document => Document())
         using $name
         $servername = $name.start(IP, PORT, extensions)
         """)

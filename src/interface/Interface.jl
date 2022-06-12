@@ -1,4 +1,3 @@
-# Interface.jl
 """
 **Interface**
 ### L_str -> _
@@ -10,8 +9,6 @@ Creates a literal string
 macro L_str(s::String)
     s
 end
-
-
 
 """
 **Interface**
@@ -31,7 +28,7 @@ properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 #### example
 
 """
-push!(s::Component, d::Component ...) = [push!(s[:children], c) for c in d]
+push!(s::Component, d::Servable ...) = [push!(s[:children], c) for c in d]
 
 """
 **Interface**
@@ -41,7 +38,7 @@ push!(s::Component, d::Component ...) = [push!(s[:children], c) for c in d]
 #### example
 
 """
-push!(s::Component, d::Component) = push!(s[:children], d)
+push!(s::Component, d::Servable = push!(s[:children], d)
 
 """
 **Interface**
@@ -104,6 +101,7 @@ function animate!(s::StyleComponent, a::Animation)
     else
         s["animation-iteration-count"] = string(a.iterations)
     end
+    s.extras = s.extras * a.f()
 end
 
 """
@@ -120,8 +118,11 @@ style!(c::Servable, s::Style) = begin
     else
         c.properties[:class] = s.name
     end
+    push!(c, s)
 end
 
+"""
+"""
 function style!(c::Servable, s::Pair ...)
     if ~(:style in keys(c.properties))
         c[:style] = ""
@@ -204,6 +205,8 @@ Pushes a keyframe pair into an animation.
 """
 push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 
+"""
+"""
 push!(c::Connection, data::Any) = write!(c.http, HTTP.Response(200, body = string(data)))
 #==
 Serving/Routing
@@ -218,6 +221,8 @@ Writes a Servable's return to a Connection's stream.
 """
 write!(c::Connection, s::Servable) = s.f(c)
 
+"""
+"""
 components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """
@@ -234,6 +239,8 @@ function write!(c::Connection, s::Vector{Servable})
     end
 end
 
+"""
+"""
 write!(c::Connection, s::Servable ...) = write!(c, Vector{Servable}(s))
 
 """
@@ -306,7 +313,10 @@ Creates a route from the Function.
 """
 route(f::Function, r::String) = Route(r, f)::Route
 
+"""
+"""
 route(r::String, f::Function) = route(f, r)
+
 """
 **Interface**
 ### route(::String, ::Servable) -> ::Route
@@ -344,19 +354,32 @@ function stop!(ws::WebServer)
     close(ws.server)
 end
 
+"""
+"""
 function route!(f::Function, ws::WebServer, r::String)
     ws.routes[r] = f
 end
 
+"""
+"""
 route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
 
+"""
+"""
 function getindex(ws::WebServer, s::Symbol)
     ws[extensions][s]
 end
 
+"""
+"""
 getindex(c::Connection, s::Symbol) = c.extensions[s]
+
+"""
+"""
 getindex(c::Connection, s::String) = c.routes[s]
 
+"""
+"""
 setindex!(c::Connection, val::Function, s::String) = c.routes[s] = val
 
 #==
@@ -378,6 +401,8 @@ function getargs(c::Connection)
     argsplit(args)
 end
 
+"""
+"""
 function argsplit(args::Any)
     arg_dict::Dict = Dict()
     for arg in args
@@ -408,23 +433,24 @@ method.
 #### example
 """
 function getarg(c::Connection, s::Symbol, T::Type)
-    parse(getargs(http)[s], T)
+    parse(T, getargs(http)[s])
 end
 
+"""
+"""
 function getip(c::Connection)
-           str = c.http.message["User-Agent"]
-           spl = split(str, "/")
-           ipstr = ""
-           for sub in spl
-               if contains(sub, ".")
-                   if length(findall(".", sub)) > 1
-                       ipstr = split(sub, " ")[1]
-                   end
-               end
-           end
-           return(ipstr)
+    str = c.http.message["User-Agent"]
+    spl = split(str, "/")
+    ipstr = ""
+    for sub in spl
+        if contains(sub, ".")
+            if length(findall(".", sub)) > 1
+                ipstr = split(sub, " ")[1]
+            end
+        end
+    end
+    return(ipstr)
 end
-
 
 """
 **Interface**
@@ -435,7 +461,7 @@ Get a body argument of a POST response by name.
 
 """
 function postarg(c::Connection, s::String)
-    JSON.parse(string(http.message.body))[s]
+    nothing
 end
 
 """
@@ -447,7 +473,7 @@ Get arguments from the request body.
 
 """
 function postargs(c::Connection)
-    JSON.parse(string(http.message.body))
+    string(http.message.body)
 end
 
 string(r::Vector{UInt8}) = String(UInt8.(r))

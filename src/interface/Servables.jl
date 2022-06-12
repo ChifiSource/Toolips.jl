@@ -66,7 +66,7 @@ i(name::String = ""; args ...) = Component(name, "i", args)::Component
 title(name::String = ""; args ...) = Component(name, "title", args)::Component
 span(name::String = ""; args ...) = Component(name, "span", args)::Component
 iframe(name::String = ""; args ...) = Component(name, "iframe", args)::Component
-svg(name::String = "";, args ...) = Component(name, "svg", args)::Component
+svg(name::String = ""; args ...) = Component(name, "svg", args)::Component
 element(name::String = ""; args ...) = Component(name, "element", args)::Component
 label(name::String = ""; args ...) = Component(name, "label", args)::Component
 script(name::String = ""; args ...) = Component(name, "script", args)::Component

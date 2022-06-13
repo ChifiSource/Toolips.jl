@@ -382,9 +382,9 @@ function getindex(c::Connection, t::Type)
     end
 end
 
-function getindex(vs::Vector{Servable}, s::String)
+function getindex(vs::Vector{Servable}, str::String)
     for s in vs
-        if s.name == s
+        if s.name == str
             return(s)
         end
     end

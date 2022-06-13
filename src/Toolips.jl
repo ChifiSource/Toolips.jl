@@ -132,6 +132,7 @@ export element, label, script, nav, button, form
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
+export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip
 
 """

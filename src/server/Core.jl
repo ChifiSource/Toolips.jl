@@ -185,7 +185,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     # Routing func
 
     routeserver::Function = function serve(http::HTTP.Stream)
-        fullpath = ""
+        fullpath = http.message.target
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end

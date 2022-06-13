@@ -382,6 +382,14 @@ function getindex(c::Connection, t::Type)
     end
 end
 
+function getindex(d::Dict, t::Type)
+    for s in values(d)
+        if typeof(s) == t
+            return(s)
+        end
+    end
+end
+
 function getindex(vs::Vector{Servable}, str::String)
     for s in vs
         if s.name == str
@@ -400,6 +408,15 @@ function has_extension(c::Connection, t::Type)
 end
 
 
+
+function has_extension(d::Dict, t::Type)
+    se = d[t]
+    if typeof(se) <: ServerExtension
+        return(true)
+    else
+        return(false)
+    end
+end
 
 """
 """

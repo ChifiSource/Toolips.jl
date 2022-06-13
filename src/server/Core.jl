@@ -144,9 +144,6 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
          extensions[Logger].log(1,
          "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
-
-
-    end
     return(WebServer(ip, rdct, extensions, server))::WebServer
 end
 

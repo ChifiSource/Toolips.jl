@@ -1,24 +1,26 @@
 """
-
+Created in June, 2022 by
+[chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
+by team
+[toolips](https://github.com/orgs/ChifiSource/teams/toolips)
+This software is MIT-licensed.
+### Toolips
+**Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**,
+and **reactive** web-development framework **always** written in **pure** Julia.
+##### Module Composition
+- [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 """
 module Toolips
-#==
-~ TODO LIST ~ If you want to help out, you can try implementing the following:
-=========================
-- TODO Finish docs
-- TODO Testing
-==#
 using Crayons
 using Sockets, HTTP, Pkg, ParseNotEval, Dates
 import Base: getindex, setindex!, push!, get, string
-
 #==
 SuperTypes
 ==#
 """
 ### abstract type Servable
-Servables are components that can be rendered into HTML via thier f()
-function with the properties provided in their properties dict.
+Servables can be written to a Connection via thier f() function and the
+interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
 - f::Function - Function whose output to be written to http().
 - properties::Dict - The properties of a given Servable. These are written
@@ -27,10 +29,31 @@ into the servable on the calling of f().
 abstract type Servable <: Any end
 
 """
+### abstract type StyleComponent <: Servable
+No different from a normal Servable, simply an abstract type step for the
+interface to separate working with Animations and Styles.
+### Servable Consistencies
+```
+Servables can be written to a Connection via thier f() function and the
+interface. They can also be indexed with strings or symbols to change properties
+##### Consistencies
+- f::Function - Function whose output to be written to http().
+- properties::Dict - The properties of a given Servable. These are written
+into the servable on the calling of f().
+```
 """
 abstract type StyleComponent <: Servable end
 
 """
+### abstract type ToolipsServer
+ToolipsServers are returned whenever the ServerTemplate.start() field is
+called. If you are running your server as a module, it should be noted that
+commonly a global start() method is used and returns this server, and dev is
+where this module is loaded, served, and revised.
+##### Consistencies
+- routes::Dict - The server's route => function dictionary.
+- extensions::Dict - The server's currently loaded extensions.
+- server::Any - The server, whatever type it may be...
 """
 abstract type ToolipsServer end
 
@@ -60,10 +83,13 @@ This is both for functions, as well as Servable.f() methods. This constructor
 ##### example
 ```
                   #  v The Connection
-home = route("/") do c
-    c[:logger].log("We can index extensions.")
+home = route("/") do c::Connection
+    c[Logger].log("We can index extensions.")
     c.routes["/"] = c::Connection -> write!(c, "rerouting!")
     httpstream = c.http
+    write!(c, "Hello world!")
+    myheading::Component = h("myheading", 1, text = "Whoa!")
+    write!(c, myheading)
 end
 ```
 ------------------

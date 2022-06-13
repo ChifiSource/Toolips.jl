@@ -132,19 +132,22 @@ This is an internal function for the ServerTemplate. This function is binded to
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    if :logger in keys(extensions)
-        extensions[:logger].log(1,
+    if has_extension(extensions, Logger)
+        extensions[Logger].log(1,
          "Toolips Server starting on port " * string(port))
     end
     routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
-    if :logger in keys(extensions)
-        extensions[:logger].log(2,
+    if has_extension(extensions, Logger)
+        extensions[Logger].log(2,
          "Successfully started server on port " * string(port))
-        extensions[:logger].log(1,
-        "You may visit it now at http://" * string(ip) * ":" * string(port))
+         extensions[Logger].log(1,
+         "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
-    return(WebServer(ip, rdct, extensions, server))
+
+
+    end
+    return(WebServer(ip, rdct, extensions, server))::WebServer
 end
 
 """
@@ -181,28 +184,26 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
                 push!(fes, extension[2])
             end
         end
-
     end
     # Routing func
 
     routeserver::Function = function serve(http::HTTP.Stream)
-        fullpath::String = http.message.target
-        if contains(fullpath, '?')
-            fullpath = split(http.message.target, '?')[1]
-        end
+        fullpath = split(http.message.target, '?')[1]
         c::Connection = Connection(route_paths, http, ces)
         if fullpath in keys(route_paths)
             if typeof(route_paths[fullpath]) <: Servable
                 [extension.f(c) for extension in fes]
                 route_paths[fullpath].f(c)
             else
+                [extension.f(c) for extension in fes]
                 route_paths[fullpath](c)
             end
         else
             if typeof(route_paths["404"]) <: Servable
-                route_paths[fullpath].f(c)
                 [extension.f(c) for extension in fes]
+                route_paths[fullpath].f(c)
             else
+                [extension.f(c) for extension in fes]
                 route_paths["404"](c)
             end
         end

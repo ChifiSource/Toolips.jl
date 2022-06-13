@@ -374,6 +374,33 @@ end
 """
 getindex(c::Connection, s::Symbol) = c.extensions[s]
 
+function getindex(c::Connection, t::Type)
+    for e in c.extensions
+        if typeof(e) == t
+            return(e)
+        end
+    end
+end
+
+function getindex(vs::Vector{Servable}, s::String)
+    for s in vs
+        if s.name == s
+            return(s)
+        end
+    end
+end
+
+function has_extension(c::Connection, t::Type)
+    se = c[s]
+    if typeof(se) <: ServerExtension
+        return(true)
+    else
+        return(false)
+    end
+end
+
+
+
 """
 """
 getindex(c::Connection, s::String) = c.routes[s]

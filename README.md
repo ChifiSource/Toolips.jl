@@ -16,6 +16,9 @@
 - **Asynchronous**. Run multiple functions at the same time as you serve to each incoming request.
 - **Versatile**. Toolips.jl can be used for all scenarios, from full-stack web-development to APIs.
 ```julia
+using Pkg; Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl")
+```
+```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add https://github.com/ChifiSource/Toolips.jl
@@ -29,7 +32,7 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   - [Interactive Documentation]()
   - [Juliahub Documentation]() \
   **Examples**
-  - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl)
+  - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) \
   https://toolips.app/
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
@@ -140,13 +143,22 @@ There are different portions of Toolips.jl that we need to be aware of in order 
          
   true
   ```
+  There are too many names here to reference, but it should be known that all servables can be indexed with with anything in order to set settings at whim. These are just references, anything goes, a place to store data inside of a servable. Then the servable simply has the f(c::Connection) function which uses the connection type. Servables are also bound to many connection functions, such as write!, style!, and more.
+```julia
+image = img("image", src = "/images/example.png")
+subtitle = h("subtitle", 4, text = "This is an example")
+route("/") do c::Connection
+      write!(c, image)
+      write!(c, subtitle)
+               # We can also group servables:
+     cs = components(image, subtitle)
+               write!(c, cs)
+end
+```
   #### Interface
+               The interface is where many methods for working with Servables, Connections, and Servers are defined.
   #### Core
   #### ServerExtensions
-  
-## ToolipsApp
-For a great example of how to use toolips.jl, you can find a lot
-  
   </div>
   </details>
   
@@ -156,7 +168,8 @@ For a great example of how to use toolips.jl, you can find a lot
 <div><img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/Curated/logo.png></img>
 
   
-- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl)
-  
+- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
+- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
+- [ToolipsCanvas]() Servables
   </div>
   </details>

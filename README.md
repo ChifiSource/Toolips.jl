@@ -30,6 +30,7 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   - [Juliahub Documentation]() \
   **Examples**
   - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl)
+  https://toolips.app/
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
   - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
@@ -76,15 +77,8 @@ PORT = 8000
 (dev) pkg> add https://github.com/ChifiSource/Toolips.jl.git#Unstable
     Updating git-repo `https://github.com/ChifiSource/Toolips.jl.git`
     Updating registry at `~/.julia/registries/General.toml`
-   Resolving package versions...
-    Updating `~/dev/dev/Project.toml`
-  [a47e2ad8] + Toolips v0.0.7 `https://github.com/ChifiSource/Toolips.jl.git#Unstable`
-    Updating `~/dev/dev/Manifest.toml`
-  [a8cc5b0e] + Crayons v4.1.1
-  [cd3eb016] + HTTP v0.9.17
+          .................
   ....
-
-
 julia> using Toolips
   
   julia> Toolips.new_webapp("MyApp")
@@ -92,50 +86,7 @@ julia> using Toolips
     MyApp/Project.toml
     MyApp/src/MyApp.jl
   Activating project at `~/dev/MyApp`
-    Updating git-repo `https://github.com/ChifiSource/Toolips.jl.git`
-   Resolving package versions...
-    Updating `~/dev/MyApp/Project.toml`
-  [a47e2ad8] + Toolips v0.0.6 `https://github.com/ChifiSource/Toolips.jl.git#main`
-    Updating `~/dev/MyApp/Manifest.toml`
-  [a8cc5b0e] + Crayons v4.1.1
-  [cd3eb016] + HTTP v0.9.17
-  [83e8ac13] + IniFile v0.5.1
-  [739be429] + MbedTLS v1.0.3
-  [a47e2ad8] + Toolips v0.0.6 `https://github.com/ChifiSource/Toolips.jl.git#main`
-  [5c2747f8] + URIs v1.3.0
-  [0dad84c5] + ArgTools
-  [56f22d72] + Artifacts
-  [2a0f44e3] + Base64
-  [ade2ca70] + Dates
-  [f43a241f] + Downloads
-  [b77e0a4c] + InteractiveUtils
-  [b27032c2] + LibCURL
-  [76f85450] + LibGit2
-  [8f399da3] + Libdl
-  [56ddb016] + Logging
-  [d6f4376e] + Markdown
-  [ca575930] + NetworkOptions
-  [44cfe95a] + Pkg
-  [de0858da] + Printf
-  [3fa0cd96] + REPL
-  [9a3f8284] + Random
-  [ea8e919c] + SHA
-  [9e88b42a] + Serialization
-  [6462fe0b] + Sockets
-  [fa267f1f] + TOML
-  [a4e569a6] + Tar
-  [cf7118a7] + UUIDs
-  [4ec0a83e] + Unicode
-  [deac9b47] + LibCURL_jll
-  [29816b5a] + LibSSH2_jll
-  [c8ffd9c3] + MbedTLS_jll
-  [14a3606d] + MozillaCACerts_jll
-  [83775a58] + Zlib_jll
-  [8e850ede] + nghttp2_jll
-  [3f19e933] + p7zip_jll
-Precompiling project...
-  1 dependency successfully precompiled in 1 seconds (9 already precompiled)
-"/home/emmac/dev/MyApp/public"
+      ............
   ```
   This will create a project directory structure like this:
   ```julia
@@ -178,8 +129,34 @@ main(rs)
 ## Crash Course
 There are different portions of Toolips.jl that we need to be aware of in order to better understand Toolips. Firstly, there is the interface portion, which is split into two parts; Servables and Interface. The other portion of Toolips is the Server portion, which is also split into two parse: Extensions, and the Core Server. The most declarative of these is of course the Interface.
   #### Servables
+  Servables are types that always have two fields: a Function called f, and a Dict{Any, Any} called properties. Servables are passed through either the route() or the write!() function in order to be written to a connection.
+  ```julia
+  s = divider("mydivider")
+  typeof(s)
+  
+  Component
+  
+  typeof(s) <: Toolips.Servable
+         
+  true
+  ```
   #### Interface
   #### Core
   #### ServerExtensions
   
-## Basic Example
+## ToolipsApp
+For a great example of how to use toolips.jl, you can find a lot
+  
+  </div>
+  </details>
+  
+  
+  <details class="details-overlay">
+  <summary class="btn"><h2>Curated Extensions</h2></summary>
+<div><img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/Curated/logo.png></img>
+
+  
+- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl)
+  
+  </div>
+  </details>

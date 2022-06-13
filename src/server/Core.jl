@@ -185,7 +185,10 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     # Routing func
 
     routeserver::Function = function serve(http::HTTP.Stream)
-        fullpath = split(http.message.target, '?')[1]
+        fullpath = ""
+        if contains(http.message.target, "?")
+            fullpath = split(http.message.target, '?')[1]
+        end
         c::Connection = Connection(route_paths, http, ces)
         if fullpath in keys(route_paths)
             if typeof(route_paths[fullpath]) <: Servable

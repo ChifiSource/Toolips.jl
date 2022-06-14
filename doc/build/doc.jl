@@ -1,5 +1,5 @@
 using Toolips, Documenter
-
+import Toolips: Servable, ServerExtension, ToolipsServer
 Documenter.makedocs(root = "../",
        source = "src",
        build = "build",
@@ -11,6 +11,10 @@ Documenter.makedocs(root = "../",
        sitename = "toolips",
        expandfirst = [],
        pages = [
-                "Overview" => "overview.md"
+                "toolips" => "index.md",
+                "projects" => "projects.md",
+                "core" => "core.md",
+                "servables" => "servables.md",
+                "developer api" => "developer_api.md",
                ]
        )

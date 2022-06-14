@@ -367,7 +367,7 @@ route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
 """
 """
 function getindex(ws::WebServer, s::Symbol)
-    ws[extensions][s]
+    ws.extensions[s]
 end
 
 """

@@ -509,7 +509,7 @@ function postarg(c::Connection, s::String)
 end
 
 
-getpost(c::Connection) = string(c.http.message.body)
+getpost(c::Connection) = string(read(c.http))
 """
 **Interface**
 ### postargs(::Connection, ::Symbol, ::Type) -> ::Dict

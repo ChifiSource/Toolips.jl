@@ -376,7 +376,7 @@ getindex(c::Connection, s::Symbol) = c.extensions[s]
 
 function getindex(c::Connection, t::Type)
     for e in c.extensions
-        if typeof(e) == t
+        if e isa t
             return(e)
         end
     end

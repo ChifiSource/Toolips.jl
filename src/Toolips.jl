@@ -1,5 +1,5 @@
 """
-Created in June, 2022 by
+Created in February, 2022 by
 [chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
 by team
 [toolips](https://github.com/orgs/ChifiSource/teams/toolips)
@@ -23,8 +23,6 @@ Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
 - f::Function - Function whose output to be written to http().
-- properties::Dict - The properties of a given Servable. These are written
-into the servable on the calling of f().
 """
 abstract type Servable <: Any end
 
@@ -38,8 +36,6 @@ Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
 - f::Function - Function whose output to be written to http().
-- properties::Dict - The properties of a given Servable. These are written
-into the servable on the calling of f().
 ```
 """
 abstract type StyleComponent <: Servable end
@@ -57,18 +53,15 @@ where this module is loaded, served, and revised.
 """
 abstract type ToolipsServer end
 
-
 """
 ### abstract type ServerExtension
 Server extensions are loaded into the server on startup, and
 can have a few different abilities according to their type
-field's value. There are three types to be aware of.
--
+field's value. This value can be either a Symbol or a Vector of Symbols.
 ##### Consistencies
-
+- type::T where T == Vector{Symbol}  || T == Symbol
 """
 abstract type ServerExtension end
-
 
 """
 ### Connection
@@ -84,7 +77,8 @@ This is both for functions, as well as Servable.f() methods. This constructor
 ```
                   #  v The Connection
 home = route("/") do c::Connection
-    c[Logger].log("We can index extensions.")
+    c[Logger].log(1, "We can index extensions by type or symbol")
+    c[:logger].log(1, "see?")
     c.routes["/"] = c::Connection -> write!(c, "rerouting!")
     httpstream = c.http
     write!(c, "Hello world!")
@@ -93,7 +87,7 @@ home = route("/") do c::Connection
 end
 ```
 ------------------
-##### Field Info
+##### field info
 - **routes::Dict** - A dictionary of routes where the keys
 are the routed URL and the values are the functions to
 those keys.
@@ -101,18 +95,21 @@ those keys.
 - **extensions::Dict** - A dictionary of extensions to load with the
 name to reference as keys and the extension as the pair.
 ------------------
-##### Constructors
-- Connection
+##### constructors
+- Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
 mutable struct Connection
     routes::Dict
     http::HTTP.Stream
     extensions::Dict
-    function Connection(routes::Dict, http::HTTP.Stream,extensions::Dict)
+    function Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
         new(routes, http, extensions)::Connection
     end
 end
 
+#==
+Includes/Exports
+==#
 include("interface/Servables.jl")
 include("server/Core.jl")
 include("interface/Interface.jl")
@@ -135,14 +132,21 @@ export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost
 
+#==
+Project API
+==#
 """
-### create_serverdeps(::String) -> _
+### create_serverdeps(name::String, inc::String) -> _
 ------------------
-Creates the essential portions of the webapp file structure.
+Creates the essential portions of the webapp file structure, where name is the
+project's name and inc is any extensions or strings to incorporate at the top
+of the file.
 #### example
-
+```
+create_serverdeps("ToolipsApp")
+```
 """
-function create_serverdeps(name::String)
+function create_serverdeps(name::String, inc::String = "")
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
@@ -160,8 +164,9 @@ function create_serverdeps(name::String)
         write(io, """
 module $name
 using Toolips
+$inc
 
-hello_world = route("/") do c
+function home(c::Connection)
     write!(c, p("helloworld", text = "hello world!"))
 end
 
@@ -169,9 +174,12 @@ fourofour = route("404") do c
     write!(c, p("404message", text = "404, not found!"))
 end
 
-
-function start(IP::String, PORT::Integer, extensions::Dict)
-    rs = routes(hello_world, fourofour)
+\"\"\"
+start()
+\"\"\"
+function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
+    extensions::Dict = Dict(:logger => Logger()))
+    rs = routes(route("/", home), fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
 end
@@ -189,7 +197,10 @@ Creates a minimalistic app, usually used for creating endpoints -- but can
 be used for anything. For an app with a real front-end, it might make sense to
 add some extensions.
 #### example
-
+```
+using Toolips
+Toolips.new_app("ToolipsApp")
+```
 """
 function new_app(name::String = "ToolipsApp")
     create_serverdeps(name)
@@ -229,14 +240,17 @@ end
 """
 ### new_webapp(::String) -> _
 ------------------
-Creates a fully-featured web-app. Adds CanonicalToolips.jl to provide more
-high-level interface origrannubg from Julia.
+Creates a fully-featured web-app. Adds ToolipsModifier, ideal for full-stack
+web-sites.
 #### example
-
+```
+using Toolips
+Toolips.new_webapp("ToolipsApp")
+```
 """
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
-    create_serverdeps(name)
+    create_serverdeps(name, "using ToolipsModifier")
     open(name * "/dev.jl", "w") do io
         write(io, """
         #==
@@ -247,6 +261,7 @@ function new_webapp(name::String = "ToolipsApp")
         using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
+        using ToolipsModifier
 
         IP = "127.0.0.1"
         PORT = 8000
@@ -254,10 +269,10 @@ function new_webapp(name::String = "ToolipsApp")
         Extension description
         :logger -> Logs messages into both a file folder and the terminal.
         :public -> Routes the files from the public directory.
-        :document -> Registers and performs do calls, allows to modify servable.
+        :mod -> ToolipsModifier; allows us to make Servables reactive. See ?(on)
         ==#
         extensions = Dict(:logger => Logger(), :public => Files("public"),
-        :document => Document())
+        :mod => Modifier())
         using $name
         $servername = $name.start(IP, PORT, extensions)
         """)
@@ -266,6 +281,7 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
+        using ToolipsModifier
 
         IP = "127.0.0.1"
         PORT = 8000

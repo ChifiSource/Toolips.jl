@@ -3,7 +3,7 @@ include("Extensions.jl")
 """
 ### Route{T}
 - path::String
-- page::T
+- page::T \
 A route is added to a ServerTemplate using either its constructor, or the
 ServerTemplate.add(::Route) method. Each route calls either a particular
 servable or function; the type of which denoted by T. The Route type is
@@ -29,7 +29,7 @@ route = route("/") do c
 end
 ```
 ------------------
-##### fields
+##### field info
 - **path::String**
 The path, e.g. "/" at which to direct to the given component.
 - **page::T** (::Function || T <: Component)
@@ -58,11 +58,13 @@ end
 - extensions**::Dict**
 - remove**::Function**
 - add**::Function**
-- start**::Function**
+- start**::Function** \
 The ServerTemplate is used to configure a server before
 running. These are usually made and started inside of a main server file.
+##### example
+
 ------------------
-##### Field Info
+##### field info
 - ip**::String**
 - port**::Integer**
 - routes**::Vector{Route}**
@@ -71,8 +73,9 @@ running. These are usually made and started inside of a main server file.
 - add**::Function**
 - start**::Function**
 ------------------
-##### Constructors
-ServerTemplate(ip::String, port::Int64, routes::Dict; extensions::Dict)
+##### constructors
+ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+            routes::Dict = Vector{Route}()); extensions::Dict = Dict(:logger => Logger())
 """
 mutable struct ServerTemplate
     ip::String

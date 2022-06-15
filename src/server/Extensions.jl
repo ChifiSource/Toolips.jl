@@ -90,11 +90,11 @@ function _log(level::Int64, message::String, levels::Dict, out::String,
         else
             show_log(1, "$out not in current working directory.", levels,
             prefix, time)
-            show_log(1, messsage, levels,
+            show_log(1, message, levels,
             prefix, time)
         end
     else
-        show_log(level, messsage, levels,
+        show_log(level, message, levels,
         prefix, time)
     end
 end

@@ -46,7 +46,7 @@ mutable struct Logger <: ServerExtension
     :time_crayon => Crayon(foreground = :magenta, bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
-    out::String = "logs/log.txt", prefix::String = " 🌷 toolips> ",
+    out::String = pwd() * "/logs/log.txt", prefix::String = " 🌷 toolips> ",
                     timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
@@ -97,10 +97,11 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
 end
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
-    print(levels[:message_crayon], prefix)
+
     print(Crayon(foreground = :light_gray, bold = true), "[")
     print(levels[:time_crayon], string(time))
     print(Crayon(foreground = :light_gray, bold = true), "]: ")
+    print(levels[:message_crayon], prefix)
     print(levels[level], message)
 end
 """

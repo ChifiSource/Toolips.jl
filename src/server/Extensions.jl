@@ -47,19 +47,20 @@ mutable struct Logger <: ServerExtension
      bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
-    out::String = pwd() * "logs/log.txt", prefix::String = " toolips>",
+    out::String = pwd() * "logs/log.txt", prefix::String = " 🌷 toolips> ",
                     timeformat::String = "", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
-                                                prefix, timeformat)
-        log(message::String) = _log(1, message, levels, out, prefix, timeformat)
+                                                prefix, timeformat, writeat)
+        log(message::String) = _log(1, message, levels, out, prefix, timeformat,
+        writeat)
         log(c::Connection, message::String) = _log(c.http, message)
         # These bindings are left open-ended for extending via
                                             # import Toolips._log
         log(level::Int64, a::Any) = _log(level, a, levels, out, prefix,
                                             timeformat)
         log(level::Int64, a::Any, other::Any) = _log(level, a, other, levels,
-                                        out, prefix, timeformat)
+                                        out, prefix, timeformat, writeat)
         new(:connection, out::String, levels::Dict, log::Function,
                     prefix::String, timeformat::String, writeat::Int64)::Logger
     end
@@ -78,14 +79,14 @@ log(level::Int64, message::String) = _log(level, message, levels, out)
 log(message::String) = _log(1, message, levels, out)
 """
 function _log(level::Int64, message::String, levels::Dict, out::String, prefix::String,
-    timeformat::String)
-    if timeformate == ""
+    timeformat::String, writeat::Int64)
+    if timeformat == ""
         time = now()
     else
         format = @dateformat_str(timeformat)
         time = now(format)
     end
-    if level > 1
+    if level > writeat
         if out in readdir()
             open(out, "a") do o
                 write(o, "[" * string(time) * "]: $message\n")
@@ -93,18 +94,19 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
                 write(o, "[" * string(time) * "]: $message\n")
             end
         else
-            println(Crayon(foreground = :light_gray, bold = true), "[", levels[level],
-             string(time), Crayon(foreground = :light_gray, bold = true), "]: ",
-             message)
+            show_log(1, "$out not in current working directory.", levels,
+            prefix, time, writeat)
         end
     end
-    println(Crayon(foreground = :light_gray, bold = true), "[", levels[level],
-     string(time), Crayon(foreground = :light_gray, bold = true), "]: ",
-     message)
 end
 function show_log(level::Int64, message::String, levels::String, prefix::String,
-    timeformat::String)
-
+    time::Any, writeat::Int64)
+    println(Crayon(levels[:message_crayon],
+    prefix, foreground = :light_gray, bold = true), "[",
+    levels[:time_crayon],
+     string(time), Crayon(foreground = :light_gray, bold = true), "]: ",
+     levels[level],
+     message)
 end
 """
 ### _log(http::HTTP.Stream, message::String) -> _

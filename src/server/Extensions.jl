@@ -47,7 +47,7 @@ mutable struct Logger <: ServerExtension
      bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
-    out::String = pwd() * "/logs/log.txt", prefix::String = " 🌷 toolips> ",
+    out::String = "logs/log.txt", prefix::String = " 🌷 toolips> ",
                     timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
@@ -80,7 +80,7 @@ log(message::String) = _log(1, message, levels, out)
 """
 function _log(level::Int64, message::String, levels::Dict, out::String, prefix::String,
     timeformat::String, writeat::Int64)
-    Dates.format(now(), Dates.DateFormat("$timeformat"))
+    time = Dates.format(now(), Dates.DateFormat("$timeformat"))
     if level > writeat
         if isfile(out)
             open(out, "a") do o
@@ -97,8 +97,7 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
     prefix, time)
 end
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
-    prefix::String,
-    time::Any)
+    prefix::String, time::Any)
     println(levels[:message_crayon],
     prefix, Crayon(foreground = :light_gray, bold = true), "[",
     levels[:time_crayon], string(time),

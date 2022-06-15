@@ -358,7 +358,7 @@ end
 """
 route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
 
-route!(ws::WebServer, r::Route) = ws[r.] = r.page
+route!(ws::WebServer, r::Route) = ws[r.path] = r.page
 
 """
 """

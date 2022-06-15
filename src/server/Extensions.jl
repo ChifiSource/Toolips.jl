@@ -83,7 +83,7 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
     if timeformat == ""
         time = now()
     else
-        format = @dateformat_str(timeformat)
+        format = @dateformat_str("$timeformat")
         time = now(format)
     end
     if level > writeat

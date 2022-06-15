@@ -116,7 +116,7 @@ name to reference as keys and the extension as the pair.
 ##### constructors
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
-mutable struct Connection
+mutable struct Connection <: AbstractConnection
     routes::Dict
     http::HTTP.Stream
     extensions::Dict

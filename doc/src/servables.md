@@ -10,6 +10,14 @@ translated into elements with properties..
 ```@docs
 Component
 ```
+Indexing a component will yield its .properties:
+```@docs
+getindex(::Servable, ::Symbol)
+getindex(::Servable, ::String)
+setindex!(::Servable, ::Any, ::Symbol)
+setindex!(::Servable, ::Any, ::Symbol)
+setindex!(::Servable, ::Any, ::String)
+```
 There is a library of default components that comes with toolips. Generally,
 their name coincides with a docstring. All of these take an infinite number of
 key-word arguments. These arguments become the properties of a Servable.
@@ -38,9 +46,33 @@ nav
 button
 form
 ```
+We can also compose components together using push! and style them using style!
+```@docs
+push!(::Servable, ::Servable)
+push!(::Servable, ::Vector{Servable})
+push!(::Component, ::Servable ...)
+properties!(::Servable, ::Servable)
+push!(::Component, ::Servable)
+style!
+```
 ## style components
 Style components are change the style of a **Component**
 ```@docs
+StyleComponent
 ```
+The main style components are Animations and Styles.
 
-## files
+
+
+```@docs
+Animation
+```
+Animating and property adjustment is done with indexing.
+```@docs
+
+```
+## file
+The file Servable, as you might expect, serves a file via a directory.
+```@docs
+File
+```

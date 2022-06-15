@@ -101,12 +101,10 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
 end
 function show_log(level::Int64, message::String, levels::String, prefix::String,
     time::Any, writeat::Int64)
-    println(Crayon(levels[:message_crayon],
-    prefix, foreground = :light_gray, bold = true), "[",
-    levels[:time_crayon],
-     string(time), Crayon(foreground = :light_gray, bold = true), "]: ",
-     levels[level],
-     message)
+    println(levels[:message_crayon],
+    prefix, Crayon(foreground = :light_gray, bold = true), "[",
+    levels[:time_crayon], string(time),
+Crayon(foreground = :light_gray, bold = true), "]: ", levels[level], message)
 end
 """
 ### _log(http::HTTP.Stream, message::String) -> _

@@ -87,23 +87,23 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
                 touch(out)
                 write(o, "[" * string(time) * "]: $message\n")
             end
-            show_log(level, message, levels,
-            prefix, time)
+            println(show_log(level, message, levels,
+            prefix, time))
         else
-            show_log(1, "$out not in current working directory.", levels,
-            prefix, time)
-            show_log(1, messsage, levels,
-            prefix, time)
+            println(show_log(1, "$out not in current working directory.", levels,
+            prefix, time))
+            println(show_log(1, messsage, levels,
+            prefix, time))
         end
     end
 end
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
-    print(Crayon(foreground = :light_gray, bold = true), "[")
-    print(levels[:time_crayon], string(time))
-    print(Crayon(foreground = :light_gray, bold = true), "]: ")
-    print(levels[:message_crayon], prefix)
-    print(levels[level], message, "\n", Crayon(foreground = :blue))
+    return(Crayon(foreground = :light_gray, bold = true), "[",
+    levels[:time_crayon], string(time),
+    Crayon(foreground = :light_gray, bold = true), "]: ",
+    levels[:message_crayon], prefix,
+    levels[level])
 end
 """
 ### _log(http::HTTP.Stream, message::String) -> _

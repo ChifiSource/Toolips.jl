@@ -38,7 +38,7 @@ mutable struct Logger <: ServerExtension
     prefix::String
     timeformat::String
     writeat::Int64
-    function Logger(crayons::Dict{Any, Crayon} = Dict(
+    function Logger(levels::Dict{Any, Crayon} = Dict(
     1 => Crayon(foreground = :light_cyan),
     2 => Crayon(foreground = :light_yellow),
     3 => Crayon(foreground = :yellow, bold = true),

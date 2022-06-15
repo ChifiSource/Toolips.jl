@@ -40,6 +40,7 @@ mutable struct Component <: Servable
     f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
+    tag::String
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
@@ -67,7 +68,7 @@ mutable struct Component <: Servable
             write!(c, "$text</$tag>")
             write!(c, extras)
          end
-         new(name, f, properties, extras)::Component
+         new(name, f, properties, extras, tag)::Component
     end
 
     Component(name::String, tag::String, props::Base.Pairs) = begin

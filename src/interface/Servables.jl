@@ -61,7 +61,7 @@ mutable struct Component <: Servable
                  end
              end
              write!(c, ">")
-             if :children in keys(properties)
+             if length(properties[:children]) > 0
                  write!(c, properties[:children])
             end
             write!(c, "$text</$tag>")

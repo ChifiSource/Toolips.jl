@@ -48,7 +48,7 @@ mutable struct Logger <: ServerExtension
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
     out::String = pwd() * "logs/log.txt", prefix::String = " 🌷 toolips> ",
-                    timeformat::String = "", writeat::Int64 = 2)
+                    timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
                                                 prefix, timeformat, writeat)
@@ -80,12 +80,7 @@ log(message::String) = _log(1, message, levels, out)
 """
 function _log(level::Int64, message::String, levels::Dict, out::String, prefix::String,
     timeformat::String, writeat::Int64)
-    if timeformat == ""
-        time = now()
-    else
-        format = @dateformat_str("$timeformat")
-        time = now(format)
-    end
+    Dates.format(now(), Dates.DateFormat("$timeformat"))
     if level > writeat
         if out in readdir()
             open(out, "a") do o

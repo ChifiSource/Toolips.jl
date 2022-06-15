@@ -133,9 +133,9 @@ include("server/Core.jl")
 include("interface/Interface.jl")
 
 # Core Server
-export ServerTemplate, Route, Connection, WebServer
+export ServerTemplate, Route, Connection, WebServer, Servable
 # Server Extensions
-export Logger, Files, Document
+export Logger, Files
 # Servables
 export File, Component
 export Animation, Style
@@ -145,7 +145,7 @@ export title, span, iframe, svg, element, label, script, nav, button, form
 export element, label, script, nav, button, form
 # High-level api
 export push!, getindex, setindex!, properties!, components
-export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
+export animate!, style!, delete_keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost

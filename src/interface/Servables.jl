@@ -42,7 +42,7 @@ mutable struct Component <: Servable
     extras::Vector{Servable}
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
-         properties[:children]::Vector{Any} = Vector{Any}()
+         push!(properties, :children => Vector{Any}())
          extras = Vector{Servable}()
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
@@ -62,7 +62,7 @@ mutable struct Component <: Servable
              end
              write!(c, ">")
              if :children in keys(properties)
-                 [write!(c, s) for s in properties[:children]]
+                 write!(c, properties[:children])
             end
             write!(c, "$text</$tag>")
             write!(c, extras)

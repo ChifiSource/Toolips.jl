@@ -99,7 +99,7 @@ function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
     print(levels[:message_crayon], prefix)
     print(Crayon(foreground = :light_gray, bold = true), "[")
-    print(levels[:time_crayon], string(time)))
+    print(levels[:time_crayon], string(time))
     print(Crayon(foreground = :light_gray, bold = true), "]: ")
     print(levels[level], message)
 end

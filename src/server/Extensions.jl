@@ -96,7 +96,8 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
     show_log(level, "$out not in current working directory.", levels,
     prefix, time)
 end
-function show_log(level::Int64, message::String, levels::String, prefix::String,
+function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
+    prefix::String,
     time::Any)
     println(levels[:message_crayon],
     prefix, Crayon(foreground = :light_gray, bold = true), "[",

@@ -46,7 +46,7 @@ mutable struct Logger <: ServerExtension
     :time_crayon => Crayon(foreground = :magenta, bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
-    out::String = pwd() * "/logs/log.txt", prefix::String = "🌷 toolips> ",
+    out::String = pwd() * "logs/log.txt", prefix::String = "🌷 toolips> ",
                     timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
@@ -92,7 +92,7 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
         else
             show_log(1, "$out not in current working directory.", levels,
             prefix, time)
-            show_log(level, messsage, levels,
+            show_log(1, messsage, levels,
             prefix, time)
         end
     end

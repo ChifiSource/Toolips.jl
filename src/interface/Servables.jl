@@ -42,7 +42,7 @@ mutable struct Component <: Servable
     extras::Vector{Servable}
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
-         push!(properties, :children => Vector{Any}())
+         push!(properties, :children => Vector{Servable}())
          extras = Vector{Servable}()
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "

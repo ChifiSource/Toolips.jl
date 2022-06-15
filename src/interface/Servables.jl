@@ -1,24 +1,49 @@
 """
 ### Component <: Servable
-name::String
-f::Function
-properties::Dict
+- name::String
+- f::Function
+- properties::Dict \
+A component is a standard servable which is used to represent HTML tag
+structures. Indexing a Component with a Symbol or a String will return or set
+a Component's property to that index. The two special indexes are :children and
+:text. :text will change the inner content of the Component and :children is
+where components that will be written inside the Component go. You can add to
+these with push!(c::Servable, c2::Servable)
+#### example
+```
+using Toolips
+
+image_style = Style("example")
+image_anim = Animation("img_anim")
+image_anim[:from] = "opacity" => "0%"
+image_anim[:to] = "opacity" => "100%"
+animate!(image_style)
+
+r = route("/") do c::Connection
+    newimage = img("newimage", src = "/logo.png")
+    style!(newimage, image_style)
+    write!(c, newimage)
+end
+```
 ------------------
+#### field info
 - name::String - The name field is the way that a component is denoted in code.
 - f::Function - The function that gets called with the Connection as an
 argument.
 - properties::Dict - A dictionary of symbols and values.
 ------------------
 ##### constructors
-Component(name::String, tag::String, properties::Dict)
+Component(name::String = "", tag::String = "", properties::Dict = Dict())
 """
 mutable struct Component <: Servable
     name::String
     f::Function
     properties::Dict{Any, Any}
+    extras::Vector{Servable}
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
-         properties[:children] = Vector{Any}()
+         properties[:children]::Vector{Any} = Vector{Any}()
+         extras = Vector{Servable}()
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
              text::String = ""
@@ -40,9 +65,11 @@ mutable struct Component <: Servable
                  [write!(c, s) for s in properties[:children]]
             end
             write!(c, "$text</$tag>")
+            write!(c, extras)
          end
-         new(name, f, properties)::Component
+         new(name, f, properties, extras)::Component
     end
+
     Component(name::String, tag::String, props::Base.Pairs) = begin
         Component(name, tag, Dict{Any, Any}(props))
     end
@@ -51,32 +78,300 @@ end
 Base
     Components
 ==#
+"""
+### img(name::String; args ...) -> ::Component
+------------------
+Returns the img Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+image = img("mylogo", src = "assets/logo.png")
+write!(c, image)
+```
+"""
 img(name::String = ""; args ...) = Component(name, "img", args)::Component
+
+"""
+### link(name::String; args ...) -> ::Component
+------------------
+Returns the link Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+mylink = link("mylink", href = "http://toolips.app")
+write!(c, mylink)
+```
+"""
 link(name::String = ""; args ...) = Component(name, "link", args)::Component
+
+"""
+### meta(name::String; args ...) -> ::Component
+------------------
+Returns the meta Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+metainfo = meta("metainfo", rel = "meta-description", text = "hello")
+write!(c, metainfo)
+```
+"""
 meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
+
+"""
+### input(name::String; args ...) -> ::Component
+------------------
+Returns the input Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+element = input("mylogo")
+write!(c, element)
+```
+"""
 input(name::String = ""; args ...) = Component(name, "input", args)::Component
+
+"""
+### a(name::String; args ...) -> ::Component
+------------------
+Returns the a Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+element = a("mylogo")
+write!(c, element)
+```
+"""
 a(name::String = ""; args ...) = Component(name, "a", args)::Component
+
+"""
+### p(name::String; args ...) -> ::Component
+------------------
+Returns the p Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+p1 = input("mylogo")
+write!(c, p)
+```
+"""
 p(name::String = ""; args ...) = Component(name, "p", args)::Component
-h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n", args)::Component
+
+"""
+### h(name::String; args ...) -> ::Component
+------------------
+Returns the h Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+h1 = h("heading1", 1)
+write!(c, h1)
+```
+"""
+h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n",
+                                                                args)::Component
+
+
+"""
+### ul(name::String; args ...) -> ::Component
+------------------
+Returns the ul Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+ul1 = ul("mylogo")
+write!(c, ul)
+```
+"""
 ul(name::String = ""; args ...) = Component(name, "ul", args)::Component
+
+"""
+### li(name::String; args ...) -> ::Component
+------------------
+Returns the li Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+li1 = li("mylogo")
+write!(c, li)
+```
+"""
 li(name::String = ""; args ...) = Component(name, "li", args)::Component
+
+"""
+### divider(name::String; args ...) -> ::Component
+------------------
+Returns the div Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+divider1 = divider("mylogo")
+write!(c, divider)
+```
+"""
 divider(name::String = ""; args ...) = Component(name, "div", args)::Component
+
+"""
+### br(name::String; args ...) -> ::Component
+------------------
+Returns the br Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = br("newcomp")
+write!(c, comp)
+```
+"""
 br(name::String = ""; args ...) = Component(name, "/br", args)::Component
+
+"""
+### i(name::String; args ...) -> ::Component
+------------------
+Returns the i Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = i("newcomp")
+write!(c, comp)
+```
+"""
 i(name::String = ""; args ...) = Component(name, "i", args)::Component
+
+"""
+### title(name::String; args ...) -> ::Component
+------------------
+Returns the title Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = title("newcomp")
+write!(c, comp)
+```
+"""
 title(name::String = ""; args ...) = Component(name, "title", args)::Component
+
+"""
+### span(name::String; args ...) -> ::Component
+------------------
+Returns the span Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = span("newcomp")
+write!(c, comp)
+```
+"""
 span(name::String = ""; args ...) = Component(name, "span", args)::Component
+
+"""
+### iframe(name::String; args ...) -> ::Component
+------------------
+Returns the iframe Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = iframe("newcomp")
+write!(c, comp)
+```
+"""
 iframe(name::String = ""; args ...) = Component(name, "iframe", args)::Component
+
+"""
+### svg(name::String; args ...) -> ::Component
+------------------
+Returns the svg Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = svg("newcomp")
+write!(c, comp)
+```
+"""
 svg(name::String = ""; args ...) = Component(name, "svg", args)::Component
-element(name::String = ""; args ...) = Component(name, "element", args)::Component
+
+"""
+### element(name::String; args ...) -> ::Component
+------------------
+Returns the element Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = element("newcomp")
+write!(c, comp)
+```
+"""
+element(name::String = ""; args ...) = Component(name, "element",
+                                                                args)::Component
+
+"""
+### label(name::String; args ...) -> ::Component
+------------------
+Returns the label Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+lbl = label("mylogo", src = "assets/logo.png")
+write!(c, lbl)
+```
+"""
 label(name::String = ""; args ...) = Component(name, "label", args)::Component
+
+"""
+### script(name::String; args ...) -> ::Component
+------------------
+Returns the script Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = script("newcomp")
+write!(c, comp)
+```
+"""
 script(name::String = ""; args ...) = Component(name, "script", args)::Component
+
+"""
+### nav(name::String; args ...) -> ::Component
+------------------
+Returns the nav Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = nav("newcomp")
+write!(c, comp)
+```
+"""
 nav(name::String = ""; args ...) = Component(name, "nav", args)::Component
+
+"""
+### button(name::String; args ...) -> ::Component
+------------------
+Returns the button Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = button("newcomp")
+write!(c, comp)
+```
+"""
 button(name::String = ""; args ...) = Component(name, "button", args)::Component
+
+"""
+### form(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = form("newcomp")
+write!(c, comp)
+```
+"""
 form(name::String = ""; args ...) = Component(name, "form", args)::Component
 #==
 Style
     Components
     ==#
+"""
+"""
 mutable struct Animation <: StyleComponent
     name::String
     keyframes::Dict
@@ -107,6 +402,8 @@ mutable struct Animation <: StyleComponent
     end
 end
 
+"""
+"""
 mutable struct Style <: StyleComponent
     name::String
     f::Function

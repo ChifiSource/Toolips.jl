@@ -13,7 +13,7 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 module Toolips
 using Crayons
 using Sockets, HTTP, Pkg, ParseNotEval, Dates
-import Base: getindex, setindex!, push!, get, string
+import Base: getindex, setindex!, push!, get, string, write
 #==
 SuperTypes
 ==#
@@ -64,7 +64,25 @@ field's value. This value can be either a Symbol or a Vector of Symbols.
 abstract type ServerExtension end
 
 """
-### Connection
+"""
+abstract type AbstractConnection end
+
+mutable struct SpoofStream
+    text::String
+end
+
+write(s::SpoofStream, e::Any) = s.text * string(e)
+
+mutable struct SpoofConnection <: AbstractConnection
+    routes::Dict
+    extensions::Dict
+    http::SpoofStream
+    function SpoofConnection(r::Dict, extensions::Dict)
+        SpoofConnection(r, extensions, SpoofStream())
+    end
+end
+"""
+### Connection <: AbstractConnection
 - routes::Dict
 - http::HTTP.Stream
 - extensions::Dict
@@ -251,6 +269,7 @@ Toolips.new_webapp("ToolipsApp")
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
     create_serverdeps(name, "using ToolipsModifier")
+    Pkg.add(url = "https://github.com/ChifiSource/ToolipsModifier.jl.git")
     open(name * "/dev.jl", "w") do io
         write(io, """
         #==

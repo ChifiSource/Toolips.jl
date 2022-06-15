@@ -1,50 +1,9 @@
-"""
-### Connection
-- routes::Dict
-- http::HTTP.Stream
-- extensions::Dict
-The connection type is passed into route functions and pages as an argument.
-This is both for functions, as well as Servable.f() methods. This constructor
-    should not be called directly. Instead, it is called by the server and
-    passed through the function pipeline. Indexing a Connection will return
-        the extension named with that symbol.
-##### example
-```
-                  #  v The Connection
-home = route("/") do c
-    c[:logger].log("We can index extensions.")
-    c.routes["/"] = c::Connection -> write!(c, "rerouting!")
-    httpstream = c.http
-end
-```
-------------------
-##### Field Info
-- **routes::Dict** - A dictionary of routes where the keys
-are the routed URL and the values are the functions to
-those keys.
-- **http::HTTP.Stream** - The stream for this current peer's connection.
-- **extensions::Dict** - A dictionary of extensions to load with the
-name to reference as keys and the extension as the pair.
-------------------
-##### Constructors
-- Connection
-"""
-mutable struct Connection
-    routes::Dict
-    http::HTTP.Stream
-    extensions::Dict
-    function Connection(routes::Dict, http::HTTP.Stream,extensions::Dict)
-        new(routes, http, extensions)::Connection
-    end
-end
-getindex(c::Connection, s::Symbol) = c.extensions[s]
-
 include("Extensions.jl")
 
 """
 ### Route{T}
 - path::String
-- page::T
+- page::T \
 A route is added to a ServerTemplate using either its constructor, or the
 ServerTemplate.add(::Route) method. Each route calls either a particular
 servable or function; the type of which denoted by T. The Route type is
@@ -70,7 +29,7 @@ route = route("/") do c
 end
 ```
 ------------------
-##### fields
+##### field info
 - **path::String**
 The path, e.g. "/" at which to direct to the given component.
 - **page::T** (::Function || T <: Component)
@@ -99,11 +58,13 @@ end
 - extensions**::Dict**
 - remove**::Function**
 - add**::Function**
-- start**::Function**
+- start**::Function** \
 The ServerTemplate is used to configure a server before
 running. These are usually made and started inside of a main server file.
+##### example
+
 ------------------
-##### Field Info
+##### field info
 - ip**::String**
 - port**::Integer**
 - routes**::Vector{Route}**
@@ -112,8 +73,9 @@ running. These are usually made and started inside of a main server file.
 - add**::Function**
 - start**::Function**
 ------------------
-##### Constructors
-ServerTemplate(ip::String, port::Int64, routes::Dict; extensions::Dict)
+##### constructors
+ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+            routes::Dict = Vector{Route}()); extensions::Dict = Dict(:logger => Logger())
 """
 mutable struct ServerTemplate
     ip::String
@@ -150,14 +112,16 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     start() = _start(routes, ip, port, extensions)
     return(add, remove, start)
 end
-#==
-TODO
-Okay, so similar to how the Connection is handled on requests, and the
-HTTP.Stream is wrapped in that type, we need to wrap the HTTP server as well so
-that more Toolips data, routes for example, is introspectable. That will also
-make debugging far easier, especially on the particular problem of Files not
-being served.
-==#
+
+"""
+"""
+mutable struct WebServer <: ToolipsServer
+    host::String
+    routes::Dict
+    extensions::Dict
+    server::Any
+end
+
 """
 **Core**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
@@ -171,21 +135,19 @@ This is an internal function for the ServerTemplate. This function is binded to
 function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    logger = nothing
-    try
-        logger = extensions[:logger]
-        logger.log(1, "Toolips Server starting on port " * string(port))
-    catch
-        logger = nothing
+    if has_extension(extensions, Logger)
+        extensions[Logger].log(1,
+         "Toolips Server starting on port " * string(port))
     end
-    routefunc = generate_router(routes, server, extensions)
+    routefunc, rdct, extensions = generate_router(routes, server, extensions)
     @async HTTP.listen(routefunc, ip, port, server = server)
-    if logger != nothing
-        logger.log(2, "Successfully started server on port " * string(port))
-        logger.log(1,
-        "You may visit it now at http://" * string(ip) * ":" * string(port))
+    if has_extension(extensions, Logger)
+        extensions[Logger].log(2,
+         "Successfully started server on port " * string(port))
+         extensions[Logger].log(1,
+         "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
-    return(server)
+    return(WebServer(ip, rdct, extensions, server))::WebServer
 end
 
 """
@@ -203,19 +165,31 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     ces::Dict = Dict()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
-        if extension[2].type == :connection
-            push!(ces, extension)
+        if typeof(extension[2].type) == Symbol
+            if extension[2].type == :connection
+                push!(ces, extension)
         elseif extension[2].type == :routing
-            extension[2].f(route_paths)
-        elseif extension[2].type == :func
-            push!(fes, extension[2])
+                extension[2].f(route_paths, extensions)
+            elseif extension[2].type == :func
+                push!(fes, extension[2])
+            end
+        else
+            if :connection in extension[2].type
+                push!(ces, extension)
+            end
+            if :routing in extension[2].type
+                extension[2].f(route_paths, extensions)
+            end
+            if :func in extension[2].type
+                push!(fes, extension[2])
+            end
         end
     end
     # Routing func
+
     routeserver::Function = function serve(http::HTTP.Stream)
-#        HTTP.setheader(http, "Content-Type" => "text/html")
-        fullpath::String = http.message.target
-        if contains(fullpath, '?')
+        fullpath = http.message.target
+        if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
         c::Connection = Connection(route_paths, http, ces)
@@ -224,17 +198,18 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
                 [extension.f(c) for extension in fes]
                 route_paths[fullpath].f(c)
             else
+                [extension.f(c) for extension in fes]
                 route_paths[fullpath](c)
             end
         else
             if typeof(route_paths["404"]) <: Servable
-                route_paths[fullpath].f(c)
                 [extension.f(c) for extension in fes]
+                route_paths[fullpath].f(c)
             else
+                [extension.f(c) for extension in fes]
                 route_paths["404"](c)
             end
         end
-
     end # serve()
-    return(routeserver)
+    return(routeserver, route_paths, extensions)
 end

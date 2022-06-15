@@ -1,35 +1,22 @@
-using Dates
-
-"""
-### abstract type ServerExtension
-Server extensions are loaded into the server on startup, and
-can have a few different abilities according to their type
-field's value. There are three types to be aware of.
--
-##### Consistencies
-
-"""
-abstract type ServerExtension end
-
 """
 ### Logger
 out::String
 levels::Dict
-log::Function
-------------------
-##### Field Info
-- out::String
-Rgw output file for the logger to write to.
-- log::Function
+log::Function \
 A Logger logs information with different levels. Holds the function log(),
 connected to the function _log(). Methods:
 - log(::Int64, ::String)
 - log(::String)
 - log(::HTTP.Stream, ::String)
+##### example
+------------------
+##### field info
+- out::String - Logfile output directory.
+- log::Function -
 Writes to HTML console, and also logs at level 1 with logger.
 - levels::Dict
 ------------------
-##### Constructors
+##### constructors
 Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
                     out::String = pwd() * "logs/log.txt")
 Logger(; out::String = pwd() * "/logs/log.txt")
@@ -131,10 +118,11 @@ function route_from_dir(dir::String)
 end
 
 """
-### File
+### File <: Servable
 dir::String
 f::Function
 ------------------
+##### field info
 - dir::String - The directory of a file to serve.
 - f::Function - Function whose output to be written to http().
 ------------------
@@ -146,7 +134,6 @@ mutable struct File <: Servable
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-        #    write(c.http, HTTP.Response( 200, body = read(dir) ))
         open(dir) do f
             write(c.http, f)
         end
@@ -178,9 +165,10 @@ mutable struct Files <: ServerExtension
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Dict) = begin
+        f(r::Dict, e::Dict) = begin
+            l = length(directory) + 1
             for path in route_from_dir(directory)
-                push!(r, "/" * path => c::Connection -> write!(c, File(path)))
+                push!(r, path[l:length(path)] => c::Connection -> write!(c, File(path)))
             end
         end
         new(:routing, directory, f)

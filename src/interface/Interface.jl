@@ -1,76 +1,14 @@
-#==
- text/html
-    Functions
-==#
 """
 **Interface**
-### html(::String) -> ::Function
+### L_str -> _
 ------------------
-Creates a servable from the provided string, which should be HTML.
+Creates a literal string
 #### example
 
 """
-html(hypertxt::String) = c::Connection -> write!(c, hypertxt)::Function
-
-"""
-**Interface**
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be CSS.
-#### example
-"""
-css(css::String) = http::Connection -> "<style>" * css * "</style>"::Function
-
-"""
-**Interface**
-### html(::String) -> ::Function
-------------------
-Creates a servable from the provided string, which should be JavaScript.
-#### example
-"""
-js(js::String) = http::Connection -> "<script>" * js * "</script>"::Function
-#==
-Functions
-==#
-"""
-**Interface**
-### fn(::Function) -> ::Function
-------------------
-Turns any function into a servable. Functions can optionally take the single
-    positional argument of type Connection.
-#### example
-function example()
-
+macro L_str(s::String)
+    s
 end
-
-page = fn(example)
-
-function example(c::Connection)
-    c[:logger].log(c, "hello world!")
-end
-"""
-function fn(f::Function)
-    m::Method = first(methods(f))
-    if m.nargs > 2 | m.nargs < 1
-        throw(ArgumentError("Expected either 1 or 2 arguments."))
-    elseif m.nargs == 2
-        http::Connection -> f(http)::Function
-    else
-        http::Connection -> f()::Function
-    end
-end
-#==
-Indexing/iter
-==#
-"""
-**Interface**
-### properties(::Servable) -> ::Dict
-------------------
-Method binding for Servable.properties.
-#### example
-
-"""
-properties(s::Servable) = s.properties
 
 """
 **Interface**
@@ -84,53 +22,23 @@ properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
 **Interface**
-### push!(::Container, ::Component) -> _
+### push!(::Component, ::Component ...) -> ::Component
 ------------------
-Moves Component into Container.components.
+
 #### example
 
 """
-push!(s::Container, c::Component) = push!(s.components, c)
+push!(s::Component, d::Servable ...) = [push!(s[:children], c) for c in d]
 
 """
 **Interface**
-### push!(::Container, ::Component ...) -> _
+### push!(::Component, ::Component) ->
 ------------------
-Moves Components into Container component.
+
 #### example
 
 """
-function push!(s::Container, c::Component ...)
-    cs::Vector{Component} = push!(s.components, c)
-end
-
-"""
-**Interface**
-### push!(::Component, ::Component ...) -> ::Container
-------------------
-Combines two or more servables into a container and clones fields from the first
-component.
-#### example
-
-"""
-function push!(s::Component, d::Component ...)
-    v::Vector{Component} = Vector{Component}(d)
-    Container(s.name, s.tag. v, properties = s.properties)::Container
-end
-
-"""
-**Interface**
-### push!(::Component, ::Component) -> ::Container
-------------------
-Adds a component into a container and clones fields from the first
-component.
-#### example
-
-"""
-function push!(s::Component, d::Component)
-    Container(s.name, s.tag. Vector{Component}([d]),
-    properties = s.properties)::Container
-end
+push!(s::Component, d::Servable) = push!(s[:children], d)
 
 """
 **Interface**
@@ -188,6 +96,12 @@ Sets the Animation as a rule for the StyleComponent. Note that the
 function animate!(s::StyleComponent, a::Animation)
     s["animation-name"] = string(a.name)
     s["animation-duration"] = string(a.length) * "s"
+    if a.iterations == 0
+        s["animation-iteration-count"] = "infinite"
+    else
+        s["animation-iteration-count"] = string(a.iterations)
+    end
+    s.extras = s.extras * a.f()
 end
 
 """
@@ -198,7 +112,27 @@ Applies the style to a servable.
 #### example
 
 """
-style!(c::Servable, s::Style) = c.properties[:class] = s.name
+style!(c::Servable, s::Style) = begin
+    if contains(s.name, ".")
+        c.properties[:class] = string(split(s.name, ".")[2])
+    else
+        c.properties[:class] = s.name
+    end
+    push!(c, s)
+end
+
+"""
+"""
+function style!(c::Servable, s::Pair ...)
+    if ~(:style in keys(c.properties))
+        c[:style] = ""
+    end
+    for style in s
+        k, v = style[1], style[2]
+        c[:style] = c[:style] * "\"$k: $v; "
+    end
+    c[:style] = c[:style] * "\""
+end
 
 """
 **Interface**
@@ -232,12 +166,13 @@ pair.
 
 """
 function setindex!(anim::Animation, set::Pair, n::Int64)
-    prop = string(set[1]) * ": "
-    value = string(set[2]) * "; "
+    prop = string(set[1])
+    value = string(set[2])
+    n = string(n)
     if n in keys(anim.keyframes)
-        anim.keyframes[prop] = anim.keyframes[prop] * "$prop: $value;"
+        anim.keyframes[n] = anim.keyframes[n] * "$prop: $value;"
     else
-        push!(anim.keyframes, "%$n" => "$prop: $value; ")
+        push!(anim.keyframes, "$n%" => "$prop: $value; ")
     end
 end
 
@@ -270,6 +205,9 @@ Pushes a keyframe pair into an animation.
 """
 push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 
+"""
+"""
+push!(c::Connection, data::Any) = write!(c.http, HTTP.Response(200, body = string(data)))
 #==
 Serving/Routing
 ==#
@@ -281,8 +219,11 @@ Writes a Servable's return to a Connection's stream.
 #### example
 
 """
-write!(c::Connection, s::Servable) = write(c.http, s.f(c))
+write!(c::Connection, s::Servable) = s.f(c)
 
+"""
+"""
+components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """
 **Interface**
@@ -292,7 +233,15 @@ Writes, in order of element, each Servable inside of a Vector of Servables.
 #### example
 
 """
-write!(c::Connection, s::Vector{Component}) = [write!(c, comp) for comp in s]
+function write!(c::Connection, s::Vector{Servable})
+    for s::Servable in s
+        write!(c, s)
+    end
+end
+
+"""
+"""
+write!(c::Connection, s::Servable ...) = write!(c, Vector{Servable}(s))
 
 """
 **Interface**
@@ -362,7 +311,11 @@ Creates a route from the Function.
 #### example
 
 """
-route(f::Function, route::String) = Route(route, f)::Route
+route(f::Function, r::String) = Route(r, f)::Route
+
+"""
+"""
+route(r::String, f::Function) = route(f, r)
 
 """
 **Interface**
@@ -372,7 +325,7 @@ Creates a route from a Servable.
 #### example
 
 """
-route(route::String, s::Servable) = Route(route, s)::Route
+route(r::String, s::Servable) = Route(r, s)::Route
 
 """
 **Interface**
@@ -386,18 +339,9 @@ likes.
 """
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
-"""
-**Interface**
-### navigate!(::Connection, ::String) -> _
-------------------
-Routes a connected stream to a given URL.
-#### example
-
-"""
-function navigate!(c::Connection, url::String)
-    HTTP.get(url, response_stream = c.http, status_exception = false)
-end
-
+#==
+    Server
+==#
 """
 **Interface**
 ### stop!(x::Any) -> _
@@ -406,9 +350,81 @@ An alternate binding for close(x). Stops a server from running.
 #### example
 
 """
-function stop!(x::Any)
-    close(x)
+function stop!(ws::WebServer)
+    close(ws.server)
 end
+
+"""
+"""
+function route!(f::Function, ws::WebServer, r::String)
+    ws.routes[r] = f
+end
+
+"""
+"""
+route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
+
+"""
+"""
+function getindex(ws::WebServer, s::Symbol)
+    ws.extensions[s]
+end
+
+"""
+"""
+getindex(c::Connection, s::Symbol) = c.extensions[s]
+
+function getindex(c::Connection, t::Type)
+    for e in c.extensions
+        if e isa t
+            return(e)
+        end
+    end
+end
+
+function getindex(d::Dict, t::Type)
+    for s in values(d)
+        if typeof(s) == t
+            return(s)
+        end
+    end
+end
+
+function getindex(vs::Vector{Servable}, str::String)
+    for s in vs
+        if s.name == str
+            return(s)
+        end
+    end
+end
+
+function has_extension(c::Connection, t::Type)
+    se = c[s]
+    if typeof(se) <: ServerExtension
+        return(true)
+    else
+        return(false)
+    end
+end
+
+
+
+function has_extension(d::Dict, t::Type)
+    se = d[t]
+    if typeof(se) <: ServerExtension
+        return(true)
+    else
+        return(false)
+    end
+end
+
+"""
+"""
+getindex(c::Connection, s::String) = c.routes[s]
+
+"""
+"""
+setindex!(c::Connection, val::Function, s::String) = c.routes[s] = val
 
 #==
 Request/Args
@@ -426,15 +442,20 @@ function getargs(c::Connection)
     target::String = split(c.http.message.target, '?')[2]
     target = replace(target, "+" => " ")
     args = split(target, '&')
-    arg_dict = Dict()
+    argsplit(args)
+end
+
+"""
+"""
+function argsplit(args::Any)
+    arg_dict::Dict = Dict()
     for arg in args
         keyarg = split(arg, '=')
-        x = tryparse(keyarg[2])
+        x = ParseNotEval.parse(keyarg[2])
         push!(arg_dict, Symbol(keyarg[1]) => x)
     end
     return(arg_dict)
 end
-
 """
 **Interface**
 ### getargs(::Connection, ::Symbol) -> ::Dict
@@ -456,34 +477,39 @@ method.
 #### example
 """
 function getarg(c::Connection, s::Symbol, T::Type)
-    parse(getargs(http)[s], T)
+    parse(T, getargs(http)[s])
+end
+
+"""
+"""
+function getip(c::Connection)
+    str = c.http.message["User-Agent"]
+    spl = split(str, "/")
+    ipstr = ""
+    for sub in spl
+        if contains(sub, ".")
+            if length(findall(".", sub)) > 1
+                ipstr = split(sub, " ")[1]
+            end
+        end
+    end
+    return(ipstr)
 end
 
 """
 **Interface**
-### postarg(::Connection, ::Symbol) -> ::Any
+### postarg(::Connection, ::String) -> ::Any
 ------------------
 Get a body argument of a POST response by name.
 #### example
 
 """
-function postarg(c::Connection, s::Symbol)
-
+function postarg(c::Connection, s::String)
+    nothing
 end
 
-"""
-**Interface**
-### postarg(::Connection, ::Symbol, ::Type) -> ::Any
-------------------
-Get a body argument of a POST response by name. Will be parsed into the
-provided type.
-#### example
 
-"""
-function postarg(c::Connection, s::Symbol, T::Type)
-
-end
-
+getpost(c::Connection) = string(read(c.http))
 """
 **Interface**
 ### postargs(::Connection, ::Symbol, ::Type) -> ::Dict
@@ -493,9 +519,10 @@ Get arguments from the request body.
 
 """
 function postargs(c::Connection)
-    http.message.body
+    string(http.message.body)
 end
 
+string(r::Vector{UInt8}) = String(UInt8.(r))
 """
 **Interface**
 ### get() -> ::Dict
@@ -505,7 +532,8 @@ Quick binding for an HTTP GET request.
 
 """
 function get(url::String)
-
+    r = HTTP.request("GET", url)
+    string(r.body)
 end
 
 """
@@ -517,5 +545,29 @@ Quick binding for an HTTP POST request.
 
 """
 function post(url::String)
+    r = HTTP.request("POST", url)
+    string(r.body)
+end
 
+"""
+**Interface**
+### download!() ->
+------------------
+Downloads a file to a given user's computer.
+#### example
+"""
+function download!(c::Connection, uri::String)
+    write(c.http, HTTP.Response( 200, body = read(uri, String)))
+end
+
+"""
+**Interface**
+### navigate!(::Connection, ::String) -> _
+------------------
+Routes a connected stream to a given URL.
+#### example
+
+"""
+function navigate!(c::Connection, url::String)
+    HTTP.get(url, response_stream = c.http, status_exception = false)
 end

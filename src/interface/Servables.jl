@@ -1,21 +1,3 @@
-#==
-Servables!
-==#
-
-"""
-### abstract type Servable
-Servables are components that can be rendered into HTML via thier f()
-function with the properties provided in their properties dict.
-##### Consistencies
-- f::Function - Function whose output to be written to http().
-- properties::Dict - The properties of a given Servable. These are written
-into the servable on the calling of f().
-"""
-abstract type Servable <: Any end
-
-include("../server/Core.jl")
-
-
 """
 ### Component <: Servable
 name::String
@@ -33,281 +15,116 @@ Component(name::String, tag::String, properties::Dict)
 mutable struct Component <: Servable
     name::String
     f::Function
-    properties::Dict
+    properties::Dict{Any, Any}
     function Component(name::String = "", tag::String = "",
-         properties::Dict = Dict())
+         properties::Dict = Dict{Any, Any}())
+         properties[:children] = Vector{Any}()
          f(c::Connection) = begin
              open_tag::String = "<$tag id = $name "
              text::String = ""
+             write!(c, open_tag)
              for property in keys(properties)
-                 if ~(property == :text)
+                 special_keys = [:text, :children]
+                 if ~(property in special_keys)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
-                     open_tag = open_tag * " $propkey = $prop"
+                     write!(c, " $propkey = $prop")
                  else
-                     text = properties[property]
+                     if property == :text
+                         text = properties[property]
+                     end
                  end
              end
-             open_tag * ">$text</$tag>"
+             write!(c, ">")
+             if :children in keys(properties)
+                 [write!(c, s) for s in properties[:children]]
+            end
+            write!(c, "$text</$tag>")
          end
          new(name, f, properties)::Component
     end
-end
-
-"""
-### Container <: Servable
-name::String
-tag::String
-components::Vector{Component}
-f::Function
-properties::Dict
-add!::Function
-------------------
-- name::String - The name of the container. This is used in a lot of different
-places, and can be referenced in HTML.
-- tag::String - The HTML tag that this component ultimately will become.
-- components::Vector{Component} - The components to contain in the container.
-- f::Function - The servable f function. Writes the servable, with its
-properties, then writes the Components contained in components into the
-component.
-- properties::Dict - A dictionary of property values to keys.
-------------------
-##### constructors
-Component(name::String, tag::String, properties::Dict)
-"""
-mutable struct Container <: Servable
-    name::String
-    tag::String
-    components::Vector{Any}
-    f::Function
-    properties::Dict
-    function Container(name::String, tag::String = "",
-        components::Vector{Component} = []; properties::Dict = Dict())
-        f(c::Connection) = begin
-            open_tag::String = "<$tag name = $name id = $name"
-            for prop in keys(properties)
-                val = string(properties[prop])
-                open_tag = open_tag * " $prop = $val"
-            end
-            open_tag = open_tag * ">"
-            write!(c, open_tag)
-            write!(c, components)
-            write!(c, "</$tag>")
-        end
-        new(name, tag, components, f, properties)
+    Component(name::String, tag::String, props::Base.Pairs) = begin
+        Component(name, tag, Dict{Any, Any}(props))
     end
 end
-
-"""
-### input(name::String, type::String = "text") -> ::Component
-Constructs an input component.
-#### example
-
-"""
-function input(name::String, type::String = "text")
-    Component(name, "input", Dict(:type => type))::Component
-end
-
-"""
-### textarea(name::String ;
-     maxlength::Int64 = 25, rows::Int64 = 25, cols::Int64 = 25,
-     text::String = "") -> ::Component
-Constructs a TextArea component.
-#### example
-
-"""
-function textarea(name::String; maxlength::Int64 = 25, rows::Int64 = 25,
-                cols::Int64 = 50, text::String = "")
-        Component(name, "textarea", Dict(:maxlength => maxlength, :rows => rows,
-         :text => text, :cols => cols))::Component
-end
-
-"""
-### button(name::String ;
-     text::String = "", value::Integer = "", action::String =) -> ::Component
-Constructs a Button Component
-#### example
-
-"""
-function button(name::String = "Button"; text::String = "", value::Integer = "")
-    Component(name, "button", Dict(:text => text, :value => value))::Component
-end
-
-"""
-p(name::String;
- maxlength::Int64 = 25, text::String = "") -> ::Component
- Constructs a "p" (paragraph) tag in HTML.
- #### example
-"""
-function p(name::String = ""; maxlength::Int64 = 25, text::String = "")
-    Component(name, "p", Dict(:maxlength => maxlength, :text => text))::Component
-end
-
-"""
-fileinput(name::String;
- maxlength::Int64 = 25, text::String = "") -> ::Component
-Returns a file-input component.
- #### example
-"""
-fileinput(name::String) = Input(name, "file")::Component
-
-"""
-option(name::String;
- value::String = "", text::String = "") -> ::Component
-Returns a option-input component. Preferable application belongs in a radioinput
-form, for more info try ?(radioinput)
- #### example
-"""
-function option(name::String = ""; value::String = "", text::String = "")
-    Component(name, "option", Dict())::Component
-end
-
-"""
-radioinput(name::String;
- value::String = "", text::String = "") -> ::Container
-Returns a option-input component. Preferable application belongs in a radioinput
-form, for more info try ?(radioinput)
- #### example
-"""
-function radioinput(name::String = "", selected::String = first(options).name,
-        options::Vector{Component} = Vector{Component}(),
-         multiple::Bool = false)
-    Container(name, "select", options, properties = Dict())::Container
-end
-
-"""
-sliderinput(name::String;
- range::UnitRange = 0:100, text::String) -> ::Component
-Returns a slider input with the range **range**.
- #### example
-"""
-function sliderinput(name::String = ""; range::UnitRange = 0:100,
-                    text::String = "")
-    input(name, "range")::Component
-end
-
-function imageinput(name::String = ""; alt::String = "image", src::String = "/",
-    value::Any = "button")
-    Component(name, "input", Dict(:alt => alt, :src => src, :type => "image"))
-end
-
-"""
-form(name::String,
- components::Vector{Component}; post = "") -> ::Component
-Returns a form which posts to **post** or navigates to **get**, depending on
-which kwarg is used. **components** in this instance should be a vector of
-input components.
- #### example
-"""
-function form(name::String = "",
-    components::Vector{Servable} = Vector{Servable}(); post::String = "",
-    get::String = "")
-    method::String = ""
-    action::String = ""
-    if get != "" || post != ""
-        if length(get) > length(post)
-            method = "GET"
-            action = get
-        else
-            method = "POST"
-            action = post
-        end
-    end
-    Container(name, "form", components, properties = Dict(:method => method,
-    :action => action))::Container
-end
-
-function link(name::String; rel::String = "stylesheet", href::String = "")
-    Component(name, "link", Dict(:rel => string(rel), :href => href))::Component
-end
-
-function metadata(name::String = "charset", content::String = "UTF-8" )
-    Component(name, "meta", Dict(:content => string(content)))::Component
-end
-
-function header(title::String = "Toolips App";
-    icon::String = "", keywords::Array{String} = [], author::String = "",
-    description::String = "", links::Vector{Component} = Vector{Component}())
-    cs::Vector{Component} = Vector{Component}()
-    push!(cs, metadata())
-    push!(cs, link("icon", rel = "icon", href = icon))
-    push!(cs, metadata("keywords", join(keywords, ",")))
-    push!(cs, metadata("description", description))
-    [push!(cs, link) for link in cs]
-    Container(name, "head", cs)::Container
-end
-
-function div(name::String,
-    cs::Vector{Component} = Vector{Component}(); properties::Dict = Dict())
-    Container(name, "div", cs, properties = properties)::Container
-end
-function div(name::String,
-    cs::Vector{Any} = Vector{Any}(); properties::Dict = Dict())
-    Container(name, "div", cs, properties = properties)::Container
-end
-
-function body(name::String, cs::Vector{Component} = Vector{Component}();
-    properties::Dict = Dict())
-    Container(name, "body", cs, properties = properties)::Container
-end
-
-function a(name::String; text::String = "")
-    Component(name, "a", Dict(:text => text))
-end
-
-function img(name::String; src::String = "", href::String = "",
-    text::String = "")
-    Component(name, "img", Dict(:text => text, :src => src, :href => href))
-end
-
-function h(name::String, level::Int64; text::String = "")
-    Component(name, "h$level")::Component
-end
-
+#==
+Base
+    Components
+==#
+img(name::String = ""; args ...) = Component(name, "img", args)::Component
+link(name::String = ""; args ...) = Component(name, "link", args)::Component
+meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
+input(name::String = ""; args ...) = Component(name, "input", args)::Component
+a(name::String = ""; args ...) = Component(name, "a", args)::Component
+p(name::String = ""; args ...) = Component(name, "p", args)::Component
+h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n", args)::Component
+ul(name::String = ""; args ...) = Component(name, "ul", args)::Component
+li(name::String = ""; args ...) = Component(name, "li", args)::Component
+divider(name::String = ""; args ...) = Component(name, "div", args)::Component
+br(name::String = ""; args ...) = Component(name, "/br", args)::Component
+i(name::String = ""; args ...) = Component(name, "i", args)::Component
+title(name::String = ""; args ...) = Component(name, "title", args)::Component
+span(name::String = ""; args ...) = Component(name, "span", args)::Component
+iframe(name::String = ""; args ...) = Component(name, "iframe", args)::Component
+svg(name::String = ""; args ...) = Component(name, "svg", args)::Component
+element(name::String = ""; args ...) = Component(name, "element", args)::Component
+label(name::String = ""; args ...) = Component(name, "label", args)::Component
+script(name::String = ""; args ...) = Component(name, "script", args)::Component
+nav(name::String = ""; args ...) = Component(name, "nav", args)::Component
+button(name::String = ""; args ...) = Component(name, "button", args)::Component
+form(name::String = ""; args ...) = Component(name, "form", args)::Component
 #==
 Style
     Components
     ==#
-abstract type StyleComponent <: Servable end
-
-
-
 mutable struct Animation <: StyleComponent
     name::String
     keyframes::Dict
     f::Function
     delay::Float64
     length::Float64
+    iterations::Integer
     function Animation(name::String = "animation"; delay::Float64 = 0.0,
-        length::Float64 = 5.2)
-        f(c) = begin
+        length::Float64 = 5.2, iterations::Integer = 1)
+        f(c::Connection) = begin
             s::String = "<style> @keyframes $name {"
             for anim in keys(keyframes)
                 vals = keyframes[anim]
                 s = s * "$anim {" * vals * "}"
             end
-            s * "}</style>"
+            write!(c, string(s * "}</style>"))
+        end
+        f() = begin
+            s::String = "<style> @keyframes $name {"
+            for anim in keys(keyframes)
+                vals = keyframes[anim]
+                s = s * "$anim {" * vals * "}"
+            end
+            string(s * "}</style>")::String
         end
         keyframes::Dict = Dict()
-        new(name, keyframes, f, delay, length)
+        new(name, keyframes, f, delay, length, iterations)
     end
 end
 
 mutable struct Style <: StyleComponent
     name::String
     f::Function
-    properties::Dict
-    function Style(name::String)
-        properties::Dict = Dict()
+    properties::Dict{Any, Any}
+    extras::String
+    function Style(name::String; props ...)
+        properties::Dict = Dict{Any, Any}(props)
+        extras::String = ""
         f(c::Connection) = begin
-            css = "<style>$name { "
+            css = "<style>.$name { "
             for rule in keys(properties)
                 property = string(rule)
                 value = string(properties[rule])
                 css = css * "$property: $value; "
             end
-            css * "}</style>"
+            css = css * "}</style>" * extras
+            write!(c, css)
         end
-        new(name::String, f::Function, properties::Dict)
+        new(name::String, f::Function, properties::Dict, extras)::Style
     end
 end

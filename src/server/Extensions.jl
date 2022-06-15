@@ -87,13 +87,15 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
                 touch(out)
                 write(o, "[" * string(time) * "]: $message\n")
             end
+            show_log(level, message, levels,
+            prefix, time)
         else
             show_log(1, "$out not in current working directory.", levels,
             prefix, time)
+            show_log(level, messsage, levels,
+            prefix, time)
         end
     end
-    show_log(level, "$out not in current working directory.", levels,
-    prefix, time)
 end
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)

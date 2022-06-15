@@ -1,9 +1,7 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
+  <h6>v. 0.1.0</h6>
 </div>
-
-
-###### Note: 0.0.9 is not a full release of Toolips.jl, and stable supported usage should begin with version 0.1.0
 
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.

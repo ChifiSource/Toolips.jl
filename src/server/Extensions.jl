@@ -43,8 +43,7 @@ mutable struct Logger <: ServerExtension
     2 => Crayon(foreground = :light_yellow),
     3 => Crayon(foreground = :yellow, bold = true),
     4 => Crayon(foreground = :red, bold = true),
-    :time_crayon => Crayon(background = :black, foreground = :white,
-     bold = true),
+    :time_crayon => Crayon(foreground = :magenta, bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
     out::String = "logs/log.txt", prefix::String = " 🌷 toolips> ",
@@ -98,10 +97,11 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
 end
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
-    println(levels[:message_crayon],
-    prefix, Crayon(foreground = :light_gray, bold = true), "[",
-    levels[:time_crayon], string(time),
-Crayon(foreground = :light_gray, bold = true), "]: ", levels[level], message)
+    print(levels[:message_crayon], prefix)
+    print(Crayon(foreground = :light_gray, bold = true), "[")
+    print(levels[:time_crayon], string(time)))
+    print(Crayon(foreground = :light_gray, bold = true), "]: ")
+    print(levels[level], message)
 end
 """
 ### _log(http::HTTP.Stream, message::String) -> _

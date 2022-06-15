@@ -205,9 +205,8 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
         end
         c::Connection = Connection(route_paths, http, ces)
         if fullpath in keys(route_paths)
-                [extension.f(c) for extension in fes]
-                route_paths[fullpath](c)
-            end
+            [extension.f(c) for extension in fes]
+            route_paths[fullpath](c)
         else
             [extension.f(c) for extension in fes]
             route_paths["404"](c)

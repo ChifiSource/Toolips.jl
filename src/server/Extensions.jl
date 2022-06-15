@@ -56,10 +56,8 @@ mutable struct Logger <: ServerExtension
         log(c::Connection, message::String) = _log(c.http, message)
         # These bindings are left open-ended for extending via
                                             # import Toolips._log
-        log(level::Int64, a::Any) = _log(level, a, levels, out, prefix,
+        log(level::Int64, message::Any) = _log(level, a, levels, out, prefix,
                                             timeformat)
-        log(level::Int64, a::Any, other::Any) = _log(level, a, other, levels,
-                                        out, prefix, timeformat, writeat)
         new(:connection, out::String, levels::Dict, log::Function,
                     prefix::String, timeformat::String, writeat::Int64)::Logger
     end
@@ -77,8 +75,8 @@ Binded call for the field log() inside of Logger(). See ?(Logger) for more
 log(level::Int64, message::String) = _log(level, message, levels, out)
 log(message::String) = _log(1, message, levels, out)
 """
-function _log(level::Int64, message::String, levels::Dict, out::String, prefix::String,
-    timeformat::String, writeat::Int64)
+function _log(level::Int64, message::String, levels::Dict, out::String,
+    prefix::String, timeformat::String, writeat::Int64)
     time = Dates.format(now(), Dates.DateFormat("$timeformat"))
     if level >= writeat
         if isfile(out)
@@ -100,9 +98,9 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
         prefix, time)
     end
 end
+
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
-
     print(Crayon(foreground = :light_gray, bold = true), "[")
     print(levels[:time_crayon], string(time))
     print(Crayon(foreground = :light_gray, bold = true), "]: ")

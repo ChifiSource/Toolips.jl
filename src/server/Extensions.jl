@@ -47,7 +47,7 @@ mutable struct Logger <: ServerExtension
      bold = true),
      :message_crayon => Crayon(foreground  = :light_blue, bold = true)
     );
-    out::String = pwd() * "logs/log.txt", prefix::String = " 🌷 toolips> ",
+    out::String = pwd() * "/logs/log.txt", prefix::String = " 🌷 toolips> ",
                     timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
 
         log(level::Int64, message::String) = _log(level, message, levels, out,
@@ -82,7 +82,7 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
     timeformat::String, writeat::Int64)
     Dates.format(now(), Dates.DateFormat("$timeformat"))
     if level > writeat
-        if out in readdir()
+        if isfile(out)
             open(out, "a") do o
                 write(o, "[" * string(time) * "]: $message\n")
                 touch(out)
@@ -90,12 +90,14 @@ function _log(level::Int64, message::String, levels::Dict, out::String, prefix::
             end
         else
             show_log(1, "$out not in current working directory.", levels,
-            prefix, time, writeat)
+            prefix, time)
         end
     end
+    show_log(level, "$out not in current working directory.", levels,
+    prefix, time)
 end
 function show_log(level::Int64, message::String, levels::String, prefix::String,
-    time::Any, writeat::Int64)
+    time::Any)
     println(levels[:message_crayon],
     prefix, Crayon(foreground = :light_gray, bold = true), "[",
     levels[:time_crayon], string(time),

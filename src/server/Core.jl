@@ -115,8 +115,7 @@ start, and remove for the ServerTemplate.
 """
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     extensions::Dict)
-    add(r::Route{Function}) = push!(routes, r)
-    add(r::Route{Servable}) = push!(routes, r)
+    add(r::Route ...) = [push!(routes, route) for route in r]
 add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
     remove(i::Int64) = deleteat!(routes, i)
     start() = _start(routes, ip, port, extensions)

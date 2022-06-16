@@ -91,8 +91,9 @@ mutable struct ServerTemplate
     start::Function
     function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8000,
         routes::Vector{Route} = Vector{Route}();
-        extensions::Dict = Dict(:logger => Logger()),
+        extensions::Vector = [Logger()],
         connection::Type = Connection)
+        extensions::Dict = Dict([Symbol(typeof(se)) => se for se in extensions])
         add, remove, start = serverfuncdefs(routes, ip, port, extensions,
         connection)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate

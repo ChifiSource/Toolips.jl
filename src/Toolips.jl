@@ -197,7 +197,7 @@ end
 start()
 \"\"\"
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
-    extensions::Dict = Dict(:logger => Logger()))
+    extensions::Vector{ServerExtension} = [Logger()])
     rs = routes(route("/", home), fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
@@ -234,11 +234,11 @@ function new_app(name::String = "ToolipsApp")
         using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger())
-        using $name
+        extensions = [Logger()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -246,11 +246,11 @@ function new_app(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger())
-        using $name
+        extensions = [Logger()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -259,7 +259,7 @@ end
 """
 ### new_webapp(::String) -> _
 ------------------
-Creates a fully-featured web-app. Adds ToolipsModifier, ideal for full-stack
+Creates a fully-featured web-app. Adds ToolipsSession, ideal for full-stack
 web-sites.
 #### example
 ```
@@ -269,8 +269,8 @@ Toolips.new_webapp("ToolipsApp")
 """
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
-    create_serverdeps(name, "using ToolipsModifier")
-    Pkg.add(url = "https://github.com/ChifiSource/ToolipsModifier.jl.git")
+    create_serverdeps(name, "using ToolipsSession")
+    Pkg.add(url = "https://github.com/ChifiSource/ToolipsSession.jl.git")
     open(name * "/dev.jl", "w") do io
         write(io, """
         #==
@@ -280,20 +280,19 @@ function new_webapp(name::String = "ToolipsApp")
         ==#
         using Pkg; Pkg.activate(".")
         using Toolips
+        using ToolipsSession
         using Revise
-        using ToolipsModifier
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
         #==
         Extension description
-        :logger -> Logs messages into both a file folder and the terminal.
-        :public -> Routes the files from the public directory.
-        :mod -> ToolipsModifier; allows us to make Servables reactive. See ?(on)
+        Logger -> Logs messages into both a file folder and the terminal.
+        Files -> Routes the files from the public directory.
+        Session -> ToolipsSession; allows us to make Servables reactive. See ?(on)
         ==#
-        extensions = Dict(:logger => Logger(), :public => Files("public"),
-        :mod => Modifier())
-        using $name
+        extensions = [Logger(), Files("public"), Session()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -301,12 +300,12 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsModifier
+        using ToolipsSession
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger(), :public => Files("public"))
-        using $name
+        extensions = [Logger(), Files("public"), Session()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end

@@ -80,7 +80,6 @@ mutable struct SpoofConnection <: AbstractConnection
     http::SpoofStream
     function SpoofConnection(r::Dict, extensions::Dict)
         SpoofConnection(r, extensions, SpoofStream())
-        SpoofConnection(r::Dict = Dict(), extensions::Dict = extensions::Dict)
     end
 end
 """

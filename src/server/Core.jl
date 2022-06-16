@@ -36,17 +36,13 @@ The path, e.g. "/" at which to direct to the given component.
 The servable to serve at this given route.
 ------------------
 ##### constructors
-- Route(path::String, f::Function) **where**
-- Route(path::String, s::Servable)
+- Route(path::String, f::Function)
 """
-mutable struct Route{T}
+mutable struct Route
     path::String
-    page::T
+    page::Function
     function Route(path::String, f::Function)
-        new{Function}(path, f)
-    end
-    function Route(path::String, s::Servable)
-        new{typeof(s)}(path, s)
+        new(path, f)
     end
 end
 
@@ -62,12 +58,16 @@ end
 The ServerTemplate is used to configure a server before
 running. These are usually made and started inside of a main server file.
 ##### example
+```
+st = ServerTemplate()
 
+webserver = ServerTemplate.start()
+```
 ------------------
 ##### field info
-- ip**::String**
-- port**::Integer**
-- routes**::Vector{Route}**
+- ip**::String** - IP the server should serve to.
+- port**::Integer** - Port to listen on..
+- routes**::Vector{Route}** - A vector of routes to provide to the server
 - extensions**::Dict**
 - remove**::Function**
 - add**::Function**
@@ -75,7 +75,11 @@ running. These are usually made and started inside of a main server file.
 ------------------
 ##### constructors
 ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
-            routes::Dict = Vector{Route}()); extensions::Dict = Dict(:logger => Logger())
+            routes::Dict = Vector{Route}());
+            extensions::Dict = Dict(:logger => Logger())
+```
+```
+ServerTemplate(f::Function, ip::String = "127.0.0.1")
 """
 mutable struct ServerTemplate
     ip::String
@@ -85,32 +89,19 @@ mutable struct ServerTemplate
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8000,
         routes::Vector{Route} = Vector{Route}();
-        extensions::Dict = Dict(:logger => Logger()))
-        add, remove, start = serverfuncdefs(routes, ip, port, extensions)
+        extensions::Dict = Dict(:logger => Logger()),
+        connection::Type = Connection)
+        add, remove, start = serverfuncdefs(routes, ip, port, extensions,
+        connection)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
     end
-end
-
-"""
-**Core**
-### serverfuncdefs(::AbstractVector, ::String, ::Integer,
-::Dict) -> (::Function, ::Function, ::Function)
-------------------
-This method is used internally by a constructor to generate the functions add,
-start, and remove for the ServerTemplate.
-#### example
-
-"""
-function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
-    extensions::Dict)
-    add(r::Route{Function}) = push!(routes, r)
-    add(r::Route{Servable}) = push!(routes, r)
-    add(e::Any ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
-    remove(i::Int64) = deleteat!(routes, i)
-    start() = _start(routes, ip, port, extensions)
-    return(add, remove, start)
+    function ServerTemplate(f::Function, ip::String = "127.0.0.1")
+        add, remove, start = serverfuncdefs(routes, ip, port, extensions,
+        connection, custom_f = f, custom = true)
+        new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
+    end
 end
 
 """
@@ -124,16 +115,43 @@ end
 
 """
 **Core**
+### serverfuncdefs(::AbstractVector, ::String, ::Integer,
+::Dict) -> (::Function, ::Function, ::Function)
+------------------
+This method is used internally by a constructor to generate the functions add,
+start, and remove for the ServerTemplate.
+#### example
+
+"""
+function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
+    extensions::Dict, connection::Type; custom::Bool = false
+     custom_f::Function = f(c) -> return(c))
+    add(r::Route ...) = [push!(routes, route) for route in r]
+add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
+    remove(i::Int64) = deleteat!(routes, i)
+    if custom
+        start() = _start(routes, ip, port, extensions)
+    else
+        start() = _start(ip, port)
+    end
+    return(add, remove, start)
+end
+
+"""
+**Core**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
 extensions::Dict) -> (::Sockets.HTTPServer)
 ------------------
 This is an internal function for the ServerTemplate. This function is binded to
     the ServerTemplate.start field.
 #### example
-
+```
+st = ServerTemplate()
+st.start()
+```
 """
 function _start(routes::AbstractVector, ip::String, port::Integer,
-     extensions::Dict)
+     extensions::Dict, c::Type)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     if has_extension(extensions, Logger)
         extensions[Logger].log(1,
@@ -157,12 +175,20 @@ end
 This method is used internally by the **_start** method. It returns a closure
 function that both routes and calls functions.
 #### example
-
+```
+server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+if has_extension(extensions, Logger)
+    extensions[Logger].log(1,
+     "Toolips Server starting on port " * string(port))
+end
+routefunc, rdct, extensions = generate_router(routes, server, extensions)
+@async HTTP.listen(routefunc, ip, port, server = server)
+```
 """
 function generate_router(routes::AbstractVector, server, extensions::Dict)
     route_paths = Dict([route.path => route.page for route in routes])
     # Load Extensions
-    ces::Dict = Dict()
+    ces::Dict = Dict{Any, Any}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
         if typeof(extension[2].type) == Symbol
@@ -188,27 +214,17 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
     # Routing func
 
     routeserver::Function = function serve(http::HTTP.Stream)
-        fullpath = http.message.target
+        fullpath::String = http.message.target
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
         c::Connection = Connection(route_paths, http, ces)
         if fullpath in keys(route_paths)
-            if typeof(route_paths[fullpath]) <: Servable
-                [extension.f(c) for extension in fes]
-                route_paths[fullpath].f(c)
-            else
-                [extension.f(c) for extension in fes]
-                route_paths[fullpath](c)
-            end
+            [extension.f(c) for extension in fes]
+            route_paths[fullpath](c)
         else
-            if typeof(route_paths["404"]) <: Servable
-                [extension.f(c) for extension in fes]
-                route_paths[fullpath].f(c)
-            else
-                [extension.f(c) for extension in fes]
-                route_paths["404"](c)
-            end
+            [extension.f(c) for extension in fes]
+            route_paths["404"](c)
         end
     end # serve()
     return(routeserver, route_paths, extensions)

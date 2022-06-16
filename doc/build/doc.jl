@@ -15,6 +15,7 @@ Documenter.makedocs(root = "../",
                 "projects" => "projects.md",
                 "core" => "core.md",
                 "servables" => "servables.md",
+                "sessions" => "toolips_session.md",
                 "developer api" => "developer_api.md",
                ]
        )

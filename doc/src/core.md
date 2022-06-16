@@ -1,6 +1,6 @@
-# Core
-```@contents
-```
+# core
+Below is a runthrough of all of the documentation pertaining to running a
+Toolips server.
 ## requests
 Toolips has some bindings that pre-parse responses fro you, these are both post
 and get requests.

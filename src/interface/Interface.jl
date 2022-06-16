@@ -20,6 +20,13 @@ Copies properties from s,properties into c.properties.
 """
 properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
+function has_children(c::Component)
+    if length(c[:children]) != 0
+        return true
+    else
+        return false
+    end
+end
 """
 **Interface**
 ### push!(::Component, ::Component ...) -> ::Component
@@ -207,19 +214,19 @@ push!(anim::Animation, p::Pair) = push!(anim.keyframes, [p[1]] => p[2])
 
 """
 """
-push!(c::Connection, data::Any) = write!(c.http, HTTP.Response(200, body = string(data)))
+push!(c::AbstractConnection, data::Any) = write!(c.http, HTTP.Response(200, body = string(data)))
 #==
 Serving/Routing
 ==#
 """
 **Interface**
-### write!(::Connection, ::Servable) -> _
+### write!(::AbstractConnection, ::Servable) -> _
 ------------------
 Writes a Servable's return to a Connection's stream.
 #### example
 
 """
-write!(c::Connection, s::Servable) = s.f(c)
+write!(c::AbstractConnection, s::Servable) = s.f(c)
 
 """
 """
@@ -227,13 +234,13 @@ components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """
 **Interface**
-### write!(c::Connection, s::Vector{Servable}) -> _
+### write!(c::AbstractConnection, s::Vector{Servable}) -> _
 ------------------
 Writes, in order of element, each Servable inside of a Vector of Servables.
 #### example
 
 """
-function write!(c::Connection, s::Vector{Servable})
+function write!(c::AbstractConnection, s::Vector{Servable})
     for s::Servable in s
         write!(c, s)
     end
@@ -241,67 +248,67 @@ end
 
 """
 """
-write!(c::Connection, s::Servable ...) = write!(c, Vector{Servable}(s))
+write!(c::AbstractConnection, s::Servable ...) = write!(c, Vector{Servable}(s))
 
 """
 **Interface**
-### write!(::Connection, ::String) -> _
+### write!(::AbstractConnection, ::String) -> _
 ------------------
 Writes the String into the Connection as HTML.
 #### example
 
 """
-write!(c::Connection, s::String) = write(c.http, s)
+write!(c::AbstractConnection, s::String) = write(c.http, s)
 
 """
 **Interface**
-### write!(::Connection, ::Any) -> _
+### write!(::AbstractConnection, ::Any) -> _
 ------------------
 Attempts to write any type to the Connection's stream.
 #### example
 
 """
-write!(c::Connection, s::Any) = write(c.http, s)
+write!(c::AbstractConnection, s::Any) = write(c.http, s)
 
 """
 **Interface**
-### startread!(::Connection) -> _
+### startread!(::AbstractConnection) -> _
 ------------------
 Resets the seek on the Connection.
 #### example
 
 """
-startread!(c::Connection) = startread(c.http)
+startread!(c::AbstractConnection) = startread(c.http)
 
 """
 **Interface**
-### route!(::Connection, ::Route) -> _
+### route!(::AbstractConnection, ::Route) -> _
 ------------------
 Modifies the routes on the Connection.
 #### example
 
 """
-route!(c::Connection, route::Route) = push!(c.routes, route.path => route.page)
+route!(c::AbstractConnection, route::Route) = push!(c.routes, route.path => route.page)
 
 """
 **Interface**
-### unroute!(::Connection, ::String) -> _
+### unroute!(::AbstractConnection, ::String) -> _
 ------------------
 Removes the route with the key equivalent to the String.
 #### example
 
 """
-unroute!(c::Connection, r::String) = delete!(c.routes, r)
+unroute!(c::AbstractConnection, r::String) = delete!(c.routes, r)
 
 """
 **Interface**
-### route!(::Function, ::Connection, ::String) -> _
+### route!(::Function, ::AbstractConnection, ::String) -> _
 ------------------
 Routes a given String to the Function.
 #### example
 
 """
-route!(f::Function, c::Connection, route::String) = push!(c.routes, route => f)
+route!(f::Function, c::AbstractConnection, route::String) = push!(c.routes, route => f)
 
 """
 **Interface**
@@ -319,16 +326,6 @@ route(r::String, f::Function) = route(f, r)
 
 """
 **Interface**
-### route(::String, ::Servable) -> ::Route
-------------------
-Creates a route from a Servable.
-#### example
-
-"""
-route(r::String, s::Servable) = Route(r, s)::Route
-
-"""
-**Interface**
 ### routes(::Route ...) -> ::Vector{Route}
 ------------------
 Turns routes provided as arguments into a Vector{Route} with indexable routes.
@@ -339,6 +336,10 @@ likes.
 """
 routes(rs::Route ...) = Vector{Route}([r for r in rs])
 
+routes(ws::WebServer) = ws.routes
+routes(c::AbstractConnection) = c.routes
+
+extensions(c::Connection) = c.routes
 #==
     Server
 ==#
@@ -364,6 +365,8 @@ end
 """
 route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
 
+route!(ws::WebServer, r::Route) = ws[r.path] = r.page
+
 """
 """
 function getindex(ws::WebServer, s::Symbol)
@@ -372,9 +375,9 @@ end
 
 """
 """
-getindex(c::Connection, s::Symbol) = c.extensions[s]
+getindex(c::AbstractConnection, s::Symbol) = c.extensions[s]
 
-function getindex(c::Connection, t::Type)
+function getindex(c::AbstractConnection, t::Type)
     for e in c.extensions
         if e isa t
             return(e)
@@ -398,7 +401,7 @@ function getindex(vs::Vector{Servable}, str::String)
     end
 end
 
-function has_extension(c::Connection, t::Type)
+function has_extension(c::AbstractConnection, t::Type)
     se = c[s]
     if typeof(se) <: ServerExtension
         return(true)
@@ -420,25 +423,25 @@ end
 
 """
 """
-getindex(c::Connection, s::String) = c.routes[s]
+getindex(c::AbstractConnection, s::String) = c.routes[s]
 
 """
 """
-setindex!(c::Connection, val::Function, s::String) = c.routes[s] = val
+setindex!(c::AbstractConnection, val::Function, s::String) = c.routes[s] = val
 
 #==
 Request/Args
 ==#
 """
 **Interface**
-### getargs(::Connection) -> ::Dict
+### getargs(::AbstractConnection) -> ::Dict
 ------------------
 The getargs method returns arguments from the HTTP header (GET requests.)
 Returns a full dictionary of these values.
 #### example
 
 """
-function getargs(c::Connection)
+function getargs(c::AbstractConnection)
     target::String = split(c.http.message.target, '?')[2]
     target = replace(target, "+" => " ")
     args = split(target, '&')
@@ -458,31 +461,31 @@ function argsplit(args::Any)
 end
 """
 **Interface**
-### getargs(::Connection, ::Symbol) -> ::Dict
+### getargs(::AbstractConnection, ::Symbol) -> ::Dict
 ------------------
 Returns the requested arguments from the target.
 #### example
 """
-function getarg(c::Connection, s::Symbol)
+function getarg(c::AbstractConnection, s::Symbol)
     getargs(c)[s]
 end
 
 """
 **Interface**
-### getarg(::Connection, ::Symbol, ::Type) -> ::Vector
+### getarg(::AbstractConnection, ::Symbol, ::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
 parsed as type T(). Note that "Cannot convert..." errors are possible with this
 method.
 #### example
 """
-function getarg(c::Connection, s::Symbol, T::Type)
+function getarg(c::AbstractConnection, s::Symbol, T::Type)
     parse(T, getargs(http)[s])
 end
 
 """
 """
-function getip(c::Connection)
+function getip(c::AbstractConnection)
     str = c.http.message["User-Agent"]
     spl = split(str, "/")
     ipstr = ""
@@ -498,27 +501,27 @@ end
 
 """
 **Interface**
-### postarg(::Connection, ::String) -> ::Any
+### postarg(::AbstractConnection, ::String) -> ::Any
 ------------------
 Get a body argument of a POST response by name.
 #### example
 
 """
-function postarg(c::Connection, s::String)
+function postarg(c::AbstractConnection, s::String)
     nothing
 end
 
 
-getpost(c::Connection) = string(read(c.http))
+getpost(c::AbstractConnection) = string(read(c.http))
 """
 **Interface**
-### postargs(::Connection, ::Symbol, ::Type) -> ::Dict
+### postargs(::AbstractConnection, ::Symbol, ::Type) -> ::Dict
 ------------------
 Get arguments from the request body.
 #### example
 
 """
-function postargs(c::Connection)
+function postargs(c::AbstractConnection)
     string(http.message.body)
 end
 
@@ -556,18 +559,50 @@ end
 Downloads a file to a given user's computer.
 #### example
 """
-function download!(c::Connection, uri::String)
+function download!(c::AbstractConnection, uri::String)
     write(c.http, HTTP.Response( 200, body = read(uri, String)))
 end
 
 """
 **Interface**
-### navigate!(::Connection, ::String) -> _
+### navigate!(::AbstractConnection, ::String) -> _
 ------------------
 Routes a connected stream to a given URL.
 #### example
 
 """
-function navigate!(c::Connection, url::String)
+function navigate!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.http, status_exception = false)
+end
+
+#==
+show
+==#
+function showchildren(x)
+    prnt = "##### children \n"
+    for c in x[:children]
+        prnt = prnt * "|-- " * string(c) * " \n "
+        for subc in c[:children]
+            prnt = prnt * "   |---- " * string(subc) * " \n "
+        end
+    end
+    prnt
+end
+
+function string(c::Component)
+    base = c.name
+    properties = ": "
+    for pair in c.properties
+        key, val = pair[1], pair[2]
+        if ~(key == :children)
+            properties = properties * "  $key = $val  "
+        end
+    end
+    base * properties
+end
+
+function show(x::Component)
+    prnt = showchildren(x)
+    header = "### " * string(x) * "\n"
+    display("text/markdown", header * prnt)
 end

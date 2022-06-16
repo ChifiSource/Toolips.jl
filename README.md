@@ -1,9 +1,7 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
+  <h6>v. 0.1.0</h6>
 </div>
-
-
-###### Note: 0.0.9 is not a full release of Toolips.jl, and stable supported usage should begin with version 0.1.0
 
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
@@ -37,6 +35,10 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
   - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+  **Curated Extensions**
+- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
+- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
+- [ToolipsCanvas]() - Servables
 ## Basics
   Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Servers are created with the ServerTemplate type.
 ```julia
@@ -159,17 +161,5 @@ end
                The interface is where many methods for working with Servables, Connections, and Servers are defined.
   #### Core
   #### ServerExtensions
-  </div>
-  </details>
-  
-  
-  <details class="details-overlay">
-  <summary class="btn"><h2>Curated Extensions</h2></summary>
-<div><img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/Curated/logo.png></img>
-
-  
-- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
-- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
-- [ToolipsCanvas]() Servables
   </div>
   </details>

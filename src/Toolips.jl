@@ -13,7 +13,7 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 module Toolips
 using Crayons
 using Sockets, HTTP, Pkg, ParseNotEval, Dates
-import Base: getindex, setindex!, push!, get, string
+import Base: getindex, setindex!, push!, get, string, write, show, display
 #==
 SuperTypes
 ==#
@@ -64,7 +64,27 @@ field's value. This value can be either a Symbol or a Vector of Symbols.
 abstract type ServerExtension end
 
 """
-### Connection
+"""
+abstract type AbstractConnection end
+
+mutable struct SpoofStream
+    text::String
+    SpoofStream() = new("")
+end
+
+write(s::SpoofStream, e::Any) = s.text * string(e)
+
+mutable struct SpoofConnection <: AbstractConnection
+    routes::Dict
+    extensions::Dict
+    http::SpoofStream
+    function SpoofConnection(r::Dict, extensions::Dict)
+        SpoofConnection(r, extensions, SpoofStream())
+        SpoofConnection(r::Dict = Dict(), extensions::Dict = extensions::Dict)
+    end
+end
+"""
+### Connection <: AbstractConnection
 - routes::Dict
 - http::HTTP.Stream
 - extensions::Dict
@@ -98,7 +118,7 @@ name to reference as keys and the extension as the pair.
 ##### constructors
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
-mutable struct Connection
+mutable struct Connection <: AbstractConnection
     routes::Dict
     http::HTTP.Stream
     extensions::Dict
@@ -115,9 +135,9 @@ include("server/Core.jl")
 include("interface/Interface.jl")
 
 # Core Server
-export ServerTemplate, Route, Connection, WebServer
+export ServerTemplate, Route, Connection, WebServer, Servable
 # Server Extensions
-export Logger, Files, Document
+export Logger, Files
 # Servables
 export File, Component
 export Animation, Style
@@ -127,7 +147,7 @@ export title, span, iframe, svg, element, label, script, nav, button, form
 export element, label, script, nav, button, form
 # High-level api
 export push!, getindex, setindex!, properties!, components
-export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
+export animate!, style!, delete_keyframe!
 export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost
@@ -251,6 +271,7 @@ Toolips.new_webapp("ToolipsApp")
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
     create_serverdeps(name, "using ToolipsModifier")
+    Pkg.add(url = "https://github.com/ChifiSource/ToolipsModifier.jl.git")
     open(name * "/dev.jl", "w") do io
         write(io, """
         #==

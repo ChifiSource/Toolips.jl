@@ -20,6 +20,13 @@ Copies properties from s,properties into c.properties.
 """
 properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
+function has_children(c::Component)
+    if length(c[:children]) != 0
+        return true
+    else
+        return false
+    end
+end
 """
 **Interface**
 ### push!(::Component, ::Component ...) -> ::Component
@@ -566,4 +573,36 @@ Routes a connected stream to a given URL.
 """
 function navigate!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.http, status_exception = false)
+end
+
+#==
+show
+==#
+function showchildren(x)
+    prnt = "##### children \n"
+    for c in x[:children]
+        prnt = prnt * "|-- " * string(c) * " \n "
+        for subc in c[:children]
+            prnt = prnt * "   |---- " * string(subc) * " \n "
+        end
+    end
+    prnt
+end
+
+function string(c::Component)
+    base = c.name
+    properties = ": "
+    for pair in c.properties
+        key, val = pair[1], pair[2]
+        if ~(key == :children)
+            properties = properties * "  $key = $val  "
+        end
+    end
+    base * properties
+end
+
+function show(x::Component)
+    prnt = showchildren(x)
+    header = "### " * string(x) * "\n"
+    display("text/markdown", header * prnt)
 end

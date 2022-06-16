@@ -77,6 +77,9 @@ webserver = ServerTemplate.start()
 ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
             routes::Dict = Vector{Route}());
             extensions::Dict = Dict(:logger => Logger())
+```
+```
+ServerTemplate(f::Function, ip::String = "127.0.0.1")
 """
 mutable struct ServerTemplate
     ip::String
@@ -86,10 +89,17 @@ mutable struct ServerTemplate
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8000,
         routes::Vector{Route} = Vector{Route}();
-        extensions::Dict = Dict(:logger => Logger()))
-        add, remove, start = serverfuncdefs(routes, ip, port, extensions)
+        extensions::Dict = Dict(:logger => Logger()),
+        connection::Type = Connection)
+        add, remove, start = serverfuncdefs(routes, ip, port, extensions,
+        connection)
+        new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
+    end
+    function ServerTemplate(f::Function, ip::String = "127.0.0.1")
+        add, remove, start = serverfuncdefs(routes, ip, port, extensions,
+        connection, custom_f = f, custom = true)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
     end
 end
@@ -114,11 +124,16 @@ start, and remove for the ServerTemplate.
 
 """
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
-    extensions::Dict)
+    extensions::Dict, connection::Type; custom::Bool = false
+     custom_f::Function = f(c) -> return(c))
     add(r::Route ...) = [push!(routes, route) for route in r]
 add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
     remove(i::Int64) = deleteat!(routes, i)
-    start() = _start(routes, ip, port, extensions)
+    if custom
+        start() = _start(routes, ip, port, extensions)
+    else
+        start() = _start(ip, port)
+    end
     return(add, remove, start)
 end
 
@@ -136,7 +151,7 @@ st.start()
 ```
 """
 function _start(routes::AbstractVector, ip::String, port::Integer,
-     extensions::Dict)
+     extensions::Dict, c::Type)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     if has_extension(extensions, Logger)
         extensions[Logger].log(1,

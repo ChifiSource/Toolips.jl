@@ -13,7 +13,7 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 module Toolips
 using Crayons
 using Sockets, HTTP, Pkg, ParseNotEval, Dates
-import Base: getindex, setindex!, push!, get, string, write
+import Base: getindex, setindex!, push!, get, string, write, show, display
 #==
 SuperTypes
 ==#
@@ -69,6 +69,7 @@ abstract type AbstractConnection end
 
 mutable struct SpoofStream
     text::String
+    SpoofStream() = new("")
 end
 
 write(s::SpoofStream, e::Any) = s.text * string(e)
@@ -79,6 +80,7 @@ mutable struct SpoofConnection <: AbstractConnection
     http::SpoofStream
     function SpoofConnection(r::Dict, extensions::Dict)
         SpoofConnection(r, extensions, SpoofStream())
+        SpoofConnection(r::Dict = Dict(), extensions::Dict = extensions::Dict)
     end
 end
 """

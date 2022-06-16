@@ -34,7 +34,7 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   https://toolips.app/
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
-  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl) \
   **Curated Extensions**
 - [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
 - [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables

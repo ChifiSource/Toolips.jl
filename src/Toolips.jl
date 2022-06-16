@@ -197,7 +197,7 @@ end
 start()
 \"\"\"
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
-    extensions::Vector{ServerExtension} = [Logger()])
+    extensions::Vector = [Logger()])
     rs = routes(route("/", home), fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()

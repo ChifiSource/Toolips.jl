@@ -414,7 +414,7 @@ mutable struct Style <: StyleComponent
         properties::Dict = Dict{Any, Any}(props)
         extras::String = ""
         f(c::Connection) = begin
-            css = "<style>.$name { "
+            css = "<style>$name { "
             for rule in keys(properties)
                 property = string(rule)
                 value = string(properties[rule])

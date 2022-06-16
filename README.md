@@ -26,16 +26,16 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
 <div>
   
 ## Links
-  **Documentation**
+##### Documentation
   - [Interactive Documentation]()
-  - [Juliahub Documentation]() \
-  **Examples**
+  - [Juliahub Documentation]()
+##### Examples
   - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) \
   https://toolips.app/
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
-  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl) \
-  **Curated Extensions**
+  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+##### Curated Extensions
 - [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
 - [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
 - [ToolipsCanvas]() - Servables

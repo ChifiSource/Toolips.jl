@@ -35,6 +35,10 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
   - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+  **Curated Extensions**
+- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
+- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
+- [ToolipsCanvas]() - Servables
 ## Basics
   Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Servers are created with the ServerTemplate type.
 ```julia
@@ -157,17 +161,5 @@ end
                The interface is where many methods for working with Servables, Connections, and Servers are defined.
   #### Core
   #### ServerExtensions
-  </div>
-  </details>
-  
-  
-  <details class="details-overlay">
-  <summary class="btn"><h2>Curated Extensions</h2></summary>
-<div><img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/Curated/logo.png></img>
-
-  
-- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
-- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
-- [ToolipsCanvas]() Servables
   </div>
   </details>

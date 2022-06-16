@@ -345,13 +345,13 @@ extensions(c::Connection) = c.routes
 ==#
 """
 **Interface**
-### stop!(x::Any) -> _
+### kill!(ws::WebServer) -> _
 ------------------
-An alternate binding for close(x). Stops a server from running.
+
 #### example
 
 """
-function stop!(ws::WebServer)
+function kill!(ws::WebServer)
     close(ws.server)
 end
 
@@ -375,7 +375,12 @@ end
 
 """
 """
-getindex(c::AbstractConnection, s::Symbol) = c.extensions[s]
+function getindex(c::AbstractConnection, s::Symbol)
+    if ~(s in keys(c.extensions))
+        getindex(c, eval(s))
+    end
+    return(c.extensions[s])
+end
 
 function getindex(c::AbstractConnection, t::Type)
     for e in c.extensions

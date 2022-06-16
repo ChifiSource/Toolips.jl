@@ -147,7 +147,7 @@ export element, label, script, nav, button, form
 # High-level api
 export push!, getindex, setindex!, properties!, components
 export animate!, style!, delete_keyframe!
-export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
+export route, routes, route!, write!, kill!, unroute!, navigate!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost
 

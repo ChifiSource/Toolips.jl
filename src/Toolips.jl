@@ -76,10 +76,10 @@ write(s::SpoofStream, e::Any) = s.text * string(e)
 
 mutable struct SpoofConnection <: AbstractConnection
     routes::Dict
-    extensions::Dict
     http::SpoofStream
-    function SpoofConnection(r::Dict, extensions::Dict)
-        SpoofConnection(r, extensions, SpoofStream())
+    extensions::Dict
+    function SpoofConnection(r::Dict, http::HTTP.Stream, extensions::Dict)
+        SpoofConnection(r, SpoofStream(), extensions)
     end
 end
 """

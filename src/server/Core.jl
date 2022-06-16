@@ -97,11 +97,6 @@ mutable struct ServerTemplate
         connection)
         new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
     end
-    function ServerTemplate(f::Function, ip::String = "127.0.0.1")
-        add, remove, start = serverfuncdefs(routes, ip, port, extensions,
-        connection, custom_f = f, custom = true)
-        new(ip, port, routes, extensions, remove, add, start)::ServerTemplate
-    end
 end
 
 """
@@ -124,16 +119,11 @@ start, and remove for the ServerTemplate.
 
 """
 function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
-    extensions::Dict, connection::Type; custom::Bool = false
-     custom_f::Function = f(c) -> return(c))
+    extensions::Dict, connection::Type)
     add(r::Route ...) = [push!(routes, route) for route in r]
-add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
+    add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
     remove(i::Int64) = deleteat!(routes, i)
-    if custom
-        start() = _start(routes, ip, port, extensions)
-    else
-        start() = _start(ip, port)
-    end
+    start() = _start(routes, ip, port, extensions, connection)
     return(add, remove, start)
 end
 
@@ -157,7 +147,7 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
         extensions[Logger].log(1,
          "Toolips Server starting on port " * string(port))
     end
-    routefunc, rdct, extensions = generate_router(routes, server, extensions)
+    routefunc, rdct, extensions = generate_router(routes, server, extensions, c)
     @async HTTP.listen(routefunc, ip, port, server = server)
     if has_extension(extensions, Logger)
         extensions[Logger].log(2,
@@ -185,7 +175,8 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions)
 @async HTTP.listen(routefunc, ip, port, server = server)
 ```
 """
-function generate_router(routes::AbstractVector, server, extensions::Dict)
+function generate_router(routes::AbstractVector, server, extensions::Dict,
+    conn::Type)
     route_paths = Dict([route.path => route.page for route in routes])
     # Load Extensions
     ces::Dict = Dict{Any, Any}()
@@ -212,13 +203,12 @@ function generate_router(routes::AbstractVector, server, extensions::Dict)
         end
     end
     # Routing func
-
     routeserver::Function = function serve(http::HTTP.Stream)
         fullpath::String = http.message.target
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
-        c::Connection = Connection(route_paths, http, ces)
+        c::AbstractConnection = conn(route_paths, http, ces)
         if fullpath in keys(route_paths)
             [extension.f(c) for extension in fes]
             route_paths[fullpath](c)

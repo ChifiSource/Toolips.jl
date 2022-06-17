@@ -54,7 +54,7 @@ mutable struct Component <: Servable
                  if ~(property in special_keys)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
-                     write!(c, " $propkey = $prop")
+                     write!(c, "$propkey = $prop")
                  else
                      if property == :text
                          text = properties[property]

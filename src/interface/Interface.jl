@@ -134,7 +134,7 @@ function style!(c::Servable, s::Pair ...)
     c["style"] = ""
     for style in s
         k, v = style[1], style[2]
-        c[:style] = c[:style] * "$k: $v;"
+        c["style"] = c["style"] * "$k: $v;"
     end
 end
 

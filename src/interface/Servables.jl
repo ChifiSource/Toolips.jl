@@ -19,7 +19,7 @@ image_anim[:from] = "opacity" => "0%"
 image_anim[:to] = "opacity" => "100%"
 animate!(image_style)
 
-r = route("/") do c::Connection
+r = route("/") do c::AbstractConnection
     newimage = img("newimage", src = "/logo.png")
     style!(newimage, image_style)
     write!(c, newimage)
@@ -45,7 +45,7 @@ mutable struct Component <: Servable
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
          extras = Vector{Servable}()
-         f(c::Connection) = begin
+         f(c::AbstractConnection) = begin
              open_tag::String = "<$tag id = $name "
              text::String = ""
              write!(c, open_tag)
@@ -382,7 +382,7 @@ mutable struct Animation <: StyleComponent
     iterations::Integer
     function Animation(name::String = "animation"; delay::Float64 = 0.0,
         length::Float64 = 5.2, iterations::Integer = 1)
-        f(c::Connection) = begin
+        f(c::AbstractConnection) = begin
             s::String = "<style> @keyframes $name {"
             for anim in keys(keyframes)
                 vals = keyframes[anim]
@@ -413,7 +413,7 @@ mutable struct Style <: StyleComponent
     function Style(name::String; props ...)
         properties::Dict = Dict{Any, Any}(props)
         extras::String = ""
-        f(c::Connection) = begin
+        f(c::AbstractConnection) = begin
             css = "<style>$name { "
             for rule in keys(properties)
                 property = string(rule)

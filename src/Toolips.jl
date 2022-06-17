@@ -72,7 +72,7 @@ mutable struct SpoofStream
     SpoofStream() = new("")
 end
 
-write(s::SpoofStream, e::Any) = s.text * string(e)
+write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
 write(c::SpoofStream, s::Servable) = s.f(c)
 mutable struct SpoofConnection <: AbstractConnection
     routes::Dict

@@ -19,12 +19,12 @@
 - **Asynchronous**. Run multiple functions at the same time as you serve to each incoming request.
 - **Versatile**. Toolips.jl can be used for all scenarios, from full-stack web-development to APIs.
 ```julia
-using Pkg; Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl")
+using Pkg; Pkg.add("Toolips")
 ```
 ```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]
-pkg> add https://github.com/ChifiSource/Toolips.jl
+pkg> add Toolips
 ```
   <details class="details-overlay">
   <summary class="btn"><h2>Using Toolips</h2></summary>

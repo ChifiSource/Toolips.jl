@@ -1,13 +1,18 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
   <h6>v. 0.1.0</h6>
+  
+[![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
+[![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
+[![pkgeval](https://juliahub.com/docs/Toolips/pkgeval.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
 </div>
+
 
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
 - **HTTPS capable**, load balancer friendly. Can easily be deployed with SSL.
 - **Extendable** servers, components, and methods, they are all extendable!
-- **Modular** applications. Toolips applications are modular!
+- **Modular** applications. Toolips applications are regular Julia modules.
 - **Regular Julia** projects.
 - **Declarative**, high-level syntax.
 - Extremely **low memory usage**.
@@ -40,7 +45,7 @@ pkg> add https://github.com/ChifiSource/Toolips.jl
 - [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
 - [ToolipsCanvas]() - Servables
 ## Basics
-  Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Servers are created with the ServerTemplate type.
+  Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between.
 ```julia
   using Toolips
   using JLD2
@@ -64,7 +69,7 @@ PORT = 8000
   server = servertemp.start()
   
   ```
-  Alternatively, we can also create a preset Toolips.jl file-structure using the **new_app** and **new_webapp** methods respectively.
+  Alternatively, we can also create a preset Toolips.jl file-structure using the **new_app** and **new_webapp** methods respectively. new_app is used to create simple APIs, whereas new_webapp will add the dependencies and Server Extensions necessary for full-stack web-development.
   ```julia
   [emmac@ems-computer dev]$ julia
                _
@@ -145,7 +150,7 @@ There are different portions of Toolips.jl that we need to be aware of in order 
          
   true
   ```
-  There are too many names here to reference, but it should be known that all servables can be indexed with with anything in order to set settings at whim. These are just references, anything goes, a place to store data inside of a servable. Then the servable simply has the f(c::Connection) function which uses the connection type. Servables are also bound to many connection functions, such as write!, style!, and more.
+Servables can both be constructed with properties, or properties can be added or checked by setting or getting indexes. Servables can also be written into Connections using the write! method.
 ```julia
 image = img("image", src = "/images/example.png")
 subtitle = h("subtitle", 4, text = "This is an example")
@@ -158,7 +163,7 @@ route("/") do c::Connection
 end
 ```
   #### Interface
-               The interface is where many methods for working with Servables, Connections, and Servers are defined.
+ 
   #### Core
   #### ServerExtensions
   </div>

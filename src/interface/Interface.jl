@@ -729,8 +729,7 @@ end
 ```
 """
 function has_extension(c::AbstractConnection, t::Type)
-    se = c[t]
-    if typeof(se) <: ServerExtension
+    if Symbol(t) in keys(c.extensions)
         return(true)
     else
         return(false)

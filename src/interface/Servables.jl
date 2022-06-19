@@ -33,7 +33,8 @@ argument.
 - properties::Dict - A dictionary of symbols and values.
 ------------------
 ##### constructors
-Component(name::String = "", tag::String = "", properties::Dict = Dict())
+- Component(name::String = "", tag::String = "", properties::Dict = Dict())
+- Component(name::String, tag::String, props::Base.Pairs)
 """
 mutable struct Component <: Servable
     name::String
@@ -372,7 +373,37 @@ Style
     Components
     ==#
 """
-"""
+### Animation
+- name::String
+- keyframes::Dict
+- f::Function
+- delay::Float64
+- length::Float64
+- iterations::Integer \
+An animation can be used to animate Styles with the animate! method. Animating
+is done by indexing by either percentage, or symbols, such as from and to.
+##### example
+```
+anim = Animation("myanim")
+anim[:from] = "opacity" => "0%"
+anim[:to] = "opacity" => "100%"
+style = Style("example")
+animate!(style, anim)
+```
+------------------
+##### field info
+- name::String - The name of the animation.
+- keyframes::Dict - The keyframes that have been pushed so far.
+- f::Function - The function called when writing to a Connection.
+- delay::Float64 - The delay before the animation begins.
+- length::Float64 - The amount of time the animation should play.
+- iterations::Integer - The number of times the animation should repeat. When
+set to 0 the animation will loop indefinitely.
+------------------
+##### constructors
+Animation(name::String = "animation", delay::Float64 = 0.0,
+        length::Float64 = 5.2, iterations::Integer = 1)
+    """
 mutable struct Animation <: StyleComponent
     name::String
     keyframes::Dict
@@ -404,6 +435,31 @@ mutable struct Animation <: StyleComponent
 end
 
 """
+### Style
+- name::String
+- f::Function
+- properties::Dict{Any, Any}
+- extras::String \
+Creates a style from attributes, can style a Component using the style! method.
+Names should be consistent with CSS names. For example, a default h1 style would
+be named "h1". A heading style for a specific class should be "h1.myheading"
+##### example
+```
+style = Style("p.mystyle", color = "blue")
+style["opacity"] = "50%"
+comp = Component()
+style!(comp, style)
+```
+------------------
+##### field info
+- name::String - The name of the style. Should be consistent with CSS naming.
+- f::Function - The function f, called by write! when writing to a Connection.
+- properties::Dict{Any, Any} - A dict of style attributes.
+- extras::String - Extra components to be written along with the style. Usually
+this is an animation.
+------------------
+##### constructors
+- Style(name::String; props ...)
 """
 mutable struct Style <: StyleComponent
     name::String

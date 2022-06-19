@@ -1,10 +1,13 @@
 """
 **Interface**
-### L_str -> _
+### L_str(s::String) -> ::String
 ------------------
 Creates a literal string
 #### example
-
+```
+x = 5
+L"dollar_signx" # pretend dollar_sign is a dollar sign.
+```
 """
 macro L_str(s::String)
     s
@@ -12,14 +15,32 @@ end
 
 """
 **Interface**
+### properties!(c::Servable, s::Servable) -> _
+------------------
+Copies properties from s,properties into c.properties.
+#### example
+```
+comp = Component()
+othercomp = Component()
+othercomp["opacity"] = "100%"
+properties!(comp, othercomp)
+
+comp["opacity"]
+        100%
+```
+"""
+properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
+
+"""
+**Interface**
 ### properties!(::Servable, ::Servable) -> _
 ------------------
 Copies properties from s,properties into c.properties.
 #### example
+```
 
+```
 """
-properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
-
 function has_children(c::Component)
     if length(c[:children]) != 0
         return true
@@ -27,6 +48,7 @@ function has_children(c::Component)
         return false
     end
 end
+
 """
 **Interface**
 ### push!(::Component, ::Component ...) -> ::Component

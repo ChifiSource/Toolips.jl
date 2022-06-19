@@ -12,7 +12,11 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 """
 module Toolips
 using Crayons
-using Sockets, HTTP, Pkg, ParseNotEval, Dates
+using Sockets
+using HTTP
+using Pkg
+using ParseNotEval
+using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display
 #==
 SuperTypes

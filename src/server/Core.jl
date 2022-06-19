@@ -148,15 +148,15 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
      extensions::Dict, c::Type)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     if has_extension(extensions, Logger)
-        extensions[Logger].log(1,
+        extensions[:Logger].log(1,
          "Toolips Server starting on port " * string(port))
     end
     routefunc, rdct, extensions = generate_router(routes, server, extensions, c)
     @async HTTP.listen(routefunc, ip, port, server = server)
     if has_extension(extensions, Logger)
-        extensions[Logger].log(2,
+        extensions[:Logger].log(2,
          "Successfully started server on port " * string(port))
-         extensions[Logger].log(1,
+         extensions[:Logger].log(1,
          "You may visit it now at http://" * string(ip) * ":" * string(port))
     end
     return(WebServer(ip, rdct, extensions, server))::WebServer

@@ -14,7 +14,64 @@ Toolips.new_app
 Toolips.new_webapp
 ```
 ## a repl crash course
+After a server is running, Toolips has an interactive level that allows you to
+introspect and modify server attributes via the WebServer type. If you start a
+project with new web-app or new-app, then your WebServer type on your new server
+will automatically become (project-name)Server. For example, a ToolipsTutorial
+WebServer would be named ToolipsTutorialServer by default. Let's create a new
+project and get started with the toolips command-line interface.
+```julia
+using Toolips
+Toolips.new_app("MyApp")
 
+julia> Toolips.new_app("MyApp")
+  Generating  project MyApp:
+    MyApp/Project.toml
+    MyApp/src/MyApp.jl
+....
+```
+Now we will cd into our new project directory, and activate dev.jl.
+```julia
+shell> cd MyApp
+/home/emmac/dev/toolips/MyApp
+julia> include("dev.jl")
+  Activating project at `~/dev/toolips/MyApp`
+[2022:06:19:15:37]: 🌷 toolips> Toolips Server starting on port 8000
+[2022:06:19:15:37]: 🌷 toolips> Successfully started server on port 8000
+[2022:06:19:15:37]: 🌷 toolips> You may visit it now at http://127.0.0.1:8000
+```
+Activating this will give us the new variable MyAppServer. To start,
+we can view our routes and extensions by using the methods under those
+same names:
+```julia
+?(routes(ws::WebServer))
+
+julia> routes(MyAppServer)
+Dict{String, Function} with 2 entries:
+  "404" => #1
+  "/"   => home
+
+  julia> Toolips.extensions(MyAppServer)
+ Dict{Symbol, Logger} with 1 entry:
+   :Logger => Logger(:connection, "/home/emmac/dev/toolips/MyApp/logs/log.txt", Dict{Any, Crayons.Crayon}(4=>\e[31;1m, 2=>\e[93m, :message_crayon=>\e[94;1m, 3=>\e[33;1m, 1=>\e[96m, :time_crayon=>
+```
+We can also reroute the server's routes with the route! method:
+```
+route!(MyAppServer, "/") do c::Connection
+    c[:Logger].log("Wow!")
+end
+```
+We can index extensions with a Symbol, and index routes with a String.
+```
+c["/"]
+    home
+c[:Logger]
+    Logger( .....  )
+```
+Lastly, we can kill the server using kill!
+```
+kill!(MyAppServer)
+```
 ## project walkthrough
 Toolips projects  work just like any other Julia project. There is no random
 silliness going on here -- no need to source anything with Bash, merely call
@@ -276,5 +333,8 @@ running the route! method on our WebServer.
 route!(ToolipsTutorialServer, "/", ToolipsTutorial.home)
 ```
 Now, we can finally visit; and click to change the color! Hopefully this little
-overview got you both familiar with Toolips projects, as well as reactivity!
+overview got you both familiar with Toolips projects, as well as reactivity. If
+you would like to try this project out for yourself,
+[here is a link to the source.](https://github.com/ChifiSource/ToolipTutorial.jl)
 ## deploying a toolips server
+Deploying a toolips server goes about the same as any module. Today we will be deploying our ToolipsTutorial.jl web-app from the previous example.

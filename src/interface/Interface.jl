@@ -579,33 +579,93 @@ extensions(ws::WebServer) = ws.extensions
 **Interface**
 ### kill!(ws::WebServer) -> _
 ------------------
-
+Closes the web-server.
 #### example
-
+```
+ws = MyProject.start()
+kill!(ws)
+```
 """
 function kill!(ws::WebServer)
     close(ws.server)
 end
 
 """
+**Interface**
+### route!(f::Function, ws::WebServer, r::String) -> _
+------------------
+Reroutes a server's route r to function f.
+#### example
+```
+ws = MyProject.start()
+route!(ws, "/") do c
+    c[:Logger].log("rerouted!")
+end
+```
 """
 function route!(f::Function, ws::WebServer, r::String)
     ws.routes[r] = f
 end
 
 """
+**Interface**
+### route!(ws::WebServer, r::String, f::Function) -> _
+------------------
+Reroutes a server's route r to function f.
+#### example
+```
+ws = MyProject.start()
+
+function myf(c::Connection)
+    write!(c, "pasta")
+end
+route!(ws, "/", myf)
+```
 """
 route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
 
+"""
+**Interface**
+### route!(ws::WebServer, r::Route) -> _
+------------------
+Reroutes a server's route r.
+#### example
+```
+ws = MyProject.start()
+r = route("/") do c
+
+end
+route!(ws, r)
+```
+"""
 route!(ws::WebServer, r::Route) = ws[r.path] = r.page
 
 """
+**Interface**
+### getindex(ws::WebServer, s::Symbol) -> ::ServerExtension
+------------------
+Indexes the extensions in ws.
+#### example
+```
+ws = MyProject.start()
+ws[:Logger].log("hi")
+```
 """
 function getindex(ws::WebServer, s::Symbol)
     ws.extensions[s]
 end
 
 """
+**Interface**
+### getindex(c::AbstractConnection, s::Symbol) -> ::ServerExtension
+------------------
+Indexes the extensions in c.
+#### example
+```
+route("/") do c::Connection
+    c[:Logger].log("hi")
+end
+```
 """
 function getindex(c::AbstractConnection, s::Symbol)
     if ~(s in keys(c.extensions))
@@ -614,6 +674,18 @@ function getindex(c::AbstractConnection, s::Symbol)
     return(c.extensions[s])
 end
 
+"""
+**Interface**
+### getindex(c::AbstractConnection, t::Type) -> ::ServerExtension
+------------------
+Indexes the extensions in c by type.
+#### example
+```
+route("/") do c::Connection
+    c[Logger].log("hi")
+end
+```
+"""
 function getindex(c::AbstractConnection, t::Type)
     for e in c.extensions
         if e isa t
@@ -622,14 +694,20 @@ function getindex(c::AbstractConnection, t::Type)
     end
 end
 
-function getindex(d::Dict, t::Type)
-    for s in values(d)
-        if typeof(s) == t
-            return(s)
-        end
-    end
-end
-
+"""
+**Interface**
+### getindex(c::VectorServable, str::String) -> ::Servable
+------------------
+Returns the Servable (likely a Component) with the name **str**
+#### example
+```
+comp1 = p("hello")
+comp2 = p("anotherp")
+cs = components(comp1, comp2)
+cs["hello"]
+    Component("hello" ...)
+```
+"""
 function getindex(vs::Vector{Servable}, str::String)
     for s in vs
         if s.name == str
@@ -638,8 +716,20 @@ function getindex(vs::Vector{Servable}, str::String)
     end
 end
 
+"""
+**Interface**
+### has_extension(c::AbstractConnection, t::Type) -> ::Bool
+------------------
+Checks if c.extensions has an extension of type t.
+#### example
+```
+if has_extension(c, Logger)
+    c[:Logger].log("it has a logger, I think.")
+end
+```
+"""
 function has_extension(c::AbstractConnection, t::Type)
-    se = c[s]
+    se = c[t]
     if typeof(se) <: ServerExtension
         return(true)
     else
@@ -647,8 +737,18 @@ function has_extension(c::AbstractConnection, t::Type)
     end
 end
 
-
-
+"""
+**Interface**
+### has_extension(d::Dict, t::Type) -> ::Bool
+------------------
+Checks if d has an extension of type t.
+#### example
+```
+if has_extension(d, Logger)
+    d[:Logger].log("it has a logger, I think.")
+end
+```
+"""
 function has_extension(d::Dict, t::Type)
     se = d[t]
     if typeof(se) <: ServerExtension
@@ -659,24 +759,47 @@ function has_extension(d::Dict, t::Type)
 end
 
 """
+**Interface**
+### getindex(c::AbstractConnection, s::String) -> ::Function
+------------------
+Returns the function that corresponds to the route dir s.
+#### example
+```
+c["/"]
+
+    home
+```
 """
 getindex(c::AbstractConnection, s::String) = c.routes[s]
 
 """
+**Interface**
+### setindex!(c::AbstractConnection, f::Function, s::String) -> _
+------------------
+Sets the route path s to serve at the function f.
+#### example
+```
+c["/"] = c -> write!(c, "hello")
+```
 """
-setindex!(c::AbstractConnection, val::Function, s::String) = c.routes[s] = val
-
+setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
 #==
 Request/Args
 ==#
 """
 **Interface**
-### getargs(::AbstractConnection) -> ::Dict
+### getargs(c::AbstractConnection) -> ::Dict{Symbol, Any}
 ------------------
-The getargs method returns arguments from the HTTP header (GET requests.)
-Returns a full dictionary of these values.
+The getargs method returns arguments from the HTTP target (GET requests.)
+Returns a Dict with the argument keys as Symbols.
 #### example
-
+```
+route("/") do c
+    args = getargs(c)
+    args[:message]
+        "welcome to toolips ! :)"
+end
+```
 """
 function getargs(c::AbstractConnection)
     target::String = split(c.http.message.target, '?')[2]
@@ -686,8 +809,17 @@ function getargs(c::AbstractConnection)
 end
 
 """
+**Internals**
+### argsplit(args::Vector{AbstractString}) -> ::Dict{Symbol, Any}
+------------------
+Used by the getargs method to parse GET arguments into a Dict.
+#### example
+```
+argsplit(["c=5", "b=8"])
+    Dict(:c => 5, :b => 8)
+```
 """
-function argsplit(args::Any)
+function argsplit(args::Vector{AbstractString})
     arg_dict::Dict = Dict()
     for arg in args
         keyarg = split(arg, '=')
@@ -698,10 +830,14 @@ function argsplit(args::Any)
 end
 """
 **Interface**
-### getargs(::AbstractConnection, ::Symbol) -> ::Dict
+### getarg(c::AbstractConnection, s::Symbol) -> ::Any
 ------------------
-Returns the requested arguments from the target.
+Returns the requested argument from the target.
 #### example
+```
+getarg(c, :x)
+    50
+```
 """
 function getarg(c::AbstractConnection, s::Symbol)
     getargs(c)[s]
@@ -709,18 +845,31 @@ end
 
 """
 **Interface**
-### getarg(::AbstractConnection, ::Symbol, ::Type) -> ::Vector
+### getarg(c::AbstractConnection, s::Symbol, t::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
 parsed as type T(). Note that "Cannot convert..." errors are possible with this
 method.
 #### example
+```
+getarg(c, :x, Int64)
+    50
+```
 """
 function getarg(c::AbstractConnection, s::Symbol, T::Type)
     parse(T, getargs(http)[s])
 end
 
 """
+**Interface**
+### getip(c::AbstractConnection) -> ::String
+------------------
+Returns the IP that is connected via the connection c.
+#### example
+```
+getip(c)
+"127.0.0.2"
+```
 """
 function getip(c::AbstractConnection)
     str = c.http.message["User-Agent"]
@@ -738,38 +887,35 @@ end
 
 """
 **Interface**
-### postarg(::AbstractConnection, ::String) -> ::Any
+### getpost(c::AbstractConnection) -> ::String
 ------------------
-Get a body argument of a POST response by name.
+Returns the POST body of c.
 #### example
-
+```
+getpost(c)
+"hello, this is a post request"
+```
 """
-function postarg(c::AbstractConnection, s::String)
-    nothing
-end
-
-
 getpost(c::AbstractConnection) = string(read(c.http))
+
 """
-**Interface**
-### postargs(::AbstractConnection, ::Symbol, ::Type) -> ::Dict
+**Internals**
+### string(r::Vector{UInt8}) -> ::String
 ------------------
-Get arguments from the request body.
-#### example
-
+Turns a vector of UInt8s into a string.
 """
-function postargs(c::AbstractConnection)
-    string(http.message.body)
-end
-
 string(r::Vector{UInt8}) = String(UInt8.(r))
+
 """
 **Interface**
-### get() -> ::Dict
+### get(url::String) -> ::String
 ------------------
 Quick binding for an HTTP GET request.
 #### example
-
+```
+body = get("/")
+    "hi"
+```
 """
 function get(url::String)
     r = HTTP.request("GET", url)
@@ -778,11 +924,14 @@ end
 
 """
 **Interface**
-### post() ->
+### post(url::String) -> ::String
 ------------------
 Quick binding for an HTTP POST request.
 #### example
-
+```
+response = post("/")
+    "my response"
+```
 """
 function post(url::String)
     r = HTTP.request("POST", url)
@@ -791,10 +940,13 @@ end
 
 """
 **Interface**
-### download!() ->
+### download!(c::AbstractConnection, uri::String) -> _
 ------------------
-Downloads a file to a given user's computer.
+Downloads a file to a given Connection's computer.
 #### example
+```
+download!(c, "files/mytext.txt")
+```
 """
 function download!(c::AbstractConnection, uri::String)
     write(c.http, HTTP.Response( 200, body = read(uri, String)))
@@ -806,16 +958,33 @@ end
 ------------------
 Routes a connected stream to a given URL.
 #### example
-
+```
+navigate!(c, "https://github.com/ChifiSource/Toolips.jl")
+```
 """
 function navigate!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.http, status_exception = false)
 end
-
 #==
 show
 ==#
-function showchildren(x)
+"""
+**Internals**
+### showchildren(x::Component) -> ::String
+------------------
+Get the children of x as a markdown string.
+#### example
+```
+c = divider("example")
+child = p("mychild")
+push!(c, child)
+s = showchildren(c)
+println(s)
+"##### children
+|-- mychild
+```
+"""
+function showchildren(x::Component)
     prnt = "##### children \n"
     for c in x[:children]
         prnt = prnt * "|-- " * string(c) * " \n "
@@ -826,6 +995,18 @@ function showchildren(x)
     prnt
 end
 
+"""
+**Interface**
+### string(c::Component) -> ::String
+------------------
+Shows c as a string representation of itself.
+#### example
+```
+c = divider("example", align = "center")
+string(c)
+    "divider: align = center"
+```
+"""
 function string(c::Component)
     base = c.name
     properties = ": "
@@ -838,8 +1019,35 @@ function string(c::Component)
     base * properties
 end
 
-function show(x::Component)
+"""
+**Interface**
+### show(t::Base.TTY, x::Component) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::Component)
     prnt = showchildren(x)
     header = "### " * string(x) * "\n"
     display("text/markdown", header * prnt)
+end
+
+"""
+**Interface**
+### show(x::Component) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(x::Component)
+    spf = SpoofConnection()
+    write!(spf, x)
+    display("text/html", spf.http.text)
 end

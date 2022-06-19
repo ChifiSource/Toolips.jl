@@ -493,7 +493,7 @@ end
 r = route("/", example)
 ```
 """
-route(r::String, f::Function) = route(r, f)
+route(r::String, f::Function) = Route(r, f)::Route
 
 """
 **Interface**

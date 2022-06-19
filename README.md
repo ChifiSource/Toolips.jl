@@ -40,6 +40,7 @@ pkg> add Toolips
   - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
   https://ems.computer/
   - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
+  - [Pasta.jl](https://github.com/emmettgb/Pasta.jl)
 ##### Curated Extensions
 - [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
 - [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables

@@ -126,7 +126,7 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     remove(i::Int64) = deleteat!(routes, i)
     remove(s::String) = deleteat!(findall(routes, r -> r.path == s)[1])
     remove(s::Symbol) = deleteat!(findall(extensions,
-                                            e -> Symbol(typeof(e)) == s)
+                                e -> Symbol(typeof(e)) == s))
     start() = _start(routes, ip, port, extensions, connection)
     return(add, remove, start)
 end

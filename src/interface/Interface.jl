@@ -737,7 +737,7 @@ function has_extension(c::AbstractConnection, t::Type)
 end
 
 """
-**Interface**
+**Internals**
 ### has_extension(d::Dict, t::Type) -> ::Bool
 ------------------
 Checks if d has an extension of type t.
@@ -749,8 +749,7 @@ end
 ```
 """
 function has_extension(d::Dict, t::Type)
-    se = d[t]
-    if typeof(se) <: ServerExtension
+    if Symbol(t) in keys(d)
         return(true)
     else
         return(false)

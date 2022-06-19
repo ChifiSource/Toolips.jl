@@ -64,16 +64,102 @@ field's value. This value can be either a Symbol or a Vector of Symbols.
 abstract type ServerExtension end
 
 """
+### abstract type AbstractConnection
+Connections are passed through function routes and can have Servables written
+    to it.
+##### Consistencies
+- routes::Dict - A {String, Function} dictionary that the server references to
+direct incoming connections.
+- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
+the Base.write method.
+- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
+access ServerExtensions.
 """
 abstract type AbstractConnection end
 
+"""
+### SpoofStream
+- text::String \
+The SpoofStream allows us to fake a connection by building a SpoofConnection
+which will write to the SpoofStream.text field whenever write! is called. This
+is useful for testing, or just writing servables into a string.
+##### example
+```
+stream = SpoofStream()
+write(stream, "hello!")
+println(stream.text)
+
+    hello!
+conn = SpoofConnection()
+servab = Component()
+write!(conn, servab)
+```
+------------------
+##### field info
+- text::String - The text written to the stream.
+------------------
+##### constructors
+- SpoofStream()
+"""
 mutable struct SpoofStream
     text::String
     SpoofStream() = new("")
 end
 
+"""
+**Core**
+### write(s::SpoofStream, e::Any) -> _
+------------------
+A binding to Base.write that allows one to write to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, "hi")
+println(s.text)
+    hi
+```
+"""
 write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
+
+"""
+**Core**
+### write(s::SpoofStream, e::Servable) -> _
+------------------
+A binding to Base.write that allows one to write a Servable to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, p("hello"))
+println(s.text)
+    <p id = "hello"></p>
+```
+"""
 write(c::SpoofStream, s::Servable) = s.f(c)
+
+"""
+### SpoofConnection <: AbstractConnection
+- routes::Dict
+- http::SpoofStream
+- extensions::Dict \
+Builds a fake connection with a SpoofStream. Useful if you want to write
+a Servable without a server.
+##### example
+```
+fakec = SpoofConnection()
+servable = Component()
+# write!(::AbstractConnection, ::Servable):
+write!(fakec, servable)
+```
+------------------
+##### field info
+- routes::Dict - A dictionary of routes, usually left empty.
+- http::SpoofStream - A fake http stream that instead writes output to a string.
+- extensions::Dict - A dictionary of extensions, usually empty.
+------------------
+##### constructors
+- SpoofStream(r::Dict, http::SpoofStream, extensions::Dict)
+- SpoofStream()
+"""
 mutable struct SpoofConnection <: AbstractConnection
     routes::Dict
     http::SpoofStream
@@ -151,11 +237,11 @@ export animate!, style!, delete_keyframe!
 export route, routes, route!, write!, kill!, unroute!, navigate!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost
-
 #==
 Project API
 ==#
 """
+**Core**
 ### create_serverdeps(name::String, inc::String) -> _
 ------------------
 Creates the essential portions of the webapp file structure, where name is the
@@ -186,6 +272,12 @@ module $name
 using Toolips
 $inc
 
+\"\"\"
+home(c::Connection) -> _
+--------------------
+The home function is served as a route inside of your server by default. To
+    change this, view the start method below.
+\"\"\"
 function home(c::Connection)
     write!(c, p("helloworld", text = "hello world!"))
 end
@@ -195,7 +287,10 @@ fourofour = route("404") do c
 end
 
 \"\"\"
-start()
+start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
+--------------------
+The start function comprises routes into a Vector{Route} and then constructs
+    a ServerTemplate before starting and returning the WebServer.
 \"\"\"
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
     extensions::Vector = [Logger()])
@@ -211,11 +306,10 @@ end # - module
 end
 
 """
+**Core**
 ### new_app(::String) -> _
 ------------------
-Creates a minimalistic app, usually used for creating endpoints -- but can
-be used for anything. For an app with a real front-end, it might make sense to
-add some extensions.
+Creates a minimalistic app, usually used for creating APIs and endpoints.
 #### example
 ```
 using Toolips
@@ -258,10 +352,11 @@ function new_app(name::String = "ToolipsApp")
 end
 
 """
+**Core**
 ### new_webapp(::String) -> _
 ------------------
-Creates a fully-featured web-app. Adds ToolipsSession, ideal for full-stack
-web-sites.
+Creates a fully-featured Toolips web-app. Adds ToolipsSession, ideal for
+full-stack web-sites.
 #### example
 ```
 using Toolips
@@ -276,8 +371,7 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         #==
         dev.jl is an environment file. This file loads and starts servers, and
-        defines environmental variables, setting the scope a lexical step higher
-        with modularity.
+        defines environmental variables.
         ==#
         using Pkg; Pkg.activate(".")
         using Toolips

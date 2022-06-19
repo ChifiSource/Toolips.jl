@@ -1,14 +1,13 @@
 include("Extensions.jl")
 
 """
-### Route{T}
+### Route
 - path::String
-- page::T \
+- page::Function \
 A route is added to a ServerTemplate using either its constructor, or the
-ServerTemplate.add(::Route) method. Each route calls either a particular
-servable or function; the type of which denoted by T. The Route type is
-    commonly constructed using the do syntax with the route(::Function, String)
-    method.
+ServerTemplate.add(::Route) method. Each route calls a function.
+The Route type is commonly constructed using the do syntax with the
+route(::Function, ::String) method.
 ##### example
 ```
 # Constructors
@@ -30,10 +29,8 @@ end
 ```
 ------------------
 ##### field info
-- **path::String**
-The path, e.g. "/" at which to direct to the given component.
-- **page::T** (::Function || T <: Component)
-The servable to serve at this given route.
+- path::String - The path to route to the function, e.g. "/".
+- page::Function - The function to route the path to.
 ------------------
 ##### constructors
 - Route(path::String, f::Function)
@@ -66,20 +63,23 @@ webserver = ServerTemplate.start()
 ------------------
 ##### field info
 - ip**::String** - IP the server should serve to.
-- port**::Integer** - Port to listen on..
+- port**::Integer** - Port to listen on.
 - routes**::Vector{Route}** - A vector of routes to provide to the server
-- extensions**::Dict**
-- remove**::Function**
-- add**::Function**
-- start**::Function**
+- extensions**::Vector{ServerExtension}** - A vector of extensions to load into
+the server.
+- remove(::Int64)**::Function** - Removes routes by index.
+- remove(::String)**::Function** - Removes routes by name.
+- remove(::Symbol)**::Function** - Removes extension by Symbol representing
+type, e.g. :Logger
+- add(::Route ...)**::Function** - Adds the routes to the server.
+- add(::ServerExtension ...)**::Function** - Adds the extensions to the server.
+- start()**::Function** - Starts the server.
 ------------------
 ##### constructors
-ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
-            routes::Dict = Vector{Route}());
-            extensions::Dict = Dict(:logger => Logger())
-```
-```
-ServerTemplate(f::Function, ip::String = "127.0.0.1")
+- ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
+            routes::Vector{Route} = Vector{Route}());
+            extensions::Vector{ServerExtension} = [Logger()]
+            connection::Type)
 """
 mutable struct ServerTemplate
     ip::String
@@ -124,14 +124,17 @@ function serverfuncdefs(routes::AbstractVector, ip::String, port::Integer,
     add(r::Route ...) = [push!(routes, route) for route in r]
     add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
     remove(i::Int64) = deleteat!(routes, i)
+    remove(s::String) = deleteat!(findall(routes, r -> r.path == s)[1])
+    remove(s::Symbol) = deleteat!(findall(extensions,
+                                            e -> Symbol(typeof(e)) == s)
     start() = _start(routes, ip, port, extensions, connection)
     return(add, remove, start)
 end
 
 """
-**Core**
+**Core - Internals**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
-extensions::Dict) -> (::Sockets.HTTPServer)
+extensions::Dict, c::Type) -> ::WebServer
 ------------------
 This is an internal function for the ServerTemplate. This function is binded to
     the ServerTemplate.start field.
@@ -160,8 +163,9 @@ function _start(routes::AbstractVector, ip::String, port::Integer,
 end
 
 """
-**Core**
-### generate_router(routes::AbstractVector, server::Any, extensions::Dict)
+**Core - Internals**
+### generate_router(routes::AbstractVector, server::Any, extensions::Dict,
+            conn::Type)
 ------------------
 This method is used internally by the **_start** method. It returns a closure
 function that both routes and calls functions.
@@ -172,7 +176,8 @@ if has_extension(extensions, Logger)
     extensions[Logger].log(1,
      "Toolips Server starting on port " * string(port))
 end
-routefunc, rdct, extensions = generate_router(routes, server, extensions)
+routefunc, rdct, extensions = generate_router(routes, server, extensions,
+                                                Connection)
 @async HTTP.listen(routefunc, ip, port, server = server)
 ```
 """

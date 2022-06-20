@@ -26,7 +26,8 @@ SuperTypes
 Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
-- f::Function - Function whose output to be written to http().
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
 """
 abstract type Servable <: Any end
 
@@ -39,7 +40,8 @@ interface to separate working with Animations and Styles.
 Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
-- f::Function - Function whose output to be written to http().
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
 ```
 """
 abstract type StyleComponent <: Servable end
@@ -63,7 +65,14 @@ Server extensions are loaded into the server on startup, and
 can have a few different abilities according to their type
 field's value. This value can be either a Symbol or a Vector of Symbols.
 ##### Consistencies
-- type::T where T == Vector{Symbol}  || T == Symbol
+- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
+:func, :connection, or any combination inside of a Vector{Symbol}. :routing
+ServerExtensions must have an f() function that takes two dictionaries; e.g.
+f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
+the dictionary of routes, the second is the dictionary of server extensions.
+:func server extensions will be ran everytime the server is routed. They will
+need to have the same f function, but taking a single argument as a connection.
+    Lastly, :connection extensions are simply pushed to the connection.
 """
 abstract type ServerExtension end
 
@@ -111,7 +120,7 @@ mutable struct SpoofStream
 end
 
 """
-**Core**
+**Internals**
 ### write(s::SpoofStream, e::Any) -> _
 ------------------
 A binding to Base.write that allows one to write to SpoofStream.text.
@@ -126,7 +135,7 @@ println(s.text)
 write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
 
 """
-**Core**
+**Internals**
 ### write(s::SpoofStream, e::Servable) -> _
 ------------------
 A binding to Base.write that allows one to write a Servable to SpoofStream.text.
@@ -245,7 +254,7 @@ export getargs, getarg, postargs, postarg, get, post, getip, getpost
 Project API
 ==#
 """
-**Core**
+**Internals**
 ### create_serverdeps(name::String, inc::String) -> _
 ------------------
 Creates the essential portions of the webapp file structure, where name is the

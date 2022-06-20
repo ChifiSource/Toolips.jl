@@ -205,8 +205,10 @@ mutable struct File <: Servable
     f::Function
     function File(dir::String)
         f(c::Connection) = begin
-        open(dir) do f
-            write(c.http, f)
+        if dir in readdir()
+            open(dir) do f
+                write(c.http, f)
+            end
         end
         end
         new(dir, f)

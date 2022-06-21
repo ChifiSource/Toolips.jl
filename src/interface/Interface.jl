@@ -153,7 +153,6 @@ style!(c::Servable, s::Style) = begin
     else
         c.properties[:class] = s.name
     end
-    push!(c, s)
 end
 
 """

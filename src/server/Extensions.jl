@@ -64,7 +64,7 @@ mutable struct Logger <: ServerExtension
                                                 prefix, timeformat, writeat)
         log(message::String) = _log(1, message, levels, out, prefix, timeformat,
         writeat)
-        log(c::Connection, message::String) = _log(c.http, message)
+        log(c::Connection, message::String) = _log(c, message)
         # These bindings are left open-ended for extending via
                                             # import Toolips._log
         log(level::Int64, message::Any) = _log(level, a, levels, out, prefix,
@@ -147,8 +147,8 @@ Binded call for the field log() inside of Logger(). This will log both to the
 log(http::HTTP.Stream, message::String) = _log(http, message)
 ```
 """
-function _log(http::HTTP.Stream, message::String)
-    write(http, "<script>console.log('" * message * "');</script>")
+function _log(c::Connection, message::String)
+    write!(c, "<script>console.log('" * message * "');</script>")
 end
 
 

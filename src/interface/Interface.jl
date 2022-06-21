@@ -922,7 +922,7 @@ end
 
 """
 **Interface**
-### post(url::String) -> ::String
+### post(url::String, body::String) -> ::String
 ------------------
 Quick binding for an HTTP POST request.
 #### example
@@ -931,8 +931,8 @@ response = post("/")
     "my response"
 ```
 """
-function post(url::String)
-    r = HTTP.request("POST", url)
+function post(url::String, body::String)
+    r = HTTP.request("POST", url, body = body)
     string(r.body)
 end
 

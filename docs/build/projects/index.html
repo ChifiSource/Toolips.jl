@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>projects · toolips</title><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.044/juliamono.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../"><img src="../assets/logo.png" alt="toolips logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../">toolips</a></span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">toolips</a></li><li><span class="tocitem">getting started</span><ul><li class="is-active"><a class="tocitem" href>projects</a><ul class="internal"><li><a class="tocitem" href="#creating-a-project"><span>creating a project</span></a></li><li><a class="tocitem" href="#a-repl-crash-course"><span>a repl crash course</span></a></li><li><a class="tocitem" href="#project-walkthrough"><span>project walkthrough</span></a></li><li><a class="tocitem" href="#deploying-a-toolips-server"><span>deploying a toolips server</span></a></li></ul></li><li><a class="tocitem" href="../servables/">servables</a></li><li><a class="tocitem" href="../core/">core</a></li></ul></li><li><a class="tocitem" href="../developer_api/">extending toolips</a></li><li><a class="tocitem" href="../toolips_session/">sessions</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">getting started</a></li><li class="is-active"><a href>projects</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>projects</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/ChifiSource/Toolips.jl" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="projects"><a class="docs-heading-anchor" href="#projects">projects</a><a id="projects-1"></a><a class="docs-heading-anchor-permalink" href="#projects" title="Permalink"></a></h1><p>Projects in Toolips are easy to start. You can either choose to create a project directory structure, or optionally; you can create an entire server inside of your REPL!</p><h2 id="creating-a-project"><a class="docs-heading-anchor" href="#creating-a-project">creating a project</a><a id="creating-a-project-1"></a><a class="docs-heading-anchor-permalink" href="#creating-a-project" title="Permalink"></a></h2><p>Toolips projects are created using the new<em>app and new</em>webapp methods respectively. new<em>app will create a simple project and new</em>webapp will create a full-stack web-app.</p><article class="docstring"><header><a class="docstring-binding" id="Toolips.new_app" href="#Toolips.new_app"><code>Toolips.new_app</code></a> — <span class="docstring-category">Function</span></header><section><div><p><strong>Core</strong></p><p><strong>new_app(::String) -&gt; _</strong></p><hr/><p>Creates a minimalistic app, usually used for creating APIs and endpoints.</p><p><strong>example</strong></p><pre><code class="nohighlight hljs">using Toolips
+Toolips.new_app(&quot;ToolipsApp&quot;)</code></pre></div></section></article><article class="docstring"><header><a class="docstring-binding" id="Toolips.new_webapp" href="#Toolips.new_webapp"><code>Toolips.new_webapp</code></a> — <span class="docstring-category">Function</span></header><section><div><p><strong>Core</strong></p><p><strong>new_webapp(::String) -&gt; _</strong></p><hr/><p>Creates a fully-featured Toolips web-app. Adds ToolipsSession, ideal for full-stack web-sites.</p><p><strong>example</strong></p><pre><code class="nohighlight hljs">using Toolips
+Toolips.new_webapp(&quot;ToolipsApp&quot;)</code></pre></div></section></article><h2 id="a-repl-crash-course"><a class="docs-heading-anchor" href="#a-repl-crash-course">a repl crash course</a><a id="a-repl-crash-course-1"></a><a class="docs-heading-anchor-permalink" href="#a-repl-crash-course" title="Permalink"></a></h2><p>After a server is running, Toolips has an interactive level that allows you to introspect and modify server attributes via the WebServer type. If you start a project with new web-app or new-app, then your WebServer type on your new server will automatically become (project-name)Server. For example, a ToolipsTutorial WebServer would be named ToolipsTutorialServer by default. Let&#39;s create a new project and get started with the toolips command-line interface.</p><pre><code class="language-julia hljs">using Toolips
+Toolips.new_app(&quot;MyApp&quot;)
+
+julia&gt; Toolips.new_app(&quot;MyApp&quot;)
+  Generating  project MyApp:
+    MyApp/Project.toml
+    MyApp/src/MyApp.jl
+....</code></pre><p>Now we will cd into our new project directory, and activate dev.jl.</p><pre><code class="language-julia hljs">shell&gt; cd MyApp
+/home/emmac/dev/toolips/MyApp
+julia&gt; include(&quot;dev.jl&quot;)
+  Activating project at `~/dev/toolips/MyApp`
+[2022:06:19:15:37]: 🌷 toolips&gt; Toolips Server starting on port 8000
+[2022:06:19:15:37]: 🌷 toolips&gt; Successfully started server on port 8000
+[2022:06:19:15:37]: 🌷 toolips&gt; You may visit it now at http://127.0.0.1:8000</code></pre><p>Activating this will give us the new variable MyAppServer. To start, we can view our routes and extensions by using the methods under those same names:</p><pre><code class="language-julia hljs">?(routes(ws::WebServer))
+
+julia&gt; routes(MyAppServer)
+Dict{String, Function} with 2 entries:
+  &quot;404&quot; =&gt; #1
+  &quot;/&quot;   =&gt; home
+
+  julia&gt; Toolips.extensions(MyAppServer)
+ Dict{Symbol, Logger} with 1 entry:
+   :Logger =&gt; Logger(:connection, &quot;/home/emmac/dev/toolips/MyApp/logs/log.txt&quot;, Dict{Any, Crayons.Crayon}(4=&gt;\e[31;1m, 2=&gt;\e[93m, :message_crayon=&gt;\e[94;1m, 3=&gt;\e[33;1m, 1=&gt;\e[96m, :time_crayon=&gt;</code></pre><p>We can also reroute the server&#39;s routes with the route! method:</p><pre><code class="nohighlight hljs">route!(MyAppServer, &quot;/&quot;) do c::Connection
+    c[:Logger].log(&quot;Wow!&quot;)
+end</code></pre><p>We can index extensions with a Symbol, and index routes with a String.</p><pre><code class="nohighlight hljs">c[&quot;/&quot;]
+    home
+c[:Logger]
+    Logger( .....  )</code></pre><p>Lastly, we can kill the server using kill!</p><pre><code class="nohighlight hljs">kill!(MyAppServer)</code></pre><h2 id="project-walkthrough"><a class="docs-heading-anchor" href="#project-walkthrough">project walkthrough</a><a id="project-walkthrough-1"></a><a class="docs-heading-anchor-permalink" href="#project-walkthrough" title="Permalink"></a></h2><p>Toolips projects  work just like any other Julia project. There is no random silliness going on here – no need to source anything with Bash, merely call Julia. After running new<em>app or new</em>webapp, you should be greeted with a new directory named after your project name.</p><pre><code class="language-julia hljs">using Pkg; Pkg.add(&quot;Toolips&quot;)
+using Toolips
+Toolips.new_webapp(&quot;ToolipsTutorial&quot;)</code></pre><pre><code class="language-bash hljs">cd ToolipsTutorial
+~/dev/ToolipsTutorial
+
+tree .
+[.]
+├── dev.jl
+├── prod.jl
+├── Manifest.toml
+├── Project.toml
+├── [logs]
+│   └── log.txt
+├── [public]
+└── [src]
+    └── ToolipsTutorial.jl
+
+3 directories, 6 files
+</code></pre><p>The directory structure is that of a typical Julia project – albeit with a few extra little files and folders. The source code that creates our websites is contained within the <strong>src</strong> directory. A Logger comes loaded as a default extension, although we could remove it if we really wanted to, or likewise – create our own Logger and load it as an extension – which is pretty much what makes toolips great. The Logger by default will log to the <strong>logs</strong> directory. The <strong>public</strong> directory contains any files we want to be served automatically by the Files ServerExtension. This directory will be missing if you decide to utilize the new_app method. The other two things that are not Julia defaults are the files <strong>dev.jl</strong> and <strong>prod.jl</strong>. These are environment files, they store environmental variables to be sourced above the module in Main. Let&#39;s take a look:</p><h3 id="dev.jl"><a class="docs-heading-anchor" href="#dev.jl">dev.jl</a><a id="dev.jl-1"></a><a class="docs-heading-anchor-permalink" href="#dev.jl" title="Permalink"></a></h3><pre><code class="language-julia hljs">#==
+dev.jl is an environment file. This file loads and starts servers, and
+defines environmental variables, setting the scope a lexical step higher
+with modularity.
+==#
+using Pkg; Pkg.activate(&quot;.&quot;)
+using Toolips
+using Revise
+using ToolipsModifier
+using ToolipsTutorial
+
+IP = &quot;127.0.0.1&quot;
+PORT = 8000
+#==
+Extension description
+:logger -&gt; Logs messages into both a file folder and the terminal.
+:public -&gt; Routes the files from the public directory.
+:mod -&gt; ToolipsModifier; allows us to make Servables reactive. See ?(on)
+==#
+extensions = Dict(:logger =&gt; Logger(), :public =&gt; Files(&quot;public&quot;),
+:mod =&gt; Modifier())
+ToolipsTutorialServer = ToolipsTutorial.start(IP, PORT, extensions)</code></pre><p>Firstly, dev.jl activates the project environment with Pkg. Next, we load all of the dependencies. The first one is the most obvious; you are reading the documentation for it. The second one is Revise. Revise.jl allows us to update our modules <strong>while</strong> they are loaded into main. This just makes rerouting easier, as you can modify the text file, save it, update the routes, and then your new website is up with no downtime. No worries, I will be showing how this is done in no time. First though, we will also consider the extensions section. I have been kind enough to leave a little note here,</p><pre><code class="nohighlight hljs">Extension description
+:logger -&gt; Logs messages into both a file folder and the terminal.
+:public -&gt; Routes the files from the public directory.
+:mod -&gt; ToolipsModifier; allows us to make Servables reactive. See ?(on)</code></pre><p>This describes what each extension does. Of course, all the effort it takes to add more is merely adding them via Pkg and adding them to this dictionary. We are going to include this file in order to start the server. We would include <strong>prod.jl</strong> if we wanted to start a production server, which is a very similar file in content, jut missing the Revise.jl First, let us take a look at the source file.</p><h3 id="src.jl"><a class="docs-heading-anchor" href="#src.jl">src.jl</a><a id="src.jl-1"></a><a class="docs-heading-anchor-permalink" href="#src.jl" title="Permalink"></a></h3><pre><code class="language-julia hljs">module ToolipsTutorial
+using Toolips
+using ToolipsModifier
+
+function home(c::Connection)
+    write!(c, p(&quot;helloworld&quot;, text = &quot;hello world!&quot;))
+end
+
+fourofour = route(&quot;404&quot;) do c
+    write!(c, p(&quot;404message&quot;, text = &quot;404, not found!&quot;))
+end
+
+&quot;&quot;&quot;
+start()
+&quot;&quot;&quot;
+function start(IP::String = &quot;127.0.0.1&quot;, PORT::Integer = 8000,
+    extensions::Dict = Dict(:logger =&gt; Logger()))
+    rs = routes(route(&quot;/&quot;, home), fourofour)
+    server = ServerTemplate(IP, PORT, rs, extensions = extensions)
+    server.start()
+end
+
+end # - module</code></pre><h5 id="start"><a class="docs-heading-anchor" href="#start">start</a><a id="start-1"></a><a class="docs-heading-anchor-permalink" href="#start" title="Permalink"></a></h5><p>This file will likely look a bit different in the future, with a bit more documentation, and maybe a more illustrious default project, but do not fret – the names will all be the same and the file similar enough! The <strong>start</strong> function is probably the most important here. This function constructs our Routes, makes a ServerTemplate and then runs ServerTemplate.start(), returning a WebServer. Back up in <strong>dev.jl</strong> we see that this is aptly named &quot;projectnameServer&quot;</p><pre><code class="language-julia hljs">extensions = Dict(:logger =&gt; Logger(), :public =&gt; Files(&quot;public&quot;),
+:mod =&gt; Modifier())
+ToolipsTutorialServer = ToolipsTutorial.start(IP, PORT, extensions)</code></pre><h5 id="home"><a class="docs-heading-anchor" href="#home">home</a><a id="home-1"></a><a class="docs-heading-anchor-permalink" href="#home" title="Permalink"></a></h5><pre><code class="language-julia hljs">function home(c::Connection)
+    write!(c, p(&quot;helloworld&quot;, text = &quot;hello world!&quot;))
+end</code></pre><p>The home function is a function built to be routed to. We can tell this is the ] case because it takes a Connection as its only argument. This is one method of making a route. Inside the function, c is written to using the write! method. Keep this method in mind, as we will be using it a lot; it is the primary output for toolips. There is also a component constructed via the p() method. This just creates a p. The id of the p will be its name, &quot;helloworld&quot;, and the text; which modifies the inner text of a given element. The other special key is :children, which is of type Vector{Servable}. This will be any children to write to the stream inside of this tag. Children are usually added via the <strong>push!(::Servable, ::Servable)</strong> method.</p><h5 id="fourofour"><a class="docs-heading-anchor" href="#fourofour">fourofour</a><a id="fourofour-1"></a><a class="docs-heading-anchor-permalink" href="#fourofour" title="Permalink"></a></h5><pre><code class="language-julia hljs">fourofour = route(&quot;404&quot;) do c
+    write!(c, p(&quot;404message&quot;, text = &quot;404, not found!&quot;))
+end</code></pre><p>The fourofour is made as a global variable of type Route, rather than as a function.</p><h3 id="command-line-interface"><a class="docs-heading-anchor" href="#command-line-interface">command line interface</a><a id="command-line-interface-1"></a><a class="docs-heading-anchor-permalink" href="#command-line-interface" title="Permalink"></a></h3><p>We have a few different options when it comes to starting the server. These options of course come with all toolips servers. The first of which is to load a server as a module. Most modular servers will use the Module.start() method, just like our project ToolipsTutorial does above. This is ideal if</p><ul><li>You want to try someone else&#39;s Toolips Application.</li><li>The module you are working with is an Application.</li><li>The module you are working with is an extension; then the module is used</li></ul><p>inside of another project, just to be clear.</p><pre><code class="language-julia hljs">using Pkg
+Pkg.add(url = &quot;https://github.com/ChifiSource/ToolipsApp.jl&quot;)
+using ToolipsApp
+ToolipsAppServer = ToolipsApp.start()</code></pre><p>Alternatively, we can always git clone the repository, or with a project we started serve our project. This is ideal if</p><ul><li>You want to put the server into production.</li><li>You want to develop the project. <br/></li></ul><p>We can start the server in this way by utilizing the environment files discussed before. This is done either via the include(&quot;&quot;) method in the REPL, or via the -L parameter in Bash.</p><pre><code class="language-julia hljs">pwd()
+&quot;~/dev/ToolipsTutorial&quot;
+include(&quot;dev.jl&quot;)
+#==
+[ Info: Precompiling ToolipsTutorial [9dd80660-3bd1-4940-be1d-3a5faeb076a0]
+[2022-06-14T18:50:45.970]: Toolips Server starting on port 8000
+[2022-06-14T18:50:46.521]: Successfully started server on port 8000
+[2022-06-14T18:50:46.966]: You may visit it now at http://127.0.0.1:8000
+==#</code></pre><pre><code class="language-bash hljs">julia -L dev.jl
+[ Info: Precompiling ToolipsTutorial [9dd80660-3bd1-4940-be1d-3a5faeb076a0]
+[2022-06-14T18:50:45.970]: Toolips Server starting on port 8000
+[2022-06-14T18:50:46.521]: Successfully started server on port 8000
+[2022-06-14T18:50:46.966]: You may visit it now at http://127.0.0.1:8000</code></pre><p>Wow now you can see the exact date and time at which I did that, cool. Anyway, with our new toolips server running, we can introspect its routes:</p><pre><code class="language-julia hljs">ToolipsTutorialServer.routes
+Dict{String, Function} with 3 entries:
+  &quot;404&quot;              =&gt; #1
+  &quot;/&quot;                =&gt; home
+  &quot;/modifier/linker&quot; =&gt; document_linker
+  julia&gt; typeof(ToolipsTutorialServer)
+  WebServer</code></pre><p>The /modifier/linker route is provided to us by our Modifier extension. We also see that the type of this new variable is WebServer. Viewing the server in the web-browser yields us a small p with a label &quot;hello world!&quot;. We can also route the server using the route! method, or access extensions and routes by indexing. This is the same way we would use the route() function as is done in our source file. We access Connection extensions by indexing a Connection with a Symbol. We can also access and change routes by indexing with a String. This same methodology is also applied to the WebServer, so we can index it in the same way, as well.</p><pre><code class="language-julia hljs">route!(ToolipsTutorialServer, &quot;/cupcakes&quot;) do c::Connection
+    write!(c, &quot;emmy LOVES CUPCAAAKES&quot;)
+    c[:logger].log(1, &quot;hello&quot;)
+end
+
+[2022-06-14T19:29:32.180]: hello
+&quot;emmy LOVES CUPCAAAKES&quot;</code></pre><p>Let&#39;s develop our emmy loves cupcakes app a bit further, by instead making it our project route function. Don&#39;t close up the REPL, though! we will still be using it!</p><h3 id="making-applications"><a class="docs-heading-anchor" href="#making-applications">making applications</a><a id="making-applications-1"></a><a class="docs-heading-anchor-permalink" href="#making-applications" title="Permalink"></a></h3><p>Lets return to our project source file,</p><pre><code class="language-julia hljs">function home(c::Connection)
+    redclass = Style(&quot;redtxt&quot;, color = &quot;red&quot;)
+    blueclass = Style(&quot;bluetxt&quot;, color = &quot;lightblue&quot;)
+    heading = h(&quot;cupkakes&quot;, 1, text = &quot;Cupcakes&quot;)
+    write!(c, p(&quot;clicktod&quot;,
+    text = &quot;click to make the heading change color; double click to send to red.&quot;))
+    write!(c, components(redclass, blueclass))
+    on(c, heading, &quot;click&quot;) do cm::ComponentModifier
+        style!(cm, heading, blueclass)
+    end
+    on(c, heading, &quot;dblclick&quot;) do cm::ComponentModifier
+        style!(cm, heading, redclass)
+    end
+    write!(c, heading)
+end</code></pre><p>Here I added an on() method call. This method call allows us to modify components on events. In this example, clicking will make the heading invisible. It is incredibly easy, but incredibly possible! The last step is going to be running the route! method on our WebServer.</p><pre><code class="language-julia hljs">route!(ToolipsTutorialServer, &quot;/&quot;, ToolipsTutorial.home)</code></pre><p>Now, we can finally visit; and click to change the color! Hopefully this little overview got you both familiar with Toolips projects, as well as reactivity. If you would like to try this project out for yourself, <a href="https://github.com/ChifiSource/ToolipTutorial.jl">here is a link to the source.</a></p><h2 id="deploying-a-toolips-server"><a class="docs-heading-anchor" href="#deploying-a-toolips-server">deploying a toolips server</a><a id="deploying-a-toolips-server-1"></a><a class="docs-heading-anchor-permalink" href="#deploying-a-toolips-server" title="Permalink"></a></h2><p>Toolips projects can very easily be deployed with SSL. This overview will demonstrate an example of deploying a non-containerized Toolips.jl project with NGINX. This is because this is likely the most interpretable overview to carry into deploying any project. We will be deploying toolips app with SSL on my server.</p><h5 id="tech-stack"><a class="docs-heading-anchor" href="#tech-stack">tech stack</a><a id="tech-stack-1"></a><a class="docs-heading-anchor-permalink" href="#tech-stack" title="Permalink"></a></h5><ul><li>Julia <strong>1.7.2</strong></li><li>Toolips.jl <strong>0.1.0</strong></li><li></li></ul></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../">« toolips</a><a class="docs-footer-nextpage" href="../servables/">servables »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.19 on <span class="colophon-date" title="Tuesday 21 June 2022 03:03">Tuesday 21 June 2022</span>. Using Julia version 1.7.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -112,7 +112,7 @@ using Main.Toolips
 end
 @testset "Core" begin
     r = route("/") do c::Connection
-
+        write!(c, "hello")
     end
     logger = Logger()
     files = Files("stuff")
@@ -133,24 +133,17 @@ end
     end
 end
 
-@testset "LiveApp" begin
-    r = route("/") do c::Connection
+r = route("/") do c::Connection
 
-    end
+end
+
+@testset "LiveApp" begin
     logger = Logger()
     files = Files("stuff")
     st = ServerTemplate("127.0.0.1", 8005, routes(r),
-                        extensions = [logger, files])
+                        extensions = [files])
     ws = st.start()
     @test typeof(ws) == Main.Toolips.WebServer
-    @testset "General Methods" begin
-
-    end
-    @testset "Connection Methods" begin
-
-    end
-    @testset "Writes" begin
-
-    end
-#    Toolips.new_app("CoolApp")
 end # - App
+
+kill!(ws)

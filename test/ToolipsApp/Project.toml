@@ -1,7 +1,0 @@
-name = "ToolipsApp"
-uuid = "b06fe1d0-566e-43ae-8b35-997fa6ae7364"
-authors = ["emmac "]
-version = "0.1.0"
-
-[deps]
-HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"

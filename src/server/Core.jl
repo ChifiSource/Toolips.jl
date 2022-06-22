@@ -101,6 +101,27 @@ mutable struct ServerTemplate
 end
 
 """
+### WebServer <: ToolipsServer
+- host::String
+- routes::Dict
+- extensions::Dict
+- server::Any \
+A web-server is given as a return from a ServerTemplate whenever
+ServerTemplate.start() is ran. It can be rerouted with route! and indexed
+similarly to the Connection, with Symbols representing extensions and Strings
+representing routes.
+##### example
+```
+st = ServerTemplate()
+ws = st.start()
+routes(ws)
+...
+extensions(ws)
+...
+route!(ws, "/") do c::Connection
+    write!(c, "hello")
+end
+```
 """
 mutable struct WebServer <: ToolipsServer
     host::String
@@ -183,7 +204,7 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 """
 function generate_router(routes::AbstractVector, server, extensions::Dict,
     conn::Type)
-    route_paths = Dict([route.path => route.page for route in routes])
+    route_paths = Dict{String, Function}([route.path => route.page for route in routes])
     # Load Extensions
     ces::Dict = Dict{Any, Any}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()

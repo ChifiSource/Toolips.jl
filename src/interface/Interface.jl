@@ -148,7 +148,7 @@ style!(serv, mystyle)
 ```
 """
 style!(c::Servable, s::Style) = begin
-    if contains(s.name, ".")
+    if contains(s.name, ".") && s.name[1] == "."
         c.properties[:class] = string(split(s.name, ".")[2])
     else
         c.properties[:class] = s.name
@@ -232,7 +232,7 @@ delete_keyframe!(anim, 0)
 ```
 """
 function delete_keyframe!(a::Animation, key::Int64)
-    delete!(s.keyframes, "$key%")
+    delete!(a.keyframes, "$key%")
 end
 
 """
@@ -248,7 +248,7 @@ delete_keyframe!(anim, :to)
 ```
 """
 function delete_keyframe!(a::Animation, key::Symbol)
-    delete!(s.keyframes, key)
+    delete!(a.keyframes, string(key))
 end
 
 """

@@ -2,6 +2,7 @@
 ### Component <: Servable
 - name::String
 - f::Function
+- tag::String
 - properties::Dict \
 A component is a standard servable which is used to represent HTML tag
 structures. Indexing a Component with a Symbol or a String will return or set

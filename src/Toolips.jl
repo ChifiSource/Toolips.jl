@@ -12,8 +12,12 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 """
 module Toolips
 using Crayons
-using Sockets, HTTP, Pkg, ParseNotEval, Dates
-import Base: getindex, setindex!, push!, get, string
+using Sockets
+using HTTP
+using Pkg
+using ParseNotEval
+using Dates
+import Base: getindex, setindex!, push!, get, string, write, show, display
 #==
 SuperTypes
 ==#
@@ -22,7 +26,8 @@ SuperTypes
 Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
-- f::Function - Function whose output to be written to http().
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
 """
 abstract type Servable <: Any end
 
@@ -35,7 +40,8 @@ interface to separate working with Animations and Styles.
 Servables can be written to a Connection via thier f() function and the
 interface. They can also be indexed with strings or symbols to change properties
 ##### Consistencies
-- f::Function - Function whose output to be written to http().
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
 ```
 """
 abstract type StyleComponent <: Servable end
@@ -59,12 +65,125 @@ Server extensions are loaded into the server on startup, and
 can have a few different abilities according to their type
 field's value. This value can be either a Symbol or a Vector of Symbols.
 ##### Consistencies
-- type::T where T == Vector{Symbol}  || T == Symbol
+- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
+:func, :connection, or any combination inside of a Vector{Symbol}. :routing
+ServerExtensions must have an f() function that takes two dictionaries; e.g.
+f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
+the dictionary of routes, the second is the dictionary of server extensions.
+:func server extensions will be ran everytime the server is routed. They will
+need to have the same f function, but taking a single argument as a connection.
+    Lastly, :connection extensions are simply pushed to the connection.
 """
 abstract type ServerExtension end
 
 """
-### Connection
+### abstract type AbstractConnection
+Connections are passed through function routes and can have Servables written
+    to it.
+##### Consistencies
+- routes::Dict - A {String, Function} dictionary that the server references to
+direct incoming connections.
+- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
+the Base.write method.
+- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
+access ServerExtensions.
+"""
+abstract type AbstractConnection end
+
+"""
+### SpoofStream
+- text::String \
+The SpoofStream allows us to fake a connection by building a SpoofConnection
+which will write to the SpoofStream.text field whenever write! is called. This
+is useful for testing, or just writing servables into a string.
+##### example
+```
+stream = SpoofStream()
+write(stream, "hello!")
+println(stream.text)
+
+    hello!
+conn = SpoofConnection()
+servab = Component()
+write!(conn, servab)
+```
+------------------
+##### field info
+- text::String - The text written to the stream.
+------------------
+##### constructors
+- SpoofStream()
+"""
+mutable struct SpoofStream
+    text::String
+    SpoofStream() = new("")
+end
+
+"""
+**Internals**
+### write(s::SpoofStream, e::Any) -> _
+------------------
+A binding to Base.write that allows one to write to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, "hi")
+println(s.text)
+    hi
+```
+"""
+write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
+
+"""
+**Internals**
+### write(s::SpoofStream, e::Servable) -> _
+------------------
+A binding to Base.write that allows one to write a Servable to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, p("hello"))
+println(s.text)
+    <p id = "hello"></p>
+```
+"""
+write(c::SpoofStream, s::Servable) = s.f(c)
+
+"""
+### SpoofConnection <: AbstractConnection
+- routes::Dict
+- http::SpoofStream
+- extensions::Dict \
+Builds a fake connection with a SpoofStream. Useful if you want to write
+a Servable without a server.
+##### example
+```
+fakec = SpoofConnection()
+servable = Component()
+# write!(::AbstractConnection, ::Servable):
+write!(fakec, servable)
+```
+------------------
+##### field info
+- routes::Dict - A dictionary of routes, usually left empty.
+- http::SpoofStream - A fake http stream that instead writes output to a string.
+- extensions::Dict - A dictionary of extensions, usually empty.
+------------------
+##### constructors
+- SpoofStream(r::Dict, http::SpoofStream, extensions::Dict)
+- SpoofStream()
+"""
+mutable struct SpoofConnection <: AbstractConnection
+    routes::Dict
+    http::SpoofStream
+    extensions::Dict
+    function SpoofConnection(r::Dict, http::SpoofStream, extensions::Dict)
+        new(r, SpoofStream(), extensions)
+    end
+    SpoofConnection() = new(Dict(), SpoofStream(), Dict())
+end
+"""
+### Connection <: AbstractConnection
 - routes::Dict
 - http::HTTP.Stream
 - extensions::Dict
@@ -98,7 +217,7 @@ name to reference as keys and the extension as the pair.
 ##### constructors
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
-mutable struct Connection
+mutable struct Connection <: AbstractConnection
     routes::Dict
     http::HTTP.Stream
     extensions::Dict
@@ -115,9 +234,9 @@ include("server/Core.jl")
 include("interface/Interface.jl")
 
 # Core Server
-export ServerTemplate, Route, Connection, WebServer
+export ServerTemplate, Route, Connection, WebServer, Servable
 # Server Extensions
-export Logger, Files, Document
+export Logger, Files
 # Servables
 export File, Component
 export Animation, Style
@@ -126,16 +245,16 @@ export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
 export title, span, iframe, svg, element, label, script, nav, button, form
 export element, label, script, nav, button, form
 # High-level api
-export push!, getindex, setindex!, properties!, components
-export animate!, style!, keyframe!, delete_keyframe!, @keyframe!
-export route, routes, route!, write!, stop!, unroute!, navigate!, stop!
+export push!, getindex, setindex!, properties!, components, has_children
+export animate!, style!, delete_keyframe!
+export route, routes, route!, write!, kill!, unroute!, navigate!
 export has_extension
 export getargs, getarg, postargs, postarg, get, post, getip, getpost
-
 #==
 Project API
 ==#
 """
+**Internals**
 ### create_serverdeps(name::String, inc::String) -> _
 ------------------
 Creates the essential portions of the webapp file structure, where name is the
@@ -166,6 +285,12 @@ module $name
 using Toolips
 $inc
 
+\"\"\"
+home(c::Connection) -> _
+--------------------
+The home function is served as a route inside of your server by default. To
+    change this, view the start method below.
+\"\"\"
 function home(c::Connection)
     write!(c, p("helloworld", text = "hello world!"))
 end
@@ -175,10 +300,13 @@ fourofour = route("404") do c
 end
 
 \"\"\"
-start()
+start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
+--------------------
+The start function comprises routes into a Vector{Route} and then constructs
+    a ServerTemplate before starting and returning the WebServer.
 \"\"\"
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
-    extensions::Dict = Dict(:logger => Logger()))
+    extensions::Vector = [Logger()])
     rs = routes(route("/", home), fourofour)
     server = ServerTemplate(IP, PORT, rs, extensions = extensions)
     server.start()
@@ -191,11 +319,10 @@ end # - module
 end
 
 """
+**Core**
 ### new_app(::String) -> _
 ------------------
-Creates a minimalistic app, usually used for creating endpoints -- but can
-be used for anything. For an app with a real front-end, it might make sense to
-add some extensions.
+Creates a minimalistic app, usually used for creating APIs and endpoints.
 #### example
 ```
 using Toolips
@@ -215,11 +342,11 @@ function new_app(name::String = "ToolipsApp")
         using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger())
-        using $name
+        extensions = [Logger()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -227,21 +354,22 @@ function new_app(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger())
-        using $name
+        extensions = [Logger()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
 end
 
 """
+**Core**
 ### new_webapp(::String) -> _
 ------------------
-Creates a fully-featured web-app. Adds ToolipsModifier, ideal for full-stack
-web-sites.
+Creates a fully-featured Toolips web-app. Adds ToolipsSession, ideal for
+full-stack web-sites.
 #### example
 ```
 using Toolips
@@ -250,30 +378,29 @@ Toolips.new_webapp("ToolipsApp")
 """
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
-    create_serverdeps(name, "using ToolipsModifier")
+    create_serverdeps(name, "using ToolipsSession")
+    Pkg.add(url = "https://github.com/ChifiSource/ToolipsSession.jl.git")
     open(name * "/dev.jl", "w") do io
         write(io, """
         #==
         dev.jl is an environment file. This file loads and starts servers, and
-        defines environmental variables, setting the scope a lexical step higher
-        with modularity.
+        defines environmental variables.
         ==#
         using Pkg; Pkg.activate(".")
         using Toolips
+        using ToolipsSession
         using Revise
-        using ToolipsModifier
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
         #==
         Extension description
-        :logger -> Logs messages into both a file folder and the terminal.
-        :public -> Routes the files from the public directory.
-        :mod -> ToolipsModifier; allows us to make Servables reactive. See ?(on)
+        Logger -> Logs messages into both a file folder and the terminal.
+        Files -> Routes the files from the public directory.
+        Session -> ToolipsSession; allows us to make Servables reactive. See ?(on)
         ==#
-        extensions = Dict(:logger => Logger(), :public => Files("public"),
-        :mod => Modifier())
-        using $name
+        extensions = [Logger(), Files("public"), Session()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end
@@ -281,12 +408,12 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsModifier
+        using ToolipsSession
+        using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = Dict(:logger => Logger(), :public => Files("public"))
-        using $name
+        extensions = [Logger(), Files("public"), Session()]
         $servername = $name.start(IP, PORT, extensions)
         """)
     end

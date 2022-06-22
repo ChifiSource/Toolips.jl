@@ -32,8 +32,7 @@ pkg> add Toolips
   
 ## Links
 ##### Documentation
-  - [Interactive Documentation]()
-  - [Juliahub Documentation]()
+  - [Juliahub Documentation](https://docs.juliahub.com/Toolips/TrAr4)
 ##### Examples
   - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) \
   https://toolips.app/
@@ -46,7 +45,7 @@ pkg> add Toolips
 - [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
 - [ToolipsCanvas]() - Servables
 ## Basics
-  Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between.
+  Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Routing with toolips is done using the route() method, which will return a route. We then put our route into a ServerTemplate, which can be started using the ServerTemplate.start() function.
 ```julia
   using Toolips
   using JLD2
@@ -137,35 +136,5 @@ rs = routes(hello_world, fourofour)
 main(rs)
   ```
   We can include "dev.jl" to start our development server!
-## Crash Course
-There are different portions of Toolips.jl that we need to be aware of in order to better understand Toolips. Firstly, there is the interface portion, which is split into two parts; Servables and Interface. The other portion of Toolips is the Server portion, which is also split into two parse: Extensions, and the Core Server. The most declarative of these is of course the Interface.
-  #### Servables
-  Servables are types that always have two fields: a Function called f, and a Dict{Any, Any} called properties. Servables are passed through either the route() or the write!() function in order to be written to a connection.
-  ```julia
-  s = divider("mydivider")
-  typeof(s)
-  
-  Component
-  
-  typeof(s) <: Toolips.Servable
-         
-  true
-  ```
-Servables can both be constructed with properties, or properties can be added or checked by setting or getting indexes. Servables can also be written into Connections using the write! method.
-```julia
-image = img("image", src = "/images/example.png")
-subtitle = h("subtitle", 4, text = "This is an example")
-route("/") do c::Connection
-      write!(c, image)
-      write!(c, subtitle)
-               # We can also group servables:
-     cs = components(image, subtitle)
-               write!(c, cs)
-end
-```
-  #### Interface
- 
-  #### Core
-  #### ServerExtensions
   </div>
   </details>

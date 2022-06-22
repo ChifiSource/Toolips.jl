@@ -14,14 +14,15 @@ Documenter.makedocs(root = ".",
        expandfirst = [],
        pages = Any[
                 "toolips" => "index.md",
-                "getting started" => Any[
+                "basics" => Any[
                 "projects" => "projects.md",
                 "servables" => "interface.md",
                 "core" => "core.md"
                 ],
-                "advanced usage" => Any[
+                "advanced" => Any[
+                "session extension" => "toolips_session.md",
+                "creating servables" => "creating_servables.md",
                 "extending toolips" => "developer_api.md",
-               "sessions" => "toolips_session.md"
                ]
                ]
        )

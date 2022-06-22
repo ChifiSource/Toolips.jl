@@ -16,11 +16,12 @@ Component
 ```
 Indexing a component will yield its .properties:
 ```@docs
-getindex(::Servable, ::Symbol)
-getindex(::Servable, ::String)
+getindex(::Component, ::Symbol)
+getindex(::Component, ::String)
 setindex!(::Servable, ::Any, ::Symbol)
-setindex!(::Servable, ::Any, ::Symbol)
+getindex(::Vector{Servable}, ::String)
 setindex!(::Servable, ::Any, ::String)
+getindex(::Servable, ::String)
 ```
 There is a library of default components that comes with toolips. Generally,
 their name coincides with a docstring. All of these take an infinite number of
@@ -49,31 +50,34 @@ nav
 button
 form
 ```
-We can also compose components together using push! and style them using style!
+We can also compose components together using push!, and work with them using the following methods:
 ```@docs
-push!(::Servable, ::Servable)
-push!(::Servable, ::Vector{Servable})
-push!(::Servable, ::Servable ...)
-properties!(::Servable, ::Servable)
-push!(::Component, ::Servable)
+push!(::Component, ::Component ...)
 style!
+components
+Toolips.has_children
+Toolips.properties!
+getindex(::)
 ```
 ## style components
-Style components are change the style of a **Component**
+Style components change the style of a **Component**
 ```@docs
 StyleComponent
 ```
 The main style components are Animations and Styles.
-
-
+```@docs
+Toolips.Style
+```
 
 ```@docs
 Animation
 animate!
+delete_keyframe!
 ```
 Animating and property adjustment is done with indexing.
 ```@docs
-
+setindex!(::Animation, ::Pair, ::Symbol)
+setindex!(::Animation, ::Pair, ::Int64)
 ```
 ## other servables
 The file Servable, as you might expect, serves a file via a directory.

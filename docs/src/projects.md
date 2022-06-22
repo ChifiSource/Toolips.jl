@@ -345,4 +345,59 @@ will be deploying toolips app with SSL on my server.
 ##### tech stack
 - Julia **1.7.2**
 - Toolips.jl **0.1.0**
--
+- NGINX **nginx/1.18.0 (Ubuntu)**
+- Ubuntu **22.04 LTS (GNU/Linux 5.15.0-37-generic x86_64)**
+- Supervisord **4.2.1**
+##### proxy pass
+The first thing we are going to need to do is create our server
+configuration for nginx. This will involve listening on port 80 and
+    then forwarding any incoming connections to the port of our server.
+This also assumes that your domain or IP has already been routed to your DNS and under normal circumstances your domain or IP would be servable. We will go ahead and ssh into our server:
+```bash
+ssh emmac@xx.xxx.xxx
+```
+If you do not have nginx, we are going to need it.
+```bash
+sudo apt install nginx
+```
+Now we need to make our nginx server configuration. This is done by creating a new configuration file at the path `/etc/nginx/conf.d`
+```bash
+cd /etc/nginx/conf.d
+nano toolipsapp.conf
+```
+Now we will add a new server, and create a proxy pass.
+```
+server {
+    server_name toolips.app;
+
+    location / {
+        proxy_pass http://127.0.0.1:8001;
+        proxy_set_header Host $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    }
+}
+```
+Next, reload your configuration
+```bash
+nginx -s reload
+```
+I proxy pass this to http://127.0.0.1:8001. Now lets get our project files setup. We have the choice with toolips to use the project as both a module and a file path. In most cases, when deploying you are probably going to want to have access to the local files of a toolips application, so we are going to do the latter. In order to do so, the first step is to clone the module to our machine with git or scp it over. I like to put mine into the directory `/var/www` , but this is a matter of personal preference. Now that we have our project in its folder at /var/www, we can create a supervisor configuration. Supervisor allows us to run the application without actually being behind the terminal. However, it is also a pretty good idea to go ahead and test the server before starting your supervisor. So cd to your directory and include dev.jl. Try and visit your domain, and if it is not serving then you know something is likely wrong with either your DNS or nginx configuration. When you are ready to configure your supervisor, the configuration files are in `/etc/supervisor/conf.d`
+```bash
+cd /etc/supervisor/conf.d
+nano
+```
+You'll want to use the -L argument to start Julia with, this will automatically load the file and begin a new Julia session.
+```
+[program:toolipsapp]
+directory=/var/www/ToolipsApp.jl
+command=/opt/julia-1.7.3/bin/julia -L prod.jl
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+```
+Finally, we need to reload supervisor.
+```bash
+service supervisor reload
+```
+And if all is well, your server should be up and ready to go!

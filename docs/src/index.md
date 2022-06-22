@@ -2,8 +2,6 @@
 ##### a manic web-development framework
 Toolips.jl is a reactive. full-stack, modular and extendable web-development
 framework written in **pure** Julia.
-```@contents
-```
 #### tutorials
 - Basics - [Creating an API]()
 - Basics - [Building a static site]()

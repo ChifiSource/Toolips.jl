@@ -2,7 +2,7 @@
 Below is a runthrough of all of the documentation pertaining to running a
 Toolips server.
 
-## connections
+## connection
 ```@docs
 Connection
 ```
@@ -18,24 +18,24 @@ end
 We also use the write!() method on our Connection. We can use this on the types
 ::Any, ::Vector{Servable}, and ::Servable.
 ```@docs
-write!(::Connection, ::Any)
-write!(::Connection, ::String)
-write!(::Connection, ::Servable ...)
-write!(::Connection, ::Vector{Servable})
-write!(::Connection, ::Servable)
+write!
 ```
 Or push any data response into a body and startread the body.
 ```@docs
-push!(::Connection, ::Any)
-startread!(::Connection, ::Any)
+push!(::AbstractConnection, ::Any)
+Toolips.startread!(::AbstractConnection)
+Toolips.extensions(::Connection)
+routes(::AbstractConnection)
+has_extension(::AbstractConnection, ::Type)
 ```
 The connection type can be indexed with Symbols, Strings, and Types. Symbols and
 Types will index the extensions. Strings will index the routes. The same goes
 for setting the indexes.
 ```@docs
-getindex(::Connection, ::Symbol)
-getindex(::Connection, ::Type)
-getindex(::Connection, ::String)
+setindex!(::AbstractConnection, ::Function, ::String)
+getindex(::AbstractConnection, ::Symbol)
+getindex(::AbstractConnection, ::Type)
+getindex(::AbstractConnection, ::String)
 ```
 We also use the Connection in order to get arguments, download files, and
 pretty much anything else pertaining to a person's connection.
@@ -43,10 +43,8 @@ pretty much anything else pertaining to a person's connection.
 getarg
 getargs
 getip
-postarg
 getpost
-postargs
-download!
+Toolips.download!
 navigate!
 ```
 We can also check if an extension is present by type.
@@ -66,6 +64,7 @@ modify the routes of a Connection or ToolipsServer
 route
 route!
 unroute!
+routes
 ```
 ## servers
 ToolipsServers are created by ServerTemplates. Here is a look at how to make a
@@ -77,13 +76,12 @@ The ServerTemplate.start() function returns a sub-type of ToolipsServer.
 ```@docs
 ToolipsServer
 WebServer
+getindex(::WebServer, ::Symbol)
+Toolips.routes(::WebServer)
+Toolips.extensions(::WebServer)
 ```
-We can also call some methods on a **WebServer** in order to change our routes
 ## server extensions
-All server extensions have the following consistencies:
-```@docs
-ServerExtension
-```
+Server extensions are provided to the ServerTemplate type. You may read more about them in the developer api.
 There are also a few default extensions included with toolips. These can be used
 by passing them in a Symbol-labeled dictionary as the extensions key-word
 argument on a **ServerTemplate** These are Logger and Files.

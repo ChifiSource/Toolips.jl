@@ -1,6 +1,6 @@
 using Toolips, Documenter
 using Toolips: Servable, ServerExtension, ToolipsServer, SpoofStream
-using Toolips: SpoofConnection, StyleComponent
+using Toolips: SpoofConnection, StyleComponent, AbstractConnection
 using ToolipsSession
 Documenter.makedocs(root = ".",
        source = "src",
@@ -16,7 +16,7 @@ Documenter.makedocs(root = ".",
                 "toolips" => "index.md",
                 "getting started" => Any[
                 "projects" => "projects.md",
-                "servables" => "servables.md",
+                "servables" => "interface.md",
                 "core" => "core.md"
                 ],
                 "advanced usage" => Any[

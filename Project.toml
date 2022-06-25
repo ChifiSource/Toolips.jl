@@ -1,7 +1,7 @@
 name = "Toolips"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
 authors = ["emmac "]
-version = "0.1.0"
+version = "0.0.9"
 
 [deps]
 Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
@@ -15,3 +15,4 @@ Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
 Crayons = "4.1.1"
 HTTP = "0.9.17"
 julia = "1.5"
+ParseNotEval = "0.1.0"

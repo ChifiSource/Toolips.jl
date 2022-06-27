@@ -148,7 +148,7 @@ style!(serv, mystyle)
 ```
 """
 style!(c::Servable, s::Style) = begin
-    if contains(s.name, ".") && s.name[1] == "."
+    if contains(s.name, ".") && s.name[1] != "."
         c.properties[:class] = string(split(s.name, ".")[2])
     else
         c.properties[:class] = s.name

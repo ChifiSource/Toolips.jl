@@ -32,7 +32,7 @@ pkg> add Toolips
   
 ## Links
 ##### Documentation
-  - [Juliahub Documentation](https://docs.juliahub.com/Toolips/TrAr4)
+  - [Documentation](https://doc.toolips.app/)
 ##### Examples
   - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) \
   https://toolips.app/

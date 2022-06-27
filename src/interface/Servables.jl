@@ -3,7 +3,7 @@
 - name::String
 - f::Function
 - tag::String
-- properties::Dict \
+- properties::Dict
 A component is a standard servable which is used to represent HTML tag
 structures. Indexing a Component with a Symbol or a String will return or set
 a Component's property to that index. The two special indexes are :children and
@@ -380,7 +380,7 @@ Style
 - f::Function
 - delay::Float64
 - length::Float64
-- iterations::Integer \
+- iterations::Integer
 An animation can be used to animate Styles with the animate! method. Animating
 is done by indexing by either percentage, or symbols, such as from and to.
 ##### example
@@ -440,7 +440,7 @@ end
 - name::String
 - f::Function
 - properties::Dict{Any, Any}
-- extras::String \
+- extras::String - 
 Creates a style from attributes, can style a Component using the style! method.
 Names should be consistent with CSS names. For example, a default h1 style would
 be named "h1". A heading style for a specific class should be "h1.myheading"

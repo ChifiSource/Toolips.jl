@@ -370,6 +370,58 @@ write!(c, comp)
 """
 form(name::String = ""; args ...) = Component(name, "form", args)::Component
 
+"""
+### section(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = section("newcomp")
+write!(c, comp)
+```
+"""
+section(name::String = ""; args ...) = Component(name, "section",
+                                                                args)::Component
+
+"""
+### body(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = body("newcomp")
+write!(c, comp)
+```
+"""
+body(name::String = ""; args ...) = Component(name, "body", args)::Component
+
+"""
+### header(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = header("newcomp")
+write!(c, comp)
+```
+"""
+header(name::String = ""; args ...) = Component(name, "header", args)::Component
+
+"""
+### footer(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = footer("newcomp")
+write!(c, comp)
+```
+"""
+footer(name::String = ""; args ...) = Component(name, "footer", args)::Component
 
 #==
 Style

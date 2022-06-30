@@ -423,6 +423,7 @@ write!(c, comp)
 """
 footer(name::String = ""; args ...) = Component(name, "footer", args)::Component
 
+DOCTYPE() = "<!DOCTYPE html>"
 #==
 Style
     Components

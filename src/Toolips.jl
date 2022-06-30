@@ -244,9 +244,10 @@ export Animation, Style
 
 export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
 export title, span, iframe, svg, element, label, script, nav, button, form
-export element, label, script, nav, button, form
+export element, label, script, nav, button, form, body, header, section, DOCTYPE
 # High-level api
 export push!, getindex, setindex!, properties!, components, has_children
+export children, getproperties
 export animate!, style!, delete_keyframe!
 export route, routes, route!, write!, kill!, unroute!, navigate!
 export has_extension

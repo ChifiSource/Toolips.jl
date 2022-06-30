@@ -17,7 +17,7 @@ using HTTP
 using Pkg
 using ParseNotEval
 using Dates
-import Base: getindex, setindex!, push!, get, string, write, show, display, :
+import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
 import Base: Pairs
 #==
 SuperTypes

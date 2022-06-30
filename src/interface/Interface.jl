@@ -213,7 +213,7 @@ function (:)(s::Style, name::String, ps::Pair ...)
     newstyle = Style("$(s.name):$name")
     ps = ps[2:length(ps)]
     for pair in ps
-        s[p[1]] = p[2]
+        newstyle[p[1]] = p[2]
     end
     push!(s.extras, newstyle)
 end

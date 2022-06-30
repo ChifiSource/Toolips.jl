@@ -199,22 +199,19 @@ end
 
 """
 **Interface**
-### :(s::Style, name::String, ps::Pair ...)
+### :(s::Style, name::String, ps::Vector{Pair{String, String}})
 ------------------
 Creates a sub-style of a given style with the pairs provided in ps.
 #### example
 ```
 s = Style("buttonstyle", color = "white")
 s["background-color"] = "blue"
-s:"hover", "background-color" => "blue"
+s:"hover":["background-color" => "blue"]
 ```
 """
-function (:)(s::Style, name::String, ps::Pair ...)
+function (:)(s::Style, name::String, ps::Vector{Pair{String, String}})
     newstyle = Style("$(s.name):$name")
-    ps = ps[2:length(ps)]
-    for pair in ps
-        newstyle[p[1]] = p[2]
-    end
+    [push!(newstyle.properties, p) for p in ps]
     push!(s.extras, newstyle)
 end
 

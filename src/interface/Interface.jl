@@ -33,6 +33,51 @@ properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
 **Interface**
+### getproperties(c::Component) -> ::Dict
+------------------
+Returns a Dict of properties inside of c.
+#### example
+```
+props = properties(c)
+```
+"""
+getproperties(c::Component) = c.properties
+
+"""
+**Interface**
+### children(c::Component) -> ::Vector{Servable}
+------------------
+Returns Vector{Servable} of children inside of c.
+#### example
+```
+children(c)
+```
+"""
+children(c::Component) = c.properties[:children]
+
+"""
+**Interface**
+### copy(c::Component) -> ::Component
+------------------
+copies c.
+#### example
+```
+c = p("myp")
+t = copy!(c)
+```
+"""
+function copy(c::Component)
+    props = copy(c.properties)
+    extras = copy(c.extras)
+    tag = copy(c.tag)
+    name = copy(c.name)
+    comp = Component(name, tag, props)
+    comp.extras = extras
+    comp
+end
+
+"""
+**Interface**
 ### has_children(c::Component) -> ::Bool
 ------------------
 Returns true if the given component has children.

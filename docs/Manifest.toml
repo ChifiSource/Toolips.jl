@@ -147,15 +147,15 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 
 [[deps.Toolips]]
 deps = ["Crayons", "Dates", "HTTP", "ParseNotEval", "Pkg", "Sockets"]
-git-tree-sha1 = "ff17761719733ace102dd2123b264a3a21b7ace6"
+git-tree-sha1 = "7133d54663cf0af2962c65a01bd708dfef2b9fb0"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/Toolips.jl.git"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
-version = "0.1.0"
+version = "0.1.2"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "EzXML", "ParseNotEval", "Random", "Toolips"]
-git-tree-sha1 = "2e7aa287aabb5e9b6abd0419e8679ef0326b484a"
+git-tree-sha1 = "5f74f1f7c109b4d6f966f5417d63ee13e087af7a"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/ToolipsSession.jl"
 uuid = "2fe55384-55bc-4df3-9d59-c817d405cd05"

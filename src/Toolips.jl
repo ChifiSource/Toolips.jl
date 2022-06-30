@@ -245,6 +245,7 @@ export Animation, Style
 export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
 export title, span, iframe, svg, element, label, script, nav, button, form
 export element, label, script, nav, button, form, body, header, section, DOCTYPE
+export footer
 # High-level api
 export push!, getindex, setindex!, properties!, components, has_children
 export children, getproperties

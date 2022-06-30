@@ -6,7 +6,7 @@
 - log::Function
 - prefix::String
 - timeformat::String
-- writeat::Int64 \
+- writeat::Int64 -
 A Logger logs information with different levels. Holds the function log(),
 connected to the function _log(). Methods.
 ##### example
@@ -183,7 +183,7 @@ end
 """
 ### File <: Servable
 dir::String
-f::Function \
+f::Function
 Serves a file into a Connection.
 ##### example
 ```
@@ -218,7 +218,7 @@ write!(c::Connection, f::File) = f.f(c)
 ### Files <: ServerExtension
 - type::Symbol
 - directory::String
-- f::Function \
+- f::Function - 
 Writes all files in directory to their own routes in the server.
 ------------------
 ##### field info

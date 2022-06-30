@@ -49,13 +49,20 @@ script
 nav
 button
 form
+Toolips.footer
+body
+header
+section
 ```
 We can also compose components together using push!, and work with them using the following methods:
 ```@docs
 push!(::Component, ::Component ...)
 style!
 components
+Toolips.copy(::Component)
 Toolips.has_children
+Toolips.children
+Toolips.getproperties
 Toolips.properties!
 getindex(::)
 ```
@@ -67,6 +74,7 @@ StyleComponent
 The main style components are Animations and Styles.
 ```@docs
 Toolips.Style
+(:)(::Style, ::String, ::Pair ...)
 ```
 
 ```@docs

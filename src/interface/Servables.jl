@@ -3,7 +3,7 @@
 - name::String
 - f::Function
 - tag::String
-- properties::Dict \
+- properties::Dict
 A component is a standard servable which is used to represent HTML tag
 structures. Indexing a Component with a Symbol or a String will return or set
 a Component's property to that index. The two special indexes are :children and
@@ -369,6 +369,61 @@ write!(c, comp)
 ```
 """
 form(name::String = ""; args ...) = Component(name, "form", args)::Component
+
+"""
+### section(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = section("newcomp")
+write!(c, comp)
+```
+"""
+section(name::String = ""; args ...) = Component(name, "section",
+                                                                args)::Component
+
+"""
+### body(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = body("newcomp")
+write!(c, comp)
+```
+"""
+body(name::String = ""; args ...) = Component(name, "body", args)::Component
+
+"""
+### header(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = header("newcomp")
+write!(c, comp)
+```
+"""
+header(name::String = ""; args ...) = Component(name, "header", args)::Component
+
+"""
+### footer(name::String; args ...) -> ::Component
+------------------
+Returns the form Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = footer("newcomp")
+write!(c, comp)
+```
+"""
+footer(name::String = ""; args ...) = Component(name, "footer", args)::Component
+
+DOCTYPE() = "<!DOCTYPE html>"
 #==
 Style
     Components
@@ -380,7 +435,7 @@ Style
 - f::Function
 - delay::Float64
 - length::Float64
-- iterations::Integer \
+- iterations::Integer
 An animation can be used to animate Styles with the animate! method. Animating
 is done by indexing by either percentage, or symbols, such as from and to.
 ##### example
@@ -440,7 +495,7 @@ end
 - name::String
 - f::Function
 - properties::Dict{Any, Any}
-- extras::String \
+- extras::Vector{Servable}
 Creates a style from attributes, can style a Component using the style! method.
 Names should be consistent with CSS names. For example, a default h1 style would
 be named "h1". A heading style for a specific class should be "h1.myheading"
@@ -466,10 +521,10 @@ mutable struct Style <: StyleComponent
     name::String
     f::Function
     properties::Dict{Any, Any}
-    extras::String
+    extras::Vector{Servable}
     function Style(name::String; props ...)
         properties::Dict = Dict{Any, Any}(props)
-        extras::String = ""
+        extras::Vector{Servable} = Vector{Servable}()
         f(c::AbstractConnection) = begin
             css = "<style>$name { "
             for rule in keys(properties)
@@ -477,8 +532,9 @@ mutable struct Style <: StyleComponent
                 value = string(properties[rule])
                 css = css * "$property: $value; "
             end
-            css = css * "}</style>" * extras
+            css = css * "}</style>"
             write!(c, css)
+            write!(c, extras)
         end
         new(name::String, f::Function, properties::Dict, extras)::Style
     end

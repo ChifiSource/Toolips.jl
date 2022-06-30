@@ -1,6 +1,6 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
-  <h6>v. 0.1.0</h6>
+  <h6>v. 0.1.2</h6>
   
 [![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
@@ -34,16 +34,16 @@ pkg> add Toolips
 ##### Documentation
   - [Documentation](https://doc.toolips.app/)
 ##### Examples
-  - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) \
-  https://toolips.app/
-  - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) \
-  https://ems.computer/
-  - [ChifiSource.jl](https://github.com/ChifiSource/ChifiSource.jl)
-  - [Pasta.jl](https://github.com/emmettgb/Pasta.jl)
+  - [ToolipsApp.jl](https://github.com/emmettgb/ToolipsApp.jl) - Our site - https://toolips.app/
+  - [EmsComputer.jl](https://github.com/emmettgb/EmsComputer.jl) A random website - https://ems.computer/
+  - [Pasta.jl](https://github.com/emmettgb/Pasta.jl) - A full-stack text-editor
+  - [Prrty.jl](https://github.com/ChifiSource/Prrty.jl) - Dashboard generator
 ##### Curated Extensions
-- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension
-- [ToolipsModifier](https://github.com/ChifiSource/ToolipsModifier.jl) - ServerExtension, Servables
-- [ToolipsCanvas]() - Servables
+- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) - ServerExtension, Servables, Enables fullstack interactivity.
+- [ToolipsRemote](https://github.com/ChifiSource/ToolipsRemote.jl) - ServerExtension, Allows remote access via HTTP from a Julia terminal. **work in progress**
+- [ToolipsBase64](https://github.com/ChifiSource/ToolipsBase64.jl) - Servables, Allows for the changing of images by Base64 encoding.
+- [ToolipsUploader](https://github.com/ChifiSource/ToolipsUploader.jl) - ServerExtension, Servables, Allows the uploading of files client-side to be written server-side. **work in progress**
+- [ToolipsDefaults](https://github.com/ChifiSource/ToolipsDefaults.jl) - Servables, Default styles, input components, and more for Toolips. **work in progress**
 ## Basics
   Toolips.jl is not like other web-development frameworks you might have used in the past. Toolips can be used as both a micro-framework and a full-stack framework, as well as everything in between. Routing with toolips is done using the route() method, which will return a route. We then put our route into a ServerTemplate, which can be started using the ServerTemplate.start() function.
 ```julia

@@ -17,7 +17,8 @@ using HTTP
 using Pkg
 using ParseNotEval
 using Dates
-import Base: getindex, setindex!, push!, get, string, write, show, display
+import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
+import Base: Pairs
 #==
 SuperTypes
 ==#
@@ -92,7 +93,7 @@ abstract type AbstractConnection end
 
 """
 ### SpoofStream
-- text::String \
+- text::String
 The SpoofStream allows us to fake a connection by building a SpoofConnection
 which will write to the SpoofStream.text field whenever write! is called. This
 is useful for testing, or just writing servables into a string.
@@ -153,7 +154,7 @@ write(c::SpoofStream, s::Servable) = s.f(c)
 ### SpoofConnection <: AbstractConnection
 - routes::Dict
 - http::SpoofStream
-- extensions::Dict \
+- extensions::Dict -
 Builds a fake connection with a SpoofStream. Useful if you want to write
 a Servable without a server.
 ##### example
@@ -243,9 +244,11 @@ export Animation, Style
 
 export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
 export title, span, iframe, svg, element, label, script, nav, button, form
-export element, label, script, nav, button, form
+export element, label, script, nav, button, form, body, header, section, DOCTYPE
+export footer
 # High-level api
 export push!, getindex, setindex!, properties!, components, has_children
+export children, getproperties
 export animate!, style!, delete_keyframe!
 export route, routes, route!, write!, kill!, unroute!, navigate!
 export has_extension

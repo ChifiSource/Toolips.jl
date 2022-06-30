@@ -3,7 +3,7 @@ include("Extensions.jl")
 """
 ### Route
 - path::String
-- page::Function \
+- page::Function -
 A route is added to a ServerTemplate using either its constructor, or the
 ServerTemplate.add(::Route) method. Each route calls a function.
 The Route type is commonly constructed using the do syntax with the
@@ -51,7 +51,7 @@ end
 - extensions**::Dict**
 - remove**::Function**
 - add**::Function**
-- start**::Function** \
+- start**::Function** -
 The ServerTemplate is used to configure a server before
 running. These are usually made and started inside of a main server file.
 ##### example
@@ -105,7 +105,7 @@ end
 - host::String
 - routes::Dict
 - extensions::Dict
-- server::Any \
+- server::Any - 
 A web-server is given as a return from a ServerTemplate whenever
 ServerTemplate.start() is ran. It can be rerouted with route! and indexed
 similarly to the Connection, with Symbols representing extensions and Strings

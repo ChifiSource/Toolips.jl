@@ -210,7 +210,7 @@ s:"hover", "background-color" => "blue"
 ```
 """
 function (:)(s::Style, name::String, ps::Pair ...)
-    newstyle = Style("$(s.name):name")
+    newstyle = Style("$(s.name):$name")
     ps = ps[2:length(ps)]
     for pair in ps
         s[p[1]] = p[2]

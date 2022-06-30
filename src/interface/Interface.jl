@@ -148,11 +148,29 @@ style!(serv, mystyle)
 ```
 """
 style!(c::Servable, s::Style) = begin
-    if contains(s.name, ".") && s.name[1] != "."
-        c.properties[:class] = string(split(s.name, ".")[2])
-    else
-        c.properties[:class] = s.name
+        c.properties[:class] = split(s.name, ".")[2]
+        push!(c.extras, s)
+end
+
+"""
+**Interface**
+### :(s::Style, name::String, ps::Pair ...)
+------------------
+Creates a sub-style of a given style with the pairs provided in ps.
+#### example
+```
+s = Style("buttonstyle", color = "white")
+s["background-color"] = "blue"
+s:"hover", "background-color" => "blue"
+```
+"""
+function (:)(s::Style, name::String, ps::Pair ...)
+    newstyle = Style("$(s.name):name")
+    ps = ps[2:length(ps)]
+    for pair in ps
+        s[p[1]] = p[2]
     end
+    push!(s.extras, newstyle)
 end
 
 """
@@ -167,6 +185,21 @@ style!(mycomp, "background-color" => "lightblue", "color" => "white")
 ```
 """
 function style!(c::Servable, s::Pair ...)
+    style!(c, [p for p in s])
+end
+
+"""
+**Interface**
+### style!(c::Servable, s::Vector{Pair}) -> _
+------------------
+Applies the style pairs to the servable's "style" property.
+#### example
+```
+mycomp = p("mycomp")
+style!(mycomp, ["background-color" => "lightblue", "color" => "white"])
+```
+"""
+function style!(c::Servable, s::Vector{Pair})
     c["style"] = "'"
     for style in s
         k, v = style[1], style[2]
@@ -216,7 +249,42 @@ function animate!(s::Style, a::Animation)
     else
         s["animation-iteration-count"] = string(a.iterations)
     end
-    s.extras = s.extras * a.f()
+    push!(s.extras, a)
+end
+
+"""
+**Interface**
+### animate!(s::Component, a::Animation) -> _
+------------------
+Sets the animation of a Component directly
+#### example
+```
+anim = Animation("fade_in")
+anim[:from] = "opacity" => "0%"
+anim[:to] = "opacity" => "100%"
+
+myp = p("myp", text = "I fade in!")
+animate!(myp, anim)
+```
+"""
+function animate!(s::Component, a::Animation)
+    push!(s.extras, a)
+    if a.iterations == 0
+        iters = "infinite"
+    else
+        iters = string(a.iterations)
+    end
+    if "style" in keys(s.properties)
+        sty = c["style"]
+        sty[length(sty)] = " "
+        sty = sty * "'animation-name: $(a.name); animation-duration: $(a.length)"
+        sty = sty * "animation-iteration-count: $iters;'"
+        c["style"] = sty
+    else
+        str = "'animation-name: $(a.name); animation-duration: $(a.length);"
+        str = str * "animation-iteration-count: $iters;'"
+        c["style"] = str
+    end
 end
 
 """
@@ -368,8 +436,48 @@ components(c, c2)
 components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
 """
+**Interface**
+### write!(c::AbstractConnection, s::Servable ...) -> _
+------------------
+Writes Servables as Vector{Servable}
+#### example
+```
+write!(c, p("mycomp", text = "hello!"), p("othercomp", text = "hi!"))
+```
 """
 write!(c::AbstractConnection, s::Servable ...) = write!(c, Vector{Servable}(s))
+
+"""
+**Interface**
+### write!(c::AbstractConnection, s::Vector{Component}) -> _
+------------------
+A catch-all for when Vectors are accidentally stored as Vector{Any}.
+#### example
+```
+write!(c, ["hello", p("mycomp", text = "hello!")])
+```
+"""
+function write!(c::AbstractConnection, s::Vector{Any})
+    for servable in s
+        write!(c, s)
+    end
+end
+
+"""
+**Interface**
+### write!(c::AbstractConnection, s::Vector{Component}) -> _
+------------------
+A catch-all for when Vectors are accidentally stored as Vector{Component}.
+#### example
+```
+write!(c, [p("mycomp", text = "bye")])
+```
+"""
+function write!(c::AbstractConnection, s::Vector{Component})
+    for servable in s
+        write!(c, s)
+    end
+end
 
 """
 **Interface**

@@ -369,6 +369,8 @@ write!(c, comp)
 ```
 """
 form(name::String = ""; args ...) = Component(name, "form", args)::Component
+
+
 #==
 Style
     Components
@@ -440,7 +442,7 @@ end
 - name::String
 - f::Function
 - properties::Dict{Any, Any}
-- extras::String - 
+- extras::Vector{Servable}
 Creates a style from attributes, can style a Component using the style! method.
 Names should be consistent with CSS names. For example, a default h1 style would
 be named "h1". A heading style for a specific class should be "h1.myheading"
@@ -466,10 +468,10 @@ mutable struct Style <: StyleComponent
     name::String
     f::Function
     properties::Dict{Any, Any}
-    extras::String
+    extras::Vector{Servable}
     function Style(name::String; props ...)
         properties::Dict = Dict{Any, Any}(props)
-        extras::String = ""
+        extras::Vector{Servable} = Vector{Servable}()
         f(c::AbstractConnection) = begin
             css = "<style>$name { "
             for rule in keys(properties)
@@ -477,8 +479,9 @@ mutable struct Style <: StyleComponent
                 value = string(properties[rule])
                 css = css * "$property: $value; "
             end
-            css = css * "}</style>" * extras
+            css = css * "}</style>"
             write!(c, css)
+            write!(c, extras)
         end
         new(name::String, f::Function, properties::Dict, extras)::Style
     end

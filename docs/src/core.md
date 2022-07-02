@@ -51,21 +51,6 @@ We can also check if an extension is present by type.
 ```@docs
 has_extension(::Connection, ::Type)
 ```
-## routing
-When routing, many methods involve the **Connection** type we just spoke of. In
-toolips, routes are handled by the Route type.
-```@docs
-Route
-```
-The Route's constructors are not typically called directly, instead it is
-probably better to use these methods. Using route! as opposed to route! will
-modify the routes of a Connection or ToolipsServer
-```@docs
-route
-route!
-unroute!
-routes
-```
 ## servers
 ToolipsServers are created by ServerTemplates. Here is a look at how to make a
 ServerTemplate:

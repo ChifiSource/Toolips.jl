@@ -85,10 +85,10 @@ deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
 
 [[deps.MbedTLS]]
-deps = ["Dates", "MbedTLS_jll", "Random", "Sockets"]
-git-tree-sha1 = "1c38e51c3d08ef2278062ebceade0e46cefc96fe"
+deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "Random", "Sockets"]
+git-tree-sha1 = "891d3b4e8f8415f53108b4918d0183e61e18015b"
 uuid = "739be429-bea8-5141-9913-cc70e7f3736d"
-version = "1.0.3"
+version = "1.1.0"
 
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -128,6 +128,12 @@ uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
 deps = ["SHA", "Serialization"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 
+[[deps.ReplMaker]]
+deps = ["REPL", "Unicode"]
+git-tree-sha1 = "f8bb680b97ee232c4c6591e213adc9c1e4ba0349"
+uuid = "b873ce64-0db9-51f5-a568-4457d8e49576"
+version = "0.2.7"
+
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
@@ -147,18 +153,66 @@ uuid = "a4e569a6-e804-4fa4-b0f3-eef7a1d5b13e"
 
 [[deps.Toolips]]
 deps = ["Crayons", "Dates", "HTTP", "ParseNotEval", "Pkg", "Sockets"]
-git-tree-sha1 = "e271204e8cd4076b2b672af31801950528398d61"
+git-tree-sha1 = "05fee1306a01551466488d3311ee7bb33b583efc"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/Toolips.jl.git"
 uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
-version = "0.1.2"
+version = "0.1.3"
+
+[[deps.ToolipsBase64]]
+deps = ["Base64", "Toolips", "ToolipsSession"]
+git-tree-sha1 = "535b778c83d25662442ee8648ac393808610362c"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsBase64.jl"
+uuid = "35c70e29-c044-44e8-ae14-cceff0bd3f12"
+version = "0.1.0"
+
+[[deps.ToolipsDefaults]]
+deps = ["Toolips"]
+git-tree-sha1 = "7ac7a41303fed3d27dce04a8acddadfb5fd4d148"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsDefaults.jl"
+uuid = "1710be6b-e895-498d-ba35-e3ff0dac7995"
+version = "0.1.0"
+
+[[deps.ToolipsMarkdown]]
+deps = ["Markdown", "Toolips"]
+git-tree-sha1 = "e84913ad6a180b9843e071ae4a058cce3c75e6ab"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsMarkdown.jl"
+uuid = "33f7ff50-f2f2-41f0-8a96-482dce5c1514"
+version = "0.1.0"
+
+[[deps.ToolipsMemWrite]]
+deps = ["Toolips"]
+git-tree-sha1 = "2e5d1523b8417e8283116b3b9f9d4eda6843d4dd"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsMemWrite.jl"
+uuid = "57c31d6b-7ec9-45e4-80ae-c449616bb020"
+version = "0.1.0"
+
+[[deps.ToolipsRemote]]
+deps = ["Markdown", "ParseNotEval", "Random", "ReplMaker", "Toolips"]
+git-tree-sha1 = "3e45bb9ba9248e289c16f408d0df49f50637a61b"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsRemote.jl"
+uuid = "706d13b3-298e-4297-9e9a-14f4a49b71e5"
+version = "0.1.0"
 
 [[deps.ToolipsSession]]
 deps = ["Dates", "EzXML", "ParseNotEval", "Random", "Toolips"]
-git-tree-sha1 = "5f74f1f7c109b4d6f966f5417d63ee13e087af7a"
+git-tree-sha1 = "aa642bcfd325f1675031a5d84f604f95ced2f348"
 repo-rev = "Unstable"
 repo-url = "https://github.com/ChifiSource/ToolipsSession.jl"
 uuid = "2fe55384-55bc-4df3-9d59-c817d405cd05"
+version = "0.1.0"
+
+[[deps.ToolipsUploader]]
+deps = ["Toolips", "ToolipsSession"]
+git-tree-sha1 = "4e7fa141500226f9916bfd37689fdf1184148cde"
+repo-rev = "main"
+repo-url = "https://github.com/ChifiSource/ToolipsUploader.jl"
+uuid = "8d58c116-97a2-4dce-9816-d8d464dcb6e5"
 version = "0.1.0"
 
 [[deps.URIs]]

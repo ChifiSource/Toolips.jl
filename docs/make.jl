@@ -1,23 +1,26 @@
 using Toolips, Documenter
 using Toolips: Servable, ServerExtension, ToolipsServer, SpoofStream
 using Toolips: SpoofConnection, StyleComponent, AbstractConnection
-using ToolipsSession
+using ToolipsSession, ToolipsMarkdown, ToolipsDefaults, ToolipsBase64
+using ToolipsRemote, ToolipsUploader, ToolipsMemWrite
 Documenter.makedocs(root = ".",
        source = "src",
        build = "build",
        clean = false,
        doctest = true,
-       modules = [Toolips, ToolipsSession],
+       modules = [Toolips, ToolipsSession, ToolipsMarkdown, ToolipsDefaults,
+       ToolipsBase64, ToolipsRemote, ToolipsUploader, ToolipsMemWrite],
        repo = "https://github.com/ChifiSource/Toolips.jl",
        highlightsig = true,
        sitename = "toolips",
        expandfirst = [],
        pages = Any[
-                "basics" => Any[
+                "essentials" => Any[
                 "toolips?" => "index.md",
                 "creating projects" => "projects.md",
                 "routing" => "routing.md",
                 "connections" => "connections.md",
+                "servers" => "core.md",
                 "command-line interface" => "cli.md",
                 "requests" => "requests.md",
                 "composing websites" => "composing_websites.md",

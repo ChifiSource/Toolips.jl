@@ -39,3 +39,6 @@ font-family: 'Rubik', sans-serif; color: black;}
 <img src = "../../assets/toolipsdefaults.png"></img>
 </div>
 ```
+```@autodocs
+Modules = [ToolipsDefaults]
+```

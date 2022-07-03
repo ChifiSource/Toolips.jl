@@ -164,7 +164,7 @@ getpost
 ```
 We can restart the reading of a POST by using the startread! method.
 ```@docs
-startread!(::AbstractConnection)
+Toolips.startread!(::AbstractConnection)
 ```
 ## controlling connections
 Controlling a `Connection` is relatively straightforward, we can navigate a `Connection` to a new URL using the `navigate!` method:

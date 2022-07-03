@@ -1,13 +1,3 @@
-# servables
-Servables are any non-core data-structure that is built with the objective of
-being written to a stream.
-## requests
-Toolips has some bindings that pre-parse responses fro you, these are both post
-and get requests.
-```@docs
-get
-post
-```
 ## components
 A component is a Servable which contains markup information and can easily be
 translated into elements with properties..

@@ -94,3 +94,23 @@ route!(ourwebserver, "/", newr)
 getindex(::WebServer, ::Symbol)
 ```
 ## server extensions
+A [ServerExtension] is an abstract type that can be used to add new capabilities
+to a `ToolipsServer`. These extensions are provided in a Vector{ServerExtension}
+to the `ServerTemplate`. We can create this Vector by simply putting a list of
+extensions together.
+```julia
+using Toolips
+
+extensions = [Logger(), Files()]
+```
+Toolips includes two extensions by default, the [Files]() extension and the
+[Logger]() extensions. This `Vector` is provided as a key-word argument to
+the `ServerTemplate` constructor.
+```julia
+using Toolips
+
+extensions = [Logger(), Files()]
+
+st = ServerTemplate(extensions = extensions)
+st.start()
+```

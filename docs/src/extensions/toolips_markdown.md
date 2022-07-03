@@ -39,3 +39,6 @@ font-family: 'Rubik', sans-serif; color: black;}
 <img src = "../../assets/toolipsmarkdown.png"></img>
 </div>
 ```
+```@autodocs
+Modules = [ToolipsMarkdown]
+```

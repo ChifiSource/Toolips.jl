@@ -72,6 +72,12 @@ end
 myroutes = Vector{Route}(myroute, otherroute)
 myroutes = routes(myroute, otherroute)
 ```
+It should be noted that everything within a routing function **will be called each
+time the server route is requested**. This means that if you want to define names that might be
+a bit more complicated to calculate, you should probably do them outside of your routes.
+The route functions themselves should contain only things that need to be created each
+time the route is served. This helps with return performance, as Julia does not have
+to run code prior to your writing.
 ## serving routes
 Routes are served by the [ServerTemplate]() type. We can either provide routes to the constructor, or add them individually with `ServerTemplate.add`.
 ```julia

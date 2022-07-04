@@ -19,7 +19,14 @@ h1 {
       font-family: 'Poppins', sans-serif !important;
       font-family: 'Roboto Mono', monospace !important;
       font-family: 'Rubik', sans-serif !important;}
-
+      article {
+        border-radius: 30px !important;
+        border-color: lightblue !important;
+      }
+      pre {
+        border-radius: 10px !important;
+        border-color: #FFE5B4 !important;
+      }
 p {font-family: 'Poppins', sans-serif;
 font-family: 'Roboto Mono', monospace;
 font-family: 'Rubik', sans-serif; color: #565656;}
@@ -44,6 +51,14 @@ button:hover {background-color: orange;}
 - Extremely **low memory usage**.
 - **Asynchronous**. Run multiple functions at the same time as you serve to each incoming request.
 - **Versatile**. Toolips.jl can be used for all scenarios, from full-stack web-development to APIs.
+```@docs
+Toolips
+```
+## adding toolips
+The easiest way to add the package is to add it directly from the `Pkg` Registry.
+Toolips is available in the julia/General Registry.
+
+### stable
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -52,3 +67,36 @@ julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add Toolips
 ```
+You can also add the package by URL:
+```julia
+using Pkg; Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
+```
+```julia
+julia> # Press ] to enter your Pkg REPL
+julia> ]
+pkg> add https://github.com/ChifiSource/Toolips.jl.git
+```
+### unstable
+Alternatively, you could also add the Unstable branch of toolips. This could provide
+extended functionality and updates, but there is no guarantee that all of the additions
+will be completely working.
+## methodology
+
+### extendability
+
+### declarative programming
+Toolips has a large central focus on declarative programming. Most calls in toolips are
+method calls that are often used to mutate different types.
+### multi-paradigm programming
+Toolips follows a programming pattern of a functional core and an imperative shell,
+with an API that follows a functional design pattern.
+The center of toolips serving revolves around a function pipeline, with functions
+held as fields of different types. The actual high-level interface to this, however,
+is focused on being mutational and functional.
+### incremental development
+Toolips follows an incremental development process. This process consists of four
+main steps that are incrementally repeated. The first step is the planning stage, where
+new additions to toolips are planned and discussed. The second step is the design step,
+where the core functionalities of a given addition are implemented. After this
+comes the research and programming stage, where the exact details of how to do things
+**the best way** in the context are researched and implemented.

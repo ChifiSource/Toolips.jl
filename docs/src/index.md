@@ -79,11 +79,43 @@ pkg> add https://github.com/ChifiSource/Toolips.jl.git
 ### unstable
 Alternatively, you could also add the Unstable branch of toolips. This could provide
 extended functionality and updates, but there is no guarantee that all of the additions
-will be completely working.
+will be completely working. It is possible to add this revision from the General registry,
+however, it is recommended that you add Unstable revisions by URL instead.
+```julia
+julia> # Press ] to enter your Pkg REPL
+julia> ]
+pkg> add Toolips#Unstable
+```
+You can also add the package by URL:
+```julia
+using Pkg; Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git#Unstable")
+```
+```julia
+julia> # Press ] to enter your Pkg REPL
+julia> ]
+pkg> add https://github.com/ChifiSource/Toolips.jl.git#Unstable
+```
 ## methodology
-
-### extendability
-
+- **Versatility** - Toolips seeks to be more versatile than your typical web-development frameworks.
+In a typical web-development framework, you learn the framework for a specific application; some
+frameworks are capable of creating API's, others are capable of developing an actual templated page,
+and very few are capable of fullstack web-development. Toolips wraps all of these abilities into one
+by allowing the developer to choose which features they want in thier project and add them
+accordingly via extensions.
+- **Julia-bound** - There is no writing HTML, CSS, or Javascript to get your projects working.
+Everything is written in pure Julia, and rendered by a function pipeline. Toolips projects are
+regular Julia modules that can be pushed to Pkg, distributed, and shared.
+- **Low-memory** - Toolips has incredibly low memory usage. Whereas a typical asynchronous web-server
+serving 100 people a day may use anywhere from 1GB-5GB of memory, toolips apps rarely crest over
+the bounds of 1GB of memory usage.
+- **Asynchronous** - Asynchronicity is incredibly important if you want to serve the same function
+set with different definitions to multiple people. Toolips is completely Asynchronous.
+- **Declarative** - Web-development frameworks shouldn't be hard to use. Toolips has an easy-to-use
+high-level API, with a lot more capabilities under the hood via the extensions when needed.
+- **Extendable** - Toolips has a core focus on extendability. Everything in the library, from Components, to
+ServerExtensions, to Connections, to Servables, are all extendable. You can read guides on
+extending each one in their respective sections. This makes it possible to do a lot more with
+a lot less, as others might have already created what you are looking for.
 ### declarative programming
 Toolips has a large central focus on declarative programming. Most calls in toolips are
 method calls that are often used to mutate different types.
@@ -100,3 +132,6 @@ new additions to toolips are planned and discussed. The second step is the desig
 where the core functionalities of a given addition are implemented. After this
 comes the research and programming stage, where the exact details of how to do things
 **the best way** in the context are researched and implemented.
+## doc contents
+```@contents
+```

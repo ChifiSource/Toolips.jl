@@ -1,91 +1,116 @@
-# core
-Below is a runthrough of all of the documentation pertaining to running a
-Toolips server.
+```@raw html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins&family=Roboto+Mono:wght@100&family=Rubik:wght@500&display=swap" rel="stylesheet">
 
-## connection
-```@docs
-Connection
+<style>
+body {background-color: #FDF8FF !important;}
+header {background-color: #FDF8FF !important}
+h1 {
+  font-family: 'Poppins', sans-serif !important;
+  font-family: 'Roboto Mono', monospace !important;
+  font-family: 'Rubik', sans-serif !important;}
+
+  h2 {
+    font-family: 'Poppins', sans-serif !important;
+    font-family: 'Roboto Mono', monospace !important;
+    font-family: 'Rubik', sans-serif !important;}
+    h4 { color: #03045e !important;
+      font-family: 'Poppins', sans-serif !important;
+      font-family: 'Roboto Mono', monospace !important;
+      font-family: 'Rubik', sans-serif !important;}
+article {
+  border-radius: 30px !important;
+  border-color: lightblue !important;
+}
+pre {
+  border-radius: 10px !important;
+  border-color: #FFE5B4 !important;
+}
+p {font-family: 'Poppins', sans-serif;
+font-family: 'Roboto Mono', monospace;
+font-family: 'Rubik', sans-serif; color: #565656;}
+</style>
 ```
-Connections are served as an argument to incoming routes. Functions are written
-anticipating a connection return. Here we will write a new route using the
-route(::Function, ::String) method.
-```@eval
-using Toolips
-r = route("/") do c::Connection
-    write!(c, "Hello!")
-end
-```
-We also use the write!() method on our Connection. We can use this on the types
-::Any, ::Vector{Servable}, and ::Servable.
-```@docs
-write!
-```
-Or push any data response into a body and startread the body.
-```@docs
-push!(::AbstractConnection, ::Any)
-Toolips.startread!(::AbstractConnection)
-Toolips.extensions(::Connection)
-routes(::AbstractConnection)
-has_extension(::AbstractConnection, ::Type)
-```
-The connection type can be indexed with Symbols, Strings, and Types. Symbols and
-Types will index the extensions. Strings will index the routes. The same goes
-for setting the indexes.
-```@docs
-setindex!(::AbstractConnection, ::Function, ::String)
-getindex(::AbstractConnection, ::Symbol)
-getindex(::AbstractConnection, ::Type)
-getindex(::AbstractConnection, ::String)
-```
-We also use the Connection in order to get arguments, download files, and
-pretty much anything else pertaining to a person's connection.
-```@docs
-getarg
-getargs
-getip
-getpost
-Toolips.download!
-navigate!
-```
-We can also check if an extension is present by type.
-```@docs
-has_extension(::Connection, ::Type)
-```
-## routing
-When routing, many methods involve the **Connection** type we just spoke of. In
-toolips, routes are handled by the Route type.
-```@docs
-Route
-```
-The Route's constructors are not typically called directly, instead it is
-probably better to use these methods. Using route! as opposed to route! will
-modify the routes of a Connection or ToolipsServer
-```@docs
-route
-route!
-unroute!
-routes
-```
-## servers
-ToolipsServers are created by ServerTemplates. Here is a look at how to make a
-ServerTemplate:
+# servers
+`ToolipsServer`s are created by `ServerTemplate`s. The main type of `ToolipsServer` is the `WebServer`, which is provided as a return from the `ServerTemplate.start()` function.
+## server templates
 ```@docs
 ServerTemplate
 ```
-The ServerTemplate.start() function returns a sub-type of ToolipsServer.
+## toolips servers
+The `ServerTemplate.start()` function returns a sub-type of `ToolipsServer`, usually a `WebServer`.
 ```@docs
 ToolipsServer
+```
+The WebServer type is similar to a `Connection` in that it can be routed, and holds the Connection extensions. This type is useful for when we want to control our server from a command-line interface in our Julia REPL.
+```julia
+using Toolips
+
+myroute = route("/") do c::Connection
+  myp = p("myp", text = "Hello world!")
+  mydiv = divider("mydiv")
+  push!(mydiv, myp)
+  write!(c, mydiv)
+end
+
+st = ServerTemplate()
+st.add(myroute)
+ourwebserver = st.start()
+```
+```@docs
 WebServer
-getindex(::WebServer, ::Symbol)
+```
+We can call the `routes` and `extensions` methods on a `WebServer`, just like a `Connection`
+```@docs
 Toolips.routes(::WebServer)
 Toolips.extensions(::WebServer)
 ```
-## server extensions
-Server extensions are provided to the ServerTemplate type. You may read more about them in the developer api.
-There are also a few default extensions included with toolips. These can be used
-by passing them in a Symbol-labeled dictionary as the extensions key-word
-argument on a **ServerTemplate** These are Logger and Files.
+Similarly, we can index our `WebServer` with a `Symbol`, or use the `route!` method in the same manor as we would a `Connection`.
+```julia
+using Toolips
+
+myroute = route("/") do c::Connection
+  myp = p("myp", text = "Hello world!")
+  mydiv = divider("mydiv")
+  push!(mydiv, myp)
+  write!(c, mydiv)
+end
+
+st = ServerTemplate()
+st.add(myroute)
+ourwebserver = st.start()
+
+ourwebserver[:Logger].log("Hello!")
+route!(ourwebserver, "/") do c::Connection
+  write!(c, p("myp", text = "our new route"))
+end
+function newr(c::Connection)
+  write!(c, "hello")
+end
+route!(ourwebserver, "/", newr)
+```
 ```@docs
-Logger
-Files
+getindex(::WebServer, ::Symbol)
+```
+## server extensions
+A [ServerExtension] is an abstract type that can be used to add new capabilities
+to a `ToolipsServer`. These extensions are provided in a Vector{ServerExtension}
+to the `ServerTemplate`. We can create this Vector by simply putting a list of
+extensions together.
+```julia
+using Toolips
+
+extensions = [Logger(), Files()]
+```
+Toolips includes two extensions by default, the [Files]() extension and the
+[Logger]() extensions. This `Vector` is provided as a key-word argument to
+the `ServerTemplate` constructor.
+```julia
+using Toolips
+
+extensions = [Logger(), Files()]
+
+st = ServerTemplate(extensions = extensions)
+st.start()
 ```

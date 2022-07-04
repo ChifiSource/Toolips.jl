@@ -241,7 +241,7 @@ mycomp = p("mycomp")
 style!(mycomp, ["background-color" => "lightblue", "color" => "white"])
 ```
 """
-function style!(c::Servable, s::Vector{Pair})
+function style!(c::Servable, s::Vector{Pair{String, String}})
     c["style"] = "'"
     for style in s
         k, v = style[1], style[2]

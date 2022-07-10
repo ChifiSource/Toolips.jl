@@ -37,7 +37,7 @@ argument.
 - Component(name::String = "", tag::String = "", properties::Dict = Dict())
 - Component(name::String, tag::String, props::Base.Pairs)
 """
-mutable struct Component{tag::String} <: Servable
+mutable struct Component{tag::Symbol} <: Servable
     name::String
     f::Function
     properties::Dict{Any, Any}

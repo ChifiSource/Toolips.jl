@@ -166,7 +166,7 @@ mutable struct WebServer <: ToolipsServer
 
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
         routes::Vector{Route} = routes(route("/",
-        (c::Connection) -> write!(c, p(text = "Hello world!"))])),
+        (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
         if ~(connection <: AbstractConnection)
             throw(CoreError("'connection' server argument is not a Connection."))
@@ -230,7 +230,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
         rs::Vector{Route};
         routes::Vector{Route} = routes(route("/",
-        (c::Connection) -> write!(c, p(text = "Hello world!"))])),
+        (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()]
         servertype::Type = WebServer)
         extensions::Dict = Dict([Symbol(typeof(se)) => se for se in extensions])

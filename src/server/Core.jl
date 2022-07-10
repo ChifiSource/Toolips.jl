@@ -39,12 +39,12 @@ function showerror(io::IO, e::ExtensionError)
     print(io, """An extension has caused an error""")
 end
 
-mutable struct ConnectionError{fallback::Bool} <: Exception
+mutable struct ConnectionError{fallback} <: Exception
     connection::AbstractConnection
     connection_retry::AbstractConnection
     function ConnectionError(connection::AbstractConnection,
         connection_retry::AbstractConnection; fallback::Bool = false)
-        new{typeof(fallback)}(connection, connection_retry)
+        new{fallback}(connection, connection_retry)
     end
 end
 

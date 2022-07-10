@@ -228,7 +228,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     add::Function
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{Route};
+        rs::Vector{Route} = Vector{Route}();
         routes::Vector{Route} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()],

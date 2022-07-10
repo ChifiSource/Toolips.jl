@@ -342,7 +342,7 @@ function _start(ip::String, port::Integer, routes::Vector{Route},
      end
      if has_extension(extensions, Logger)
          extensions[:Logger].log(2,
-          "Successfully started server on port $port"
+          "Successfully started server on port $port")
           extensions[:Logger].log(1,
           "You may visit it now at http://$ip:$port")
       else

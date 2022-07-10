@@ -405,7 +405,7 @@ function generate_router(routes::Vector{Route}, server::Any,
                         [Symbol(typeof(e)) => e for e in extensions]))
                         @warn """extension.f with dict of server extensions set
                          to be deprecated. instead, use Vector{ServerExtension.}"""
-                    throw(ExtensionError(typeof(extension), e)
+                    throw(ExtensionError(typeof(extension), e))
                 end
             end
             if :func in extension.type

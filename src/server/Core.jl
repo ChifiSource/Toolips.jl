@@ -231,7 +231,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         rs::Vector{Route};
         routes::Vector{Route} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
-        extensions::Vector{ServerExtension} = [Logger()]
+        extensions::Vector{ServerExtension} = [Logger()],
         servertype::Type = WebServer)
         extensions::Dict = Dict([Symbol(typeof(se)) => se for se in extensions])
         if length(rs) != 0

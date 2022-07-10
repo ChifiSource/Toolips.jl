@@ -165,8 +165,8 @@ mutable struct WebServer <: ToolipsServer
     end
 
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
-        routes::Vector{Route} = [route("/",
-        (c::Connection) -> write!(c, p(text = "Hello world!"))],
+        routes::Vector{Route} = routes(route("/",
+        (c::Connection) -> write!(c, p(text = "Hello world!"))])),
         extensions::Vector{ServerExtension} = [Logger()])
         if ~(connection <: AbstractConnection)
             throw(CoreError("'connection' server argument is not a Connection."))
@@ -223,16 +223,15 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     ip::String
     port::Integer
     routes::Vector{Route}
-    servertype::Type
     extensions::Dict
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8000,
-        rs::Vector{Route} = Vector{Route}();
-        extensions::Vector = [Logger()],
-        # TODO Should only be kwarg, but this is breaking
-        routes::Vector{Route} = Vector{Route}(),
+    function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
+        rs::Vector{Route};
+        routes::Vector{Route} = routes(route("/",
+        (c::Connection) -> write!(c, p(text = "Hello world!"))])),
+        extensions::Vector{ServerExtension} = [Logger()]
         servertype::Type = WebServer)
         extensions::Dict = Dict([Symbol(typeof(se)) => se for se in extensions])
         if length(rs) != 0
@@ -246,7 +245,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         end
         add, remove = serverfuncdefs(routes, extensions)
         start() = st_start(ip, port, routes, extensions, servertype)
-        new{servertype}(ip, port, routes, extensions, servertype, remove, add, start)::ServerTemplate
+        new{servertype}(ip, port, routes, extensions, remove, add, start)::ServerTemplate
     end
 end
 

@@ -387,7 +387,7 @@ function generate_router(routes::Vector{Route}, server::Any,
             try
                 extension.f(route_paths, extensions)
             catch e
-                throw(ExtensionError(typeof(extension), e)
+                throw(ExtensionError(typeof(extension), e))
             end
         elseif extension.type == :func
                 push!(fes, extension)

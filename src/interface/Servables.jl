@@ -37,7 +37,7 @@ argument.
 - Component(name::String = "", tag::String = "", properties::Dict = Dict())
 - Component(name::String, tag::String, props::Base.Pairs)
 """
-mutable struct Component <: Servable
+mutable struct Component{tag::String} <: Servable
     name::String
     f::Function
     properties::Dict{Any, Any}
@@ -70,7 +70,7 @@ mutable struct Component <: Servable
             write!(c, "$text</$tag>")
             write!(c, extras)
          end
-         new(name, f, properties, extras, tag)::Component
+         new{tag}(name, f, properties, extras, tag)::Component
     end
 
     Component(name::String, tag::String, props::Base.Pairs,
@@ -94,7 +94,8 @@ image = img("mylogo", src = "assets/logo.png")
 write!(c, image)
 ```
 """
-img(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "img", args, keys)::Component
+img(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name,
+"img", args, keys)::Component
 
 """
 ### link(name::String; args ...) -> ::Component
@@ -107,7 +108,8 @@ mylink = link("mylink", href = "http://toolips.app")
 write!(c, mylink)
 ```
 """
-link(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "link", args, keys)::Component
+link(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name,
+ "link", args, keys)::Component
 
 """
 ### meta(name::String; args ...) -> ::Component

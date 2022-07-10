@@ -44,7 +44,7 @@ mutable struct ConnectionError{fallback::Bool} <: Exception
     connection_retry::AbstractConnection
     function ConnectionError(connection::AbstractConnection,
         connection_retry::AbstractConnection; fallback::Bool = false)
-        new{fallback}(connection, connection_retry)
+        new{typeof(fallback)}(connection, connection_retry)
     end
 end
 

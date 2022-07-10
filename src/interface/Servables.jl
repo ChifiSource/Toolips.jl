@@ -73,8 +73,10 @@ mutable struct Component <: Servable
          new(name, f, properties, extras, tag)::Component
     end
 
-    Component(name::String, tag::String, props::Base.Pairs) = begin
-        Component(name, tag, Dict{Any, Any}(props))
+    Component(name::String, tag::String, props::Base.Pairs,
+    keys::Vector{Pair{Any, Any}}) = begin
+        props = Vector{Pair{Any, Any}}
+        Component(name, tag, Dict{Any, Any}(props))::Component
     end
 end
 #==
@@ -92,7 +94,7 @@ image = img("mylogo", src = "assets/logo.png")
 write!(c, image)
 ```
 """
-img(name::String = ""; args ...) = Component(name, "img", args)::Component
+img(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "img", args, keys)::Component
 
 """
 ### link(name::String; args ...) -> ::Component
@@ -105,7 +107,7 @@ mylink = link("mylink", href = "http://toolips.app")
 write!(c, mylink)
 ```
 """
-link(name::String = ""; args ...) = Component(name, "link", args)::Component
+link(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "link", args, keys)::Component
 
 """
 ### meta(name::String; args ...) -> ::Component
@@ -118,7 +120,7 @@ metainfo = meta("metainfo", rel = "meta-description", text = "hello")
 write!(c, metainfo)
 ```
 """
-meta(name::String = ""; args ...) = Component(name, "meta", args)::Component
+meta(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "meta", args)::Component
 
 """
 ### input(name::String; args ...) -> ::Component
@@ -131,7 +133,7 @@ element = input("mylogo")
 write!(c, element)
 ```
 """
-input(name::String = ""; args ...) = Component(name, "input", args)::Component
+input(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "input", args)::Component
 
 """
 ### a(name::String; args ...) -> ::Component
@@ -144,7 +146,7 @@ element = a("mylogo")
 write!(c, element)
 ```
 """
-a(name::String = ""; args ...) = Component(name, "a", args)::Component
+a(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "a", args)::Component
 
 """
 ### p(name::String; args ...) -> ::Component
@@ -157,7 +159,7 @@ p1 = input("mylogo")
 write!(c, p)
 ```
 """
-p(name::String = ""; args ...) = Component(name, "p", args)::Component
+p(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "p", args)::Component
 
 """
 ### h(name::String; args ...) -> ::Component
@@ -170,7 +172,7 @@ h1 = h("heading1", 1)
 write!(c, h1)
 ```
 """
-h(name::String = "", n::Int64 = 1; args ...) = Component(name, "h$n",
+h(name::String = "", n::Int64 = 1, keys::Pair{Any, Any} ...; args ...) = Component(name, "h$n",
                                                                 args)::Component
 
 
@@ -185,7 +187,7 @@ ul1 = ul("mylogo")
 write!(c, ul)
 ```
 """
-ul(name::String = ""; args ...) = Component(name, "ul", args)::Component
+ul(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "ul", args)::Component
 
 """
 ### li(name::String; args ...) -> ::Component
@@ -198,7 +200,7 @@ li1 = li("mylogo")
 write!(c, li)
 ```
 """
-li(name::String = ""; args ...) = Component(name, "li", args)::Component
+li(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "li", args)::Component
 
 """
 ### divider(name::String; args ...) -> ::Component
@@ -211,7 +213,7 @@ divider1 = divider("mylogo")
 write!(c, divider)
 ```
 """
-divider(name::String = ""; args ...) = Component(name, "div", args)::Component
+divider(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "div", args)::Component
 
 """
 ### br(name::String; args ...) -> ::Component
@@ -224,7 +226,7 @@ comp = br("newcomp")
 write!(c, comp)
 ```
 """
-br(name::String = ""; args ...) = Component(name, "/br", args)::Component
+br(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "/br", args)::Component
 
 """
 ### i(name::String; args ...) -> ::Component
@@ -237,7 +239,7 @@ comp = i("newcomp")
 write!(c, comp)
 ```
 """
-i(name::String = ""; args ...) = Component(name, "i", args)::Component
+i(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "i", args)::Component
 
 """
 ### title(name::String; args ...) -> ::Component
@@ -250,7 +252,7 @@ comp = title("newcomp")
 write!(c, comp)
 ```
 """
-title(name::String = ""; args ...) = Component(name, "title", args)::Component
+title(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "title", args)::Component
 
 """
 ### span(name::String; args ...) -> ::Component
@@ -263,7 +265,7 @@ comp = span("newcomp")
 write!(c, comp)
 ```
 """
-span(name::String = ""; args ...) = Component(name, "span", args)::Component
+span(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name, "span", args)::Component
 
 """
 ### iframe(name::String; args ...) -> ::Component

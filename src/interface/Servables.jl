@@ -73,8 +73,9 @@ mutable struct Component{tag} <: Servable
          new{tag}(name, f, properties, extras, tag)::Component
     end
 
-    Component(name::String, tag::String, props::Base.Pairs,
-    keys::Vector{Pair{Any, Any}}) = begin
+    Component(name::String, tag::String,
+    props::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}},
+    keys::AbstractTuple) = begin
         props = Vector{Pair{Any, Any}}
         Component(name, tag, Dict{Any, Any}(props))::Component
     end

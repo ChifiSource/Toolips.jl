@@ -2,10 +2,6 @@ include("Extensions.jl")
 
 """
 """
-Base.@pure get_type_parameter(x::Any, position::Integer = 2) = typeof(x).parameters[position]
-
-"""
-"""
 mutable struct MissingExtensionError <: Exception
     extension::Type
     f::Function
@@ -377,7 +373,7 @@ function generate_router(routes::Vector{Route}, server::Any,
     extensions::Vector{ServerExtension})
     route_paths = Dict{String, Function}([route.path => route.page for route in routes])
     # Load Extensions
-    ces::Dict = Dict{Any, Any}()
+    ces::Vector{ServerExtension} = Vector{ServerExtension}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
         if typeof(extension.type) == Symbol
@@ -429,12 +425,10 @@ function generate_router(routes::Vector{Route}, server::Any,
             end
             try
                 try
-                    cT::Type = get_type_parameter(methods(route_paths[fullpath])[1].sig)
+                    cT::Type = methods(route_paths[fullpath])[1].sig.parameters[2]
                     c::AbstractConnection = cT(route_paths, http, ces)
-                    warn(ConnectionError(cT, Connection, fallback = false))
                 catch
-                    c::Connection = Connection(route_paths)
-                    throw(ConnectionError(cT, Connection, fallback = true))
+                    c::Connection = Connection(route_paths, http, ces)
                 end
                 route_paths[fullpath](c)
             catch e

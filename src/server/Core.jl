@@ -425,7 +425,7 @@ function generate_router(routes::Vector{Route}, server::Any,
             try
                 [extension.f(c) for extension in fes]
             catch e
-                throw(ExtensionError(typeof(extension[2]), e)
+                throw(ExtensionError(typeof(extension[2]), e))
             end
             try
                 try

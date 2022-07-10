@@ -1,12 +1,14 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
-  <h6>v. 0.1.3</h6>
   
 [![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
-[![pkgeval](https://juliahub.com/docs/Toolips/pkgeval.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
-</div>
+</br>
 
+[toolips.app](https://toolips.app/) \
+[documentation](https://doc.toolips.app)
+
+</div>
 
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.

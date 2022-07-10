@@ -233,7 +233,6 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()],
         servertype::Type = WebServer)
-        extensions::Dict = Dict([Symbol(typeof(se)) => se for se in extensions])
         if length(rs) != 0
             @warn """positional routes for Server templates will be deprecated,
             use ServerTemplate(routes = routes(homeroute)) with routes key-word
@@ -249,6 +248,18 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     end
 end
 
+function getindex(v::Vector{ServerExtension}, t::Type)
+    # my god, it's beautiful.
+    if ~(t <: ServerExtension)
+        throw(ExtensionError(t, ArgumentError("$t is not a ServerExtension!")))
+    end
+    v[findall((x::ServerExtension) -> typeof(x) == t, v)[1]]::ServerExtension
+end
+
+function getindex(v::Vector{ServerExtension}, s::Symbol)
+    getindex(v, eval(s))
+end
+
 """
 **Core**
 ### serverfuncdefs(routes**::AbstractVector**, extensions::Dict) -> add::Function, remove::Function
@@ -258,17 +269,19 @@ dictionary.
 #### example
 
 """
-function serverfuncdefs(routes::AbstractVector, extensions::Dict)
+function serverfuncdefs(routes::Vector{Route}, extensions::Vector{ServerExtension})
     # oo baby what a beautiful function.
     add(r::Route ...)::Function = [push!(routes, route) for route in r]
-    add(e::ServerExtension ...) = [push!(extensions, ext[1] => ext[2]) for ext in e]
+    add(e::ServerExtension ...) = [push!(extensions, ext) for ext in e]
     remove(i::Int64)::Function = deleteat!(routes, i)
     remove(s::String) = deleteat!(findall(routes, r -> r.path == s)[1])
     remove(s::Symbol) = deleteat!(findall(extensions,
                                 e -> Symbol(typeof(e)) == s))
     return(add::Function, remove::Function)
 end
-function _st_start(routes::Dict, ip::Port, )
+
+function _st_start(ip::String, port::Integer, routes::Vector{Route},
+    extensions::Vector{ServerExtension}, servertype::Type)
     f(routes, ip, port, extensions, connection) = begin
         server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
     if has_extension(extensions, Logger)
@@ -277,7 +290,9 @@ function _st_start(routes::Dict, ip::Port, )
      else
          @warn "Toolips Server starting on port $port"
     end
-    routefunc, rdct, extensions = generate_router(routes, server, extensions, c)
+    routefunc::Function, rdct::Dict{String, Function},
+    extensions::Dict{Symbol, ServerExtension} = generate_router(routes,
+     server, extensions, c)
     try
         @async HTTP.listen(routefunc, ip, port, server = server)
     catch e
@@ -292,7 +307,7 @@ function _st_start(routes::Dict, ip::Port, )
          @warn "Successfuly started server on port $port"
          @warn "You may visit it now at http://$ip:$port"
     end
-    return(WebServer(ip, port, rdct, extensions, server))::WebServer
+    return(servertype(ip, port, rdct, extensions, server))::WebServer
     end
     f
 end
@@ -309,8 +324,8 @@ st = ServerTemplate()
 st.start()
 ```
 """
-function _start(routes::AbstractVector, ip::String, port::Integer,
-     extensions::Dict, server::Any)
+function _start(ip::String, port::Integer, routes::Vector{Route},
+     extensions::Vector{ServerExtension}, server::Any)
      f(routes, ip, port, extensions, server, stype) = begin
          server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      if has_extension(extensions, Logger)
@@ -358,38 +373,43 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 @async HTTP.listen(routefunc, ip, port, server = server)
 ```
 """
-function generate_router(routes::AbstractVector, server, extensions::Dict,
-    conn::Type)
+function generate_router(routes::Vector{Route}, server::Any,
+    extensions::Vector{ServerExtension})
     route_paths = Dict{String, Function}([route.path => route.page for route in routes])
     # Load Extensions
     ces::Dict = Dict{Any, Any}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
     for extension in extensions
-        if typeof(extension[2].type) == Symbol
-            if extension[2].type == :connection
+        if typeof(extension.type) == Symbol
+            if extension.type == :connection
                 push!(ces, extension)
-        elseif extension[2].type == :routing
+        elseif extension.type == :routing
             try
-                extension[2].f(route_paths, extensions)
+                extension.f(route_paths, extensions)
             catch e
-                throw(ExtensionError(typeof(extension[2]), e)
+                throw(ExtensionError(typeof(extension), e)
             end
-        elseif extension[2].type == :func
-                push!(fes, extension[2])
+        elseif extension.type == :func
+                push!(fes, extension)
         end
         else
-            if :connection in extension[2].type
+            if :connection in extension.type
                 push!(ces, extension)
             end
-            if :routing in extension[2].type
+            if :routing in extension.type
                 try
-                    extension[2].f(route_paths, extensions)
+                    extension.f(route_paths, extensions)
                 catch e
-                    throw(ExtensionError(typeof(extension[2]), e)
+                    try
+                        extension.f(route_paths, Dict(
+                        [Symbol(typeof(e)) => e for e in extensions]))
+                        @warn """extension.f with dict of server extensions set
+                         to be deprecated. instead, use Vector{ServerExtension.}"""
+                    throw(ExtensionError(typeof(extension), e)
                 end
             end
-            if :func in extension[2].type
-                push!(fes, extension[2])
+            if :func in extension.type
+                push!(fes, extension)
             end
         end
     end
@@ -411,7 +431,7 @@ function generate_router(routes::AbstractVector, server, extensions::Dict,
                     c::AbstractConnection = cT(route_paths, http, ces)
                     warn(ConnectionError(cT, Connection, fallback = false))
                 catch
-                    c::AbstractConnection = Connection(route_paths)
+                    c::Connection = Connection(route_paths)
                     throw(ConnectionError(cT, Connection, fallback = true))
                 end
                 route_paths[fullpath](c)

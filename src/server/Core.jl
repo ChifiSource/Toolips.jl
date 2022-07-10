@@ -450,7 +450,7 @@ function generate_router(routes::Vector{Route}, server::Any,
                 warn(
                 RouteException("404",
                 CoreError("Tried to return 404, but there is no \"404\" route.")
-                )
+                ))
                 return
             end
         end

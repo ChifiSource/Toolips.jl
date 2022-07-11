@@ -148,12 +148,13 @@ mutable struct WebServer <: ToolipsServer
     host::String
     port::Integer
     routes::Dict
-    extensions::Dict
+    extensions::Vector{ServerExtension}
     server::Any
     add::Function
     remove::Function
     start::Function
-    function WebServer(host::String, port::Integer, routes::Dict, extensions::Dict,
+    function WebServer(host::String, port::Integer, routes::Dict,
+        extensions::Vector{ServerExtension},
         server::Any)
         add, remove = serverfuncdefs(routes, host, port)
         start = _start(host, port, routes, extensions, server)
@@ -167,12 +168,9 @@ mutable struct WebServer <: ToolipsServer
         if ~(connection <: AbstractConnection)
             throw(CoreError("'connection' server argument is not a Connection."))
         end
-        extensions::Dict{Symbol, ServerExtension} = Dict(
-        [Symbol(typeof(se)) => se for se in extensions]
-        )
         server = :inactive
-        add, remove = serverfuncdefs(routes, host, port)
-        start() = server = _start(host, port, routes, extensions, server)
+        add::Function, remove::Function = serverfuncdefs(routes, host, port)
+        start()::Function = _start(host, port, routes, extensions, server)
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -219,7 +217,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     ip::String
     port::Integer
     routes::Vector{Route}
-    extensions::Dict
+    extensions::Vector{ServerExtension}
     remove::Function
     add::Function
     start::Function
@@ -238,8 +236,8 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
-        add, remove = serverfuncdefs(routes, extensions)
-        start() = st_start(host, port, routes, extensions, servertype)
+        add::Function, remove::Function = serverfuncdefs(routes, extensions)
+        start()::Function = st_start(host, port, routes, extensions, servertype)
         new{servertype}(host, port, routes, extensions, remove, add, start)::ServerTemplate
     end
 end
@@ -287,7 +285,7 @@ function _st_start(ip::String, port::Integer, routes::Vector{Route},
          @warn "Toolips Server starting on port $port"
     end
     routefunc::Function, rdct::Dict{String, Function},
-    extensions::Dict{Symbol, ServerExtension} = generate_router(routes,
+    extensions::Vector{ServerExtension} = generate_router(routes,
      server, extensions, c)
     try
         @async HTTP.listen(routefunc, ip, port, server = server)

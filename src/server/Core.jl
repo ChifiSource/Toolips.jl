@@ -229,7 +229,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start()::Function = _st_start(host, port, routes routes, extensions, servertype)
+        start()::Function = _st_start(host, port, routes, extensions, servertype)
         new{servertype}(host, port, routes, extensions, remove, add, start)::ServerTemplate
     end
 end

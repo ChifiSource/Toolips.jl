@@ -287,6 +287,7 @@ function _st_start(ip::String, port::Integer, routes::Vector{Route},
     server.start()
     return(server)::ToolipsServer
 end
+
 """
 **Core - Internals**
 ### _start(routes::AbstractVector, ip::String, port::Integer,

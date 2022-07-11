@@ -18,8 +18,7 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror
-import Base: Pairs
+import Base: showerror, in, Pairs, Exception
 #==
 SuperTypes
 ==#

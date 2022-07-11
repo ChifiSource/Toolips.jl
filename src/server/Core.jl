@@ -245,7 +245,7 @@ function getindex(v::Vector{ServerExtension}, s::Symbol)
 end
 
 function in(t::Type, v::Vector{ServerExtension})
-    if length(findall(x -> typeof(x) == t, v) > 0
+    if length(findall(x -> typeof(x) == t, v)) > 0
         true
     else
         false
@@ -253,7 +253,7 @@ function in(t::Type, v::Vector{ServerExtension})
 end
 
 function in(t::Symbol, v::Vector{ServerExtension})
-    if length(findall(x -> typeof(x) == eval(t), v) > 0
+    if length(findall(x -> typeof(x) == eval(t), v)) > 0
         true
     else
         false

@@ -1,5 +1,7 @@
+abstract type AbstractComponent <: Servable end
+
 """
-### Component <: Servable
+### Component <: AbstractComponent <: Servable
 - name::String
 - f::Function
 - tag::String
@@ -37,7 +39,7 @@ argument.
 - Component(name::String = "", tag::String = "", properties::Dict = Dict())
 - Component(name::String, tag::String, props::Base.Pairs)
 """
-mutable struct Component{tag} <: Servable
+mutable struct Component{tag} <: AbstractComponent
     name::String
     f::Function
     properties::Dict{Any, Any}
@@ -74,8 +76,8 @@ mutable struct Component{tag} <: Servable
     end
 
     Component(name::String, tag::String,
-    props::Base.Pairs{Symbol, Any, Tuple{Symbol, Symbol}},
-    keys::Tuple) = begin
+    props::Pair ...;
+    keys:: ...) = begin
         props = Vector{Pair{Any, Any}}
         Component(name, tag, Dict{Any, Any}(props))::Component
     end
@@ -95,8 +97,9 @@ image = img("mylogo", src = "assets/logo.png")
 write!(c, image)
 ```
 """
-img(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name,
-"img", args, keys)::Component
+function img(name::String = "", args::Pair{String, String} ...; args ...)
+    Component(name, "img", args ..., keys ...)::Component
+end
 
 """
 ### link(name::String; args ...) -> ::Component
@@ -109,8 +112,9 @@ mylink = link("mylink", href = "http://toolips.app")
 write!(c, mylink)
 ```
 """
-link(name::String = "", keys::Pair{Any, Any} ...; args ...) = Component(name,
- "link", args, keys)::Component
+function replaceme(name::String = "", args::Pair{String, String} ...; args ...)
+    Component(name, "replaceme", args ..., keys ...)::Component
+end
 
 """
 ### meta(name::String; args ...) -> ::Component

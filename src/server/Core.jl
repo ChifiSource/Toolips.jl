@@ -225,9 +225,10 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
             argument instead. This argument is currently vestigal"""
             routes = vcat(routes, rs)
         end
-        if ~(servertype <: ToolipsServer)
+        if ~(server <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
+        servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         start()::Function = _st_start(host, port, routes, extensions, servertype)
         new{servertype}(host, port, routes, extensions, remove, add, start)::ServerTemplate

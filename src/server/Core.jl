@@ -286,8 +286,7 @@ st.start()
 """
 function _start(ip::String, port::Integer, routes::Vector{Route},
      extensions::Vector{ServerExtension}, server::Any)
-     f(routes, ip, port, extensions, server, stype) = begin
-         server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      if has_extension(extensions, Logger)
          extensions[:Logger].log(1,
           "Toolips Server starting on port $port")
@@ -309,9 +308,6 @@ function _start(ip::String, port::Integer, routes::Vector{Route},
           @warn "Successfuly started server on port $port"
           @warn "You may visit it now at http://$ip:$port"
      end
-     return(server)
-     end
-     f
 end
 
 """

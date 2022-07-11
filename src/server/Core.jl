@@ -22,8 +22,7 @@ end
 mutable struct ExtensionError <: Exception
     extension::Type
     error::Exception
-    message::String
-    function ExtensionError(extension::String, error::Exception)
+    function ExtensionError(extension::Type, error::Exception)
         if ~(extension <: ServerExtension)
             throw(ArgumentError("The type provided to exception is not a ServerExtension!"))
         end

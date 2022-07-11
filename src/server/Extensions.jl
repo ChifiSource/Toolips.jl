@@ -218,7 +218,7 @@ write!(c::Connection, f::File) = f.f(c)
 ### Files <: ServerExtension
 - type::Symbol
 - directory::String
-- f::Function - 
+- f::Function -
 Writes all files in directory to their own routes in the server.
 ------------------
 ##### field info
@@ -238,7 +238,7 @@ mutable struct Files <: ServerExtension
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Dict, e::Dict) = begin
+        f(r::Dict{String, Function}, e::Vector{ServerExtension}) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
                 push!(r, path[l:length(path)] => c::Connection -> write!(c, File(path)))

@@ -147,7 +147,7 @@ end
 mutable struct WebServer <: ToolipsServer
     host::String
     port::Integer
-    routes::Dict
+    routes::Vector{Route}
     extensions::Vector{ServerExtension}
     server::Any
     add::Function

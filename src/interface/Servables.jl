@@ -77,7 +77,7 @@ mutable struct Component{tag} <: AbstractComponent
 
     Component(name::String, tag::String,
     props::Pair ...;
-    keys:: ...) = begin
+    keys ...) = begin
         props = Vector{Pair{Any, Any}}
         Component(name, tag, Dict{Any, Any}(props))::Component
     end

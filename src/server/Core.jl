@@ -157,9 +157,6 @@ mutable struct WebServer <: ToolipsServer
         routes::Vector{Route} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        if ~(connection <: AbstractConnection)
-            throw(CoreError("'connection' server argument is not a Connection."))
-        end
         server = :inactive
         add::Function, remove::Function = serverfuncdefs(routes, host, port)
         start()::Function = _start(host, port, routes, extensions, server)

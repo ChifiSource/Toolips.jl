@@ -244,6 +244,22 @@ function getindex(v::Vector{ServerExtension}, s::Symbol)
     getindex(v, eval(s))
 end
 
+function in(t::Type, v::Vector{ServerExtension})
+    if length(findall(x -> typeof(x) == t, v) > 0
+        true
+    else
+        false
+    end
+end
+
+function in(t::Symbol, v::Vector{ServerExtension})
+    if length(findall(x -> typeof(x) == eval(t), v) > 0
+        true
+    else
+        false
+    end
+end
+
 """
 **Core**
 ### serverfuncdefs(routes**::AbstractVector**, extensions::Dict) -> add::Function, remove::Function

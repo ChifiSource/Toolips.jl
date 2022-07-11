@@ -877,13 +877,14 @@ if has_extension(c, Logger)
 end
 ```
 """
-function has_extension(c::AbstractConnection, t::Type)
-    if Symbol(t) in keys(c.extensions)
-        return(true)
-    else
-        return(false)
-    end
-end
+has_extension(c::AbstractConnection, t::Type) = has_extension(c.extensions,
+ Symbol(t))
+
+has_extension(c::AbstractConnection, e::Symbol) = has_extension(c.extensions, e)
+
+has_extension(e::Vector{ServerExtension}, s::Symbol) = has_extension(e, s)
+
+has_extension(e::Vector{ServerExtension}, s::Type) = has_extension(e, Symbol(s))
 
 """
 **Internals**
@@ -897,8 +898,8 @@ if has_extension(d, Logger)
 end
 ```
 """
-function has_extension(d::Dict, t::Type)
-    if Symbol(t) in keys(d)
+function has_extension(es::Vector{ServerExtension}, t::Symbol)
+    if t in es
         return(true)
     else
         return(false)

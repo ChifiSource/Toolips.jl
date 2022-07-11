@@ -31,7 +31,8 @@ mutable struct ExtensionError <: Exception
 end
 
 function showerror(io::IO, e::ExtensionError)
-    print(io, """An extension has caused an error""")
+    print(io, """Extension Error: Loading the extension $(e.extension) raised
+                $(e.error)""")
 end
 
 mutable struct ConnectionError{fallback} <: Exception

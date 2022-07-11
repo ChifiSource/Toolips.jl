@@ -309,7 +309,7 @@ function _start(ip::String, port::Integer, routes::Vector{Route},
       else
           @warn "Toolips Server starting on port $port"
      end
-     routefunc, rdct, extensions = generate_router(routes, server, extensions, c)
+     routefunc, rdct, extensions = generate_router(routes, server, extensions)
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e

@@ -97,7 +97,7 @@ image = img("mylogo", src = "assets/logo.png")
 write!(c, image)
 ```
 """
-function img(name::String = "", args::Pair{String, String} ...; args ...)
+function img(name::String = "", args::Pair{String, String} ...; keys ...)
     Component(name, "img", args ..., keys ...)::Component
 end
 
@@ -112,10 +112,11 @@ mylink = link("mylink", href = "http://toolips.app")
 write!(c, mylink)
 ```
 """
-function replaceme(name::String = "", args::Pair{String, String} ...; args ...)
-    Component(name, "replaceme", args ..., keys ...)::Component
+#==
+function img(name::String = "", args::Pair{String, String} ...; keys ...)
+    Component(name, "img", args ..., keys ...)::Component
 end
-
+==#
 """
 ### meta(name::String; args ...) -> ::Component
 ------------------

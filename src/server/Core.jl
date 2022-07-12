@@ -216,7 +216,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
-        extensions::Vector{ServerExtension} = [Logger()],
+        extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         server::Type = WebServer)
         if length(rs) != 0
             @warn """positional routes for Server templates will be deprecated,
@@ -263,7 +263,7 @@ function in(t::Symbol, v::Vector{ServerExtension})
     end
 end
 
-function in(t::String, v::Vector{Route})
+function in(t::String, v::Vector{AbstractRoute})
     if length(findall(x -> typeof(x) == eval(t), v)) > 0
         true
     else
@@ -271,8 +271,8 @@ function in(t::String, v::Vector{Route})
     end
 end
 
-keys(v::Vector{Route}) = [r.page for r in v]
-values(v::Vector{Route}) [r.page]
+keys(v::Vector{AbstractRoute}) = [r.page for r in v]
+values(v::Vector{AbstractRoute}) = [r.path for r in v]
 
 """
 **Core**
@@ -285,7 +285,7 @@ dictionary.
 """
 function serverfuncdefs(routes::Vector{AbstractRoute}, extensions::Vector{ServerExtension})
     # oo baby what a beautiful function.
-    add(r::Route ...)::Function = [push!(routes, route) for route in r]
+    add(r::AbstractRoute ...) = [push!(routes, route) for route in r]
     add(e::ServerExtension ...) = [push!(extensions, ext) for ext in e]
     remove(i::Int64)::Function = deleteat!(routes, i)
     remove(s::String) = deleteat!(findall(routes, r -> r.path == s)[1])
@@ -295,10 +295,11 @@ function serverfuncdefs(routes::Vector{AbstractRoute}, extensions::Vector{Server
 end
 
 function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
-    extensions::Vector{ServerExtension}, servertype::Type)
+    extensions::Vector{ServerExtension}, servertype::Type, s::Any)
     server::ToolipsServer = servertype(ip, port, routes = routes,
     extensions = extensions)
     server.start()
+    s = server
     return(server)::ToolipsServer
 end
 
@@ -371,7 +372,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
                 push!(ces, extension)
         elseif extension.type == :routing
             try
-                extension.f(routes extensions)
+                extension.f(routes, extensions)
             catch e
                 throw(ExtensionError(typeof(extension), e))
             end

@@ -650,8 +650,8 @@ route(r::String, f::Function) = Route(r, f)::Route
 ------------------
 Turns routes provided as arguments into a Vector{Route} with indexable routes.
 This is useful because this is the type that the ServerTemplate constructor
-likes. This function is also used as a "getter" for WebServers and Connections,
-see ?(routes(::WebServer)) & ?(routes(::AbstractConnection))
+likes. This function is also used as a "getter" for ToolipsServers and Connections,
+see ?(routes(::ToolipsServer)) & ?(routes(::AbstractConnection))
 #### example
 ```
 r1 = route("/") do c::Connection
@@ -663,11 +663,11 @@ end
 rts = routes(r1, r2)
 ```
 """
-routes(rs::Route ...) = Vector{Route}([r for r in rs])
+routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 
 """
 **Interface**
-### routes(ws::WebServer) -> ::Dict{String, Function}
+### routes(ws::ToolipsServer) -> ::Dict{String, Function}
 ------------------
 Returns the server's routes.
 #### example
@@ -678,7 +678,7 @@ routes(ws)
     "404" => fourohfour
 ```
 """
-routes(ws::WebServer) = ws.routes
+routes(ws::ToolipsServer) = ws.routes
 
 """
 **Interface**
@@ -710,7 +710,7 @@ extensions(c::Connection) = c.extensions
 
 """
 **Interface**
-### extensions(ws::WebServer) -> ::Dict{Symbol, ServerExtension}
+### extensions(ws::ToolipsServer) -> ::Dict{Symbol, ServerExtension}
 ------------------
 Returns the server's extensions.
 #### example
@@ -720,13 +720,13 @@ extensions(ws)
     :Logger => Logger(blah blah blah)
 ```
 """
-extensions(ws::WebServer) = ws.extensions
+extensions(ws::ToolipsServer) = ws.extensions
 #==
     Server
 ==#
 """
 **Interface**
-### kill!(ws::WebServer) -> _
+### kill!(ws::ToolipsServer) -> _
 ------------------
 Closes the web-server.
 #### example
@@ -735,13 +735,13 @@ ws = MyProject.start()
 kill!(ws)
 ```
 """
-function kill!(ws::WebServer)
+function kill!(ws::ToolipsServer)
     close(ws.server)
 end
 
 """
 **Interface**
-### route!(f::Function, ws::WebServer, r::String) -> _
+### route!(f::Function, ws::ToolipsServer, r::String) -> _
 ------------------
 Reroutes a server's route r to function f.
 #### example
@@ -752,13 +752,13 @@ route!(ws, "/") do c
 end
 ```
 """
-function route!(f::Function, ws::WebServer, r::String)
+function route!(f::Function, ws::ToolipsServer, r::String)
     ws.routes[r] = f
 end
 
 """
 **Interface**
-### route!(ws::WebServer, r::String, f::Function) -> _
+### route!(ws::ToolipsServer, r::String, f::Function) -> _
 ------------------
 Reroutes a server's route r to function f.
 #### example
@@ -771,11 +771,11 @@ end
 route!(ws, "/", myf)
 ```
 """
-route!(ws::WebServer, r::String, f::Function) = route!(f, ws, r)
+route!(ws::ToolipsServer, r::String, f::Function) = route!(f, ws, r)
 
 """
 **Interface**
-### route!(ws::WebServer, r::Route) -> _
+### route!(ws::ToolipsServer, r::Route) -> _
 ------------------
 Reroutes a server's route r.
 #### example
@@ -787,11 +787,11 @@ end
 route!(ws, r)
 ```
 """
-route!(ws::WebServer, r::Route) = ws[r.path] = r.page
+route!(ws::ToolipsServer, r::Route) = ws[r.path] = r.page
 
 """
 **Interface**
-### getindex(ws::WebServer, s::Symbol) -> ::ServerExtension
+### getindex(ws::ToolipsServer, s::Symbol) -> ::ServerExtension
 ------------------
 Indexes the extensions in ws.
 #### example
@@ -800,7 +800,7 @@ ws = MyProject.start()
 ws[:Logger].log("hi")
 ```
 """
-function getindex(ws::WebServer, s::Symbol)
+function getindex(ws::ToolipsServer, s::Symbol)
     ws.extensions[s]
 end
 
@@ -1136,7 +1136,7 @@ println(s)
 |-- mychild
 ```
 """
-function showchildren(x::AbstractComponent{Any})
+function showchildren(x::AbstractComponent)
     prnt = "##### children \n"
     for c in x[:children]
         prnt = prnt * "|-- " * string(c) * " \n "
@@ -1145,6 +1145,14 @@ function showchildren(x::AbstractComponent{Any})
         end
     end
     prnt
+end
+
+function display(m::MIME{Symbol("text/markdown")}, x::AbstractComponent)
+
+end
+
+function display(m::MIME{Symbol("text/html")}, x::AbstractComponent)
+
 end
 
 """
@@ -1159,7 +1167,7 @@ string(c)
     "divider: align = center"
 ```
 """
-function string(c::AbstractComponent{Any})
+function string(c::AbstractComponent)
     base = c.name
     properties = ": "
     for pair in c.properties
@@ -1182,7 +1190,7 @@ Shows a component as markdown in a terminal.
 show(x)
 ```
 """
-function show(t::Base.TTY, x::AbstractComponent{Any})
+function show(t::Base.TTY, x::AbstractComponent)
     prnt = showchildren(x)
     header = "### " * string(x) * "\n"
     display(t, "text/markdown", header * prnt)
@@ -1198,7 +1206,7 @@ Shows a component as HTML.
 show(x)
 ```
 """
-function show(IO::IO, x::AbstractComponent{Any})
+function show(IO::IO, x::AbstractComponent)
     spf = SpoofConnection()
     write!(spf, x)
     display(IO, "text/html", spf.http.text)

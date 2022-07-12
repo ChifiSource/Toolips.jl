@@ -20,8 +20,8 @@ end
 Copies properties from s,properties into c.properties.
 #### example
 ```
-comp = Component()
-othercomp = Component()
+comp = AbstractComponent()
+othercomp = AbstractComponent()
 othercomp["opacity"] = "100%"
 properties!(comp, othercomp)
 
@@ -33,7 +33,7 @@ properties!(c::Servable, s::Servable) = merge!(c.properties, s.properties)
 
 """
 **Interface**
-### getproperties(c::Component) -> ::Dict
+### getproperties(c::AbstractComponent) -> ::Dict
 ------------------
 Returns a Dict of properties inside of c.
 #### example
@@ -41,11 +41,11 @@ Returns a Dict of properties inside of c.
 props = properties(c)
 ```
 """
-getproperties(c::Component) = c.properties
+getproperties(c::AbstractComponent) = c.properties
 
 """
 **Interface**
-### children(c::Component) -> ::Vector{Servable}
+### children(c::AbstractComponent) -> ::Vector{Servable}
 ------------------
 Returns Vector{Servable} of children inside of c.
 #### example
@@ -53,11 +53,11 @@ Returns Vector{Servable} of children inside of c.
 children(c)
 ```
 """
-children(c::Component) = c.properties[:children]
+children(c::AbstractComponent) = c.properties[:children]
 
 """
 **Interface**
-### copy(c::Component) -> ::Component
+### copy(c::AbstractComponent) -> ::AbstractComponent
 ------------------
 copies c.
 #### example
@@ -66,25 +66,25 @@ c = p("myp")
 t = copy!(c)
 ```
 """
-function copy(c::Component)
+function copy(c::Component{Any})
     props = copy(c.properties)
     extras = copy(c.extras)
     tag = copy(c.tag)
     name = copy(c.name)
-    comp = Component(name, tag, props)
+    comp = AbstractComponent(name, tag, props)
     comp.extras = extras
     comp
 end
 
 """
 **Interface**
-### has_children(c::Component) -> ::Bool
+### has_children(c::AbstractComponent) -> ::Bool
 ------------------
 Returns true if the given component has children.
 #### example
 ```
-c = Component()
-otherc = Component()
+c = AbstractComponent()
+otherc = AbstractComponent()
 push!(c, otherc)
 
 has_children(c)
@@ -93,7 +93,7 @@ has_children(otherc)
     false
 ```
 """
-function has_children(c::Component)
+function has_children(c::AbstractComponent)
     if length(c[:children]) != 0
         return true
     else
@@ -103,21 +103,21 @@ end
 
 """
 **Interface**
-### push!(s::Component, d::Component ...) -> ::Component
+### push!(s::AbstractComponent, d::AbstractComponent ...) -> ::AbstractComponent
 ------------------
 Adds the child or children d to s.properties[:children]
 #### example
 ```
-c = Component()
-otherc = Component()
+c = AbstractComponent()
+otherc = AbstractComponent()
 push!(c, otherc)
 ```
 """
-push!(s::Component, d::Component ...) = [push!(s[:children], c) for c in d]
+push!(s::AbstractComponent, d::AbstractComponent ...) = [push!(s[:children], c) for c in d]
 
 """
 **Interface**
-### getindex(s::Component, symb::Symbol) -> ::Any
+### getindex(s::AbstractComponent, symb::Symbol) -> ::Any
 ------------------
 Returns a property value by symbol or name.
 #### example
@@ -131,7 +131,7 @@ c["opacity"]
     "50%"
 ```
 """
-getindex(s::Component, symb::Symbol) = s.properties[symb]
+getindex(s::AbstractComponent, symb::Symbol) = s.properties[symb]
 
 """
 **Interface**
@@ -296,9 +296,9 @@ end
 
 """
 **Interface**
-### animate!(s::Component, a::Animation) -> _
+### animate!(s::AbstractComponent, a::Animation) -> _
 ------------------
-Sets the animation of a Component directly
+Sets the animation of a AbstractComponent directly
 #### example
 ```
 anim = Animation("fade_in")
@@ -309,7 +309,7 @@ myp = p("myp", text = "I fade in!")
 animate!(myp, anim)
 ```
 """
-function animate!(s::Component, a::Animation)
+function animate!(s::AbstractComponent, a::Animation)
     push!(s.extras, a)
     if a.iterations == 0
         iters = "infinite"
@@ -342,7 +342,7 @@ delete_keyframe!(anim, 0)
 ```
 """
 function delete_keyframe!(a::Animation, key::Int64)
-    delete!(a.keyframes, "$key%")
+    delete!(a.properties, "$key%")
 end
 
 """
@@ -358,7 +358,7 @@ delete_keyframe!(anim, :to)
 ```
 """
 function delete_keyframe!(a::Animation, key::Symbol)
-    delete!(a.keyframes, string(key))
+    delete!(a.properties, string(key))
 end
 
 """
@@ -377,10 +377,10 @@ function setindex!(anim::Animation, set::Pair, n::Int64)
     prop = string(set[1])
     value = string(set[2])
     n = string(n)
-    if n in keys(anim.keyframes)
-        anim.keyframes[n] = anim.keyframes[n] * "$prop: $value;"
+    if n in keys(anim.properties)
+        anim.properties[n] = anim.properties[n] * "$prop: $value;"
     else
-        push!(anim.keyframes, "$n%" => "$prop: $value; ")
+        push!(anim.properties, "$n%" => "$prop: $value; ")
     end
 end
 
@@ -400,10 +400,10 @@ function setindex!(anim::Animation, set::Pair, n::Symbol)
     prop = string(set[1])
     value = string(set[2])
     n = string(n)
-    if n in keys(anim.keyframes)
-        anim.keyframes[n] = anim.keyframes[n] * "$prop: $value; "
+    if n in keys(anim.properties)
+        anim.properties[n] = anim.properties[n] * "$prop: $value; "
     else
-        push!(anim.keyframes, "$n" => "$prop: $value; ")
+        push!(anim.properties, "$n" => "$prop: $value; ")
     end
 end
 
@@ -446,10 +446,10 @@ write!(c::AbstractConnection, s::Servable) = s.f(c)
 Writes all servables in s to c.
 #### example
 ```
-c = Component()
-c2 = Component()
+c = AbstractComponent()
+c2 = AbstractComponent()
 comps = components(c, c2)
-    Vector{Servable}(Component(), Component())
+    Vector{Servable}(AbstractComponent(), AbstractComponent())
 
 write!(c, comps)
 ```
@@ -465,14 +465,14 @@ end
 ### components(cs::Servable ...) -> ::Vector{Servable}
 ------------------
 Creates a Vector{Servable} from multiple servables. This is useful because
-a vector of components could potentially become a Vector{Component}, for example
+a vector of components could potentially become a Vector{AbstractComponent}, for example
 and this is not the dispatch that is used universally across the package.
 #### example
 ```
-c = Component()
-c2 = Component()
+c = AbstractComponent()
+c2 = AbstractComponent()
 components(c, c2)
-    Vector{Servable}(Component(), Component())
+    Vector{Servable}(AbstractComponent(), AbstractComponent())
 ```
 """
 components(cs::Servable ...) = Vector{Servable}([s for s in cs])
@@ -491,7 +491,7 @@ write!(c::AbstractConnection, s::Servable ...) = write!(c, Vector{Servable}(s))
 
 """
 **Interface**
-### write!(c::AbstractConnection, s::Vector{Component}) -> _
+### write!(c::AbstractConnection, s::Vector{AbstractComponent}) -> _
 ------------------
 A catch-all for when Vectors are accidentally stored as Vector{Any}.
 #### example
@@ -507,15 +507,15 @@ end
 
 """
 **Interface**
-### write!(c::AbstractConnection, s::Vector{Component}) -> _
+### write!(c::AbstractConnection, s::Vector{AbstractComponent}) -> _
 ------------------
-A catch-all for when Vectors are accidentally stored as Vector{Component}.
+A catch-all for when Vectors are accidentally stored as Vector{AbstractComponent}.
 #### example
 ```
 write!(c, [p("mycomp", text = "bye")])
 ```
 """
-function write!(c::AbstractConnection, s::Vector{Component})
+function write!(c::AbstractConnection, s::Vector{AbstractComponent})
     for servable in s
         write!(c, s)
     end
@@ -847,14 +847,14 @@ end
 **Interface**
 ### getindex(c::VectorServable, str::String) -> ::Servable
 ------------------
-Returns the Servable (likely a Component) with the name **str**
+Returns the Servable (likely a AbstractComponent) with the name **str**
 #### example
 ```
 comp1 = p("hello")
 comp2 = p("anotherp")
 cs = components(comp1, comp2)
 cs["hello"]
-    Component("hello" ...)
+    AbstractComponent("hello" ...)
 ```
 """
 function getindex(vs::Vector{Servable}, str::String)
@@ -885,6 +885,10 @@ has_extension(c::AbstractConnection, e::Symbol) = has_extension(c.extensions, e)
 has_extension(e::Vector{ServerExtension}, s::Symbol) = has_extension(e, s)
 
 has_extension(e::Vector{ServerExtension}, s::Type) = has_extension(e, Symbol(s))
+
+function consolidate(v::Vector{ServerTemplate})
+
+end
 
 """
 **Internals**
@@ -1118,7 +1122,7 @@ show
 ==#
 """
 **Internals**
-### showchildren(x::Component) -> ::String
+### showchildren(x::AbstractComponent) -> ::String
 ------------------
 Get the children of x as a markdown string.
 #### example
@@ -1132,7 +1136,7 @@ println(s)
 |-- mychild
 ```
 """
-function showchildren(x::Component)
+function showchildren(x::AbstractComponent{Any})
     prnt = "##### children \n"
     for c in x[:children]
         prnt = prnt * "|-- " * string(c) * " \n "
@@ -1145,7 +1149,7 @@ end
 
 """
 **Interface**
-### string(c::Component) -> ::String
+### string(c::AbstractComponent) -> ::String
 ------------------
 Shows c as a string representation of itself.
 #### example
@@ -1155,7 +1159,7 @@ string(c)
     "divider: align = center"
 ```
 """
-function string(c::Component)
+function string(c::AbstractComponent{Any})
     base = c.name
     properties = ": "
     for pair in c.properties
@@ -1169,7 +1173,7 @@ end
 
 """
 **Interface**
-### show(t::Base.TTY, x::Component) -> _
+### show(t::Base.TTY, x::AbstractComponent) -> _
 ------------------
 Shows a component as markdown in a terminal.
 #### example
@@ -1178,15 +1182,15 @@ Shows a component as markdown in a terminal.
 show(x)
 ```
 """
-function show(t::Base.TTY, x::Component)
+function show(t::Base.TTY, x::AbstractComponent{Any})
     prnt = showchildren(x)
     header = "### " * string(x) * "\n"
-    display("text/markdown", header * prnt)
+    display(t, "text/markdown", header * prnt)
 end
 
 """
 **Interface**
-### show(x::Component) -> _
+### show(x::AbstractComponent) -> _
 ------------------
 Shows a component as HTML.
 #### example
@@ -1194,8 +1198,154 @@ Shows a component as HTML.
 show(x)
 ```
 """
-function show(x::Component)
+function show(IO::IO, x::AbstractComponent{Any})
     spf = SpoofConnection()
     write!(spf, x)
-    display("text/html", spf.http.text)
+    display(IO, "text/html", spf.http.text)
+end
+
+"""
+**Interface**
+### show(t::Base.TTY, x::AbstractComponent) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::Style)
+
+end
+
+"""
+**Interface**
+### show(x::AbstractComponent) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(IO::IO, x::Style)
+
+end
+
+"""
+**Interface**
+### show(t::Base.TTY, x::AbstractComponent) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::Animation)
+
+end
+
+"""
+**Interface**
+### show(x::AbstractComponent) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(IO::IO, x::Animation)
+
+end
+
+
+"""
+**Interface**
+### show(t::Base.TTY, x::AbstractComponent) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::ServerExtension)
+
+end
+
+"""
+**Interface**
+### show(x::AbstractComponent) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(IO::IO, x::ServerExtension)
+
+end
+
+"""
+**Interface**
+### show(t::Base.TTY, x::AbstractComponent) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::ToolipsServer)
+
+end
+
+"""
+**Interface**
+### show(x::AbstractComponent) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(IO::IO, x::ToolipsServer)
+
+end
+
+"""
+**Interface**
+### show(t::Base.TTY, x::AbstractComponent) -> _
+------------------
+Shows a component as markdown in a terminal.
+#### example
+```
+# In the terminal, elsewhere the component will show as HTML.
+show(x)
+```
+"""
+function show(t::Base.TTY, x::AbstractConnection)
+
+end
+
+"""
+**Interface**
+### show(x::AbstractComponent) -> _
+------------------
+Shows a component as HTML.
+#### example
+```
+show(x)
+```
+"""
+function show(IO::IO, x::AbstractConnection)
+
 end

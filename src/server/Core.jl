@@ -348,7 +348,6 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 """
 function generate_router(routes::Vector{Route}, server::Any,
     extensions::Vector{ServerExtension})
-    route_paths = Dict{String, Function}([route.path => route.page for route in routes])
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
@@ -358,7 +357,7 @@ function generate_router(routes::Vector{Route}, server::Any,
                 push!(ces, extension)
         elseif extension.type == :routing
             try
-                extension.f(route_paths, extensions)
+                extension.f(routes extensions)
             catch e
                 throw(ExtensionError(typeof(extension), e))
             end
@@ -371,16 +370,9 @@ function generate_router(routes::Vector{Route}, server::Any,
             end
             if :routing in extension.type
                 try
-                    extension.f(route_paths, extensions)
+                    extension.f(routes, extensions)
                 catch e
-                    try
-                        extension.f(route_paths, Dict(
-                        [Symbol(typeof(e)) => e for e in extensions]))
-                        @warn """extension.f with dict of server extensions set
-                         to be deprecated. instead, use Vector{ServerExtension.}"""
-                     catch
-                         throw(ExtensionError(typeof(extension), e))
-                     end
+                    throw(ExtensionError(typeof(extension), e))
                 end
             end
             if :func in extension.type
@@ -394,7 +386,7 @@ function generate_router(routes::Vector{Route}, server::Any,
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
-        if fullpath in keys(route_paths)
+        if fullpath in routes
             try
                 [extension.f(c) for extension in fes]
             catch e
@@ -402,12 +394,12 @@ function generate_router(routes::Vector{Route}, server::Any,
             end
             try
                 try
-                    cT::Type = methods(route_paths[fullpath])[1].sig.parameters[2]
-                    c::AbstractConnection = cT(route_paths, http, ces)
+                    cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
+                    c::AbstractConnection = cT(routes, http, ces)
                 catch
-                    c::Connection = Connection(route_paths, http, ces)
+                    c::Connection = Connection(routes, http, ces)
                 end
-                route_paths[fullpath](c)
+                routes[fullpath](c)
             catch e
                 throw(RouteException(fullpath, e))
             end
@@ -415,7 +407,7 @@ function generate_router(routes::Vector{Route}, server::Any,
         else
             [extension.f(c) for extension in fes]
             try
-                route_paths["404"](c)
+                routes["404"](c)
                 return
             catch
                 warn(
@@ -426,5 +418,5 @@ function generate_router(routes::Vector{Route}, server::Any,
             end
         end
     end # serve()
-    return(routeserver, route_paths, extensions)
+    return(routeserver, routes, extensions)
 end

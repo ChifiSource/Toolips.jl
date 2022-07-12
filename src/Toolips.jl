@@ -9,6 +9,8 @@ This software is MIT-licensed.
 and **reactive** web-development framework **always** written in **pure** Julia.
 ##### Module Composition
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
+- [interface]()
+- [server]()
 """
 module Toolips
 using Crayons
@@ -18,7 +20,8 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception
+import Base: showerror, in, Pairs, Exception, div
+
 #==
 SuperTypes
 ==#
@@ -31,21 +34,6 @@ interface. They can also be indexed with strings or symbols to change properties
 positonal argument of type ::Connection or ::AbstractConnection
 """
 abstract type Servable <: Any end
-
-"""
-### abstract type StyleComponent <: Servable
-No different from a normal Servable, simply an abstract type step for the
-interface to separate working with Animations and Styles.
-### Servable Consistencies
-```
-Servables can be written to a Connection via thier f() function and the
-interface. They can also be indexed with strings or symbols to change properties
-##### Consistencies
-- f::Function - Function whose output to be written to http. Must take a single
-positonal argument of type ::Connection or ::AbstractConnection
-```
-"""
-abstract type StyleComponent <: Servable end
 
 """
 ### abstract type ToolipsServer
@@ -91,6 +79,7 @@ access ServerExtensions.
 """
 abstract type AbstractConnection end
 
+abstract type AbstractRoute end
 """
 ### SpoofStream
 - text::String
@@ -175,14 +164,17 @@ write!(fakec, servable)
 - SpoofStream()
 """
 mutable struct SpoofConnection <: AbstractConnection
-    routes::Dict
+    routes::Vector{ServerExtension}
     http::SpoofStream
-    extensions::Dict
-    function SpoofConnection(r::Dict, http::SpoofStream, extensions::Dict)
+    extensions::Vector{ServerExtension}
+    function SpoofConnection(r::Vector{AbstractRoute}, http::Any,
+        extensions::Vector{ServerExtension})
         new(r, SpoofStream(), extensions)
     end
-    SpoofConnection() = new(Dict(), SpoofStream(), Dict())
+    SpoofConnection() = new(Vector{AbstractRoute}(), SpoofStream(),
+                                    Vector{ServerExtension}())
 end
+
 """
 ### Connection <: AbstractConnection
 - routes::Dict
@@ -219,9 +211,9 @@ name to reference as keys and the extension as the pair.
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
 mutable struct Connection <: AbstractConnection
-    routes::Dict
+    routes::Vector{Route}
     http::HTTP.Stream
-    extensions::Dict
+    extensions::Vector{ServerExtension}
     function Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
         new(routes, http, extensions)::Connection
     end

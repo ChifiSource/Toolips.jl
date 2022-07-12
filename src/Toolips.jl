@@ -217,10 +217,11 @@ name to reference as keys and the extension as the pair.
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
 mutable struct Connection <: AbstractConnection
-    routes::Vector{Route}
+    routes::Vector{AbstractRoute}
     http::HTTP.Stream
     extensions::Vector{ServerExtension}
-    function Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
+    function Connection(routes::Vector{AbstractRoute}, http::HTTP.Stream,
+        extensions::Vector{ServerExtension})
         new(routes, http, extensions)::Connection
     end
 end

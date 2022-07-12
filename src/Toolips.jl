@@ -9,8 +9,14 @@ This software is MIT-licensed.
 and **reactive** web-development framework **always** written in **pure** Julia.
 ##### Module Composition
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
-- [interface]()
-- [server]()
+---
+- [`interface`]()
+- ["Interface.jl"]()
+- ["Servables.jl"]()
+---
+- [`server`]()
+- ["Core.jl"]()
+- ["Extensions.jl"]()
 """
 module Toolips
 using Crayons
@@ -20,7 +26,7 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div
+import Base: showerror, in, Pairs, Exception, div, keys
 
 #==
 SuperTypes

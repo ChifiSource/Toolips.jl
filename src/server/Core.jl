@@ -1,8 +1,11 @@
 include("Extensions.jl")
 
+abstract type CoreException <: Exception end
+abstract type ExtensionException <: CoreException end
+abstract type ConnectionException <: CoreException end
 """
 """
-mutable struct MissingExtensionError <: Exception
+mutable struct MissingExtensionError <: ExtensionException
     extension::Type
     f::Function
     function MissingExtensionError(extension::Symbol, f::Function)
@@ -19,14 +22,14 @@ function showerror(io::IO, e::MissingExtensionError)
     by the function $(string(e.f))""")
 end
 
-mutable struct ExtensionError <: Exception
+mutable struct ExtensionError <: ExtensionException
     extension::Type
     error::Exception
     function ExtensionError(extension::Type, error::Exception)
         if ~(extension <: ServerExtension)
             throw(ArgumentError("The type provided to exception is not a ServerExtension!"))
         end
-        new(extension, error)
+        new(extension, error)::ExtensionError
     end
 end
 
@@ -35,16 +38,13 @@ function showerror(io::IO, e::ExtensionError)
                 $(e.error)""")
 end
 
-mutable struct ConnectionError{fallback} <: Exception
+mutable struct ConnectionError <: ConnectionException
     connection::AbstractConnection
-    connection_retry::AbstractConnection
-    function ConnectionError(connection::AbstractConnection,
-        connection_retry::AbstractConnection; fallback::Bool = false)
-        new{fallback}(connection, connection_retry)
+    route::AbstractRoute
+    function ConnectionError(connection::AbstractConnection, route::AbstractRoute)
+        new(connection, route)::ConnectionError
     end
 end
-
-
 
 function warn(c::Connection, e::Exception)
     buff = IOBuffer()
@@ -55,19 +55,20 @@ function warn(c::Connection, e::Exception)
         @warn String(buff.data)
     end
 end
+
 function warn(e::Exception)
     buff = IOBuffer()
     showerror(buff, e)
     @warn String(buff.data)
 end
 
-mutable struct RouteException <: Exception
+mutable struct RouteError <: ConnectionException
     route::String
     error::Exception
-    RouteException(route::String, error::Exception) = new(route, error)
+    RouteError(route::String, error::Exception) = new(route, error)::RouteError
 end
 
-function showerror(io::IO, e::RouteException)
+function showerror(io::IO, e::RouteError)
     print(io, "Route $(e.route) on server")
 end
 
@@ -113,7 +114,7 @@ end
 ##### constructors
 - Route(path::String, f::Function)
 """
-mutable struct Route
+mutable struct Route <: AbstractRoute
     path::String
     page::Function
     function Route(path::String, f::Function)
@@ -147,14 +148,14 @@ end
 mutable struct WebServer <: ToolipsServer
     host::String
     port::Integer
-    routes::Vector{Route}
+    routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
     server::Any
     add::Function
     remove::Function
     start::Function
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
-        routes::Vector{Route} = routes(route("/",
+        routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
         server = :inactive
@@ -168,7 +169,7 @@ end
 ### ServerTemplate
 - ip**::String**
 - port**::Integer**
-- routes**::Vector{Route}**
+- routes**::Vector{AbstractRoute}**
 - extensions**::Dict**
 - remove**::Function**
 - add**::Function**
@@ -185,7 +186,7 @@ webserver = ServerTemplate.start()
 ##### field info
 - ip**::String** - IP the server should serve to.
 - port**::Integer** - Port to listen on.
-- routes**::Vector{Route}** - A vector of routes to provide to the server
+- routes**::Vector{AbstractRoute}** - A vector of routes to provide to the server
 - extensions**::Vector{ServerExtension}** - A vector of extensions to load into
 the server.
 - remove(::Int64)**::Function** - Removes routes by index.
@@ -198,21 +199,22 @@ type, e.g. :Logger
 ------------------
 ##### constructors
 - ServerTemplate(ip::String = "127.0.0.1", port::Int64 = 8001,
-            routes::Vector{Route} = Vector{Route}());
+            routes::Vector{AbstractRoute} = Vector{AbstractRoute}());
             extensions::Vector{ServerExtension} = [Logger()]
             connection::Type)
 """
 mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     ip::String
     port::Integer
-    routes::Vector{Route}
+    routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
+    server::Any
     remove::Function
     add::Function
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{Route} = Vector{Route}();
-        routes::Vector{Route} = routes(route("/",
+        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
+        routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()],
         server::Type = WebServer)
@@ -227,8 +229,9 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         end
         servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = _st_start(host, port, routes, extensions, servertype)
-        new{servertype}(host, port, routes, extensions, remove, add, start)::ServerTemplate
+        server::Any = :none
+        start() = _st_start(host, port, routes, extensions, servertype, server)
+        new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
 end
 
@@ -260,6 +263,17 @@ function in(t::Symbol, v::Vector{ServerExtension})
     end
 end
 
+function in(t::String, v::Vector{Route})
+    if length(findall(x -> typeof(x) == eval(t), v)) > 0
+        true
+    else
+        false
+    end
+end
+
+keys(v::Vector{Route}) = [r.page for r in v]
+values(v::Vector{Route}) [r.page]
+
 """
 **Core**
 ### serverfuncdefs(routes**::AbstractVector**, extensions::Dict) -> add::Function, remove::Function
@@ -269,7 +283,7 @@ dictionary.
 #### example
 
 """
-function serverfuncdefs(routes::Vector{Route}, extensions::Vector{ServerExtension})
+function serverfuncdefs(routes::Vector{AbstractRoute}, extensions::Vector{ServerExtension})
     # oo baby what a beautiful function.
     add(r::Route ...)::Function = [push!(routes, route) for route in r]
     add(e::ServerExtension ...) = [push!(extensions, ext) for ext in e]
@@ -280,7 +294,7 @@ function serverfuncdefs(routes::Vector{Route}, extensions::Vector{ServerExtensio
     return(add::Function, remove::Function)
 end
 
-function _st_start(ip::String, port::Integer, routes::Vector{Route},
+function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     extensions::Vector{ServerExtension}, servertype::Type)
     server::ToolipsServer = servertype(ip, port, routes = routes,
     extensions = extensions)
@@ -301,7 +315,7 @@ st = ServerTemplate()
 st.start()
 ```
 """
-function _start(ip::String, port::Integer, routes::Vector{Route},
+function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      if has_extension(extensions, Logger)
@@ -346,7 +360,7 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 @async HTTP.listen(routefunc, ip, port, server = server)
 ```
 """
-function generate_router(routes::Vector{Route}, server::Any,
+function generate_router(routes::Vector{AbstractRoute}, server::Any,
     extensions::Vector{ServerExtension})
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()
@@ -401,7 +415,7 @@ function generate_router(routes::Vector{Route}, server::Any,
                 end
                 routes[fullpath](c)
             catch e
-                throw(RouteException(fullpath, e))
+                throw(RouteError(fullpath, e))
             end
             return
         else
@@ -411,7 +425,7 @@ function generate_router(routes::Vector{Route}, server::Any,
                 return
             catch
                 warn(
-                RouteException("404",
+                RouteError("404",
                 CoreError("Tried to return 404, but there is no \"404\" route.")
                 ))
                 return

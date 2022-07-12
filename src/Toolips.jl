@@ -229,7 +229,7 @@ end
 #==
 Includes/Exports
 ==#
-include("interface/Servables.jl")
+include("interface/Components.jl")
 include("server/Core.jl")
 include("interface/Interface.jl")
 

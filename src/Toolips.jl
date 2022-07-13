@@ -27,7 +27,7 @@ using ParseNotEval
 using Dates
 using Markdown
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys
+import Base: showerror, in, Pairs, Exception, div, keys, *
 
 #==
 SuperTypes
@@ -87,6 +87,7 @@ access ServerExtensions.
 abstract type AbstractConnection end
 
 abstract type AbstractRoute end
+
 """
 ### SpoofStream
 - text::String

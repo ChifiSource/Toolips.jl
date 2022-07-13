@@ -1,5 +1,8 @@
 include("Extensions.jl")
 
+#==
+Exceptions
+==#
 abstract type CoreException <: Exception end
 abstract type ExtensionException <: CoreException end
 abstract type ConnectionException <: CoreException end
@@ -78,7 +81,262 @@ mutable struct CoreError <: Exception
 end
 
 showerror(io::IO, e::CoreError) = print(io, "Toolips Core Error: $(e.message)")
+#==
+Connections
+==#
+"""
+**Interface**
+### getindex(c::AbstractConnection, s::String) -> ::Function
+------------------
+Returns the function that corresponds to the route dir s.
+#### example
+```
+c["/"]
 
+    home
+```
+"""
+getindex(c::AbstractConnection, s::String) = c.routes[s]
+
+"""
+**Interface**
+### getindex(c::AbstractConnection, s::Symbol) -> ::ServerExtension
+------------------
+Indexes the extensions in c.
+#### example
+```
+route("/") do c::Connection
+    c[:Logger].log("hi")
+end
+```
+"""
+function getindex(c::AbstractConnection, s::Symbol)
+    if ~(s in c.extensions)
+        getindex(c, eval(s))
+    end
+    return(c.extensions[s])
+end
+
+"""
+**Interface**
+### getindex(c::AbstractConnection, t::Type) -> ::ServerExtension
+------------------
+Indexes the extensions in c by type.
+#### example
+```
+route("/") do c::Connection
+    c[Logger].log("hi")
+end
+```
+"""
+function getindex(c::AbstractConnection, t::Type)
+    for e in c.extensions
+        if e isa t
+            return(e)
+        end
+    end
+end
+
+"""
+**Interface**
+### setindex!(c::AbstractConnection, f::Function, s::String) -> _
+------------------
+Sets the route path s to serve at the function f.
+#### example
+```
+c["/"] = c -> write!(c, "hello")
+```
+"""
+setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = Route(c, f)
+
+#==
+Request/Args
+==#
+
+"""
+**Internals**
+### argsplit(args::Vector{AbstractString}) -> ::Dict{Symbol, Any}
+------------------
+Used by the getargs method to parse GET arguments into a Dict.
+#### example
+```
+argsplit(["c=5", "b=8"])
+    Dict(:c => 5, :b => 8)
+```
+"""
+function argsplit(args::Vector{AbstractString})
+    arg_dict::Dict = Dict()
+    for arg in args
+        keyarg = split(arg, '=')
+        x = ParseNotEval.parse(keyarg[2])
+        push!(arg_dict, Symbol(keyarg[1]) => x)
+    end
+    return(arg_dict)
+end
+
+"""
+**Interface**
+### getargs(c::AbstractConnection) -> ::Dict{Symbol, Any}
+------------------
+The getargs method returns arguments from the HTTP target (GET requests.)
+Returns a Dict with the argument keys as Symbols.
+#### example
+```
+route("/") do c
+    args = getargs(c)
+    args[:message]
+        "welcome to toolips ! :)"
+end
+```
+"""
+function getargs(c::AbstractConnection)
+    target::String = split(c.http.message.target, '?')[2]
+    target = replace(target, "+" => " ")
+    args = split(target, '&')
+    argsplit(args)
+end
+
+
+"""
+**Interface**
+### getarg(c::AbstractConnection, s::Symbol) -> ::Any
+------------------
+Returns the requested argument from the target.
+#### example
+```
+getarg(c, :x)
+    50
+```
+"""
+function getarg(c::AbstractConnection, s::Symbol)
+    getargs(c)[s]
+end
+
+"""
+**Interface**
+### getarg(c::AbstractConnection, s::Symbol, t::Type) -> ::Vector
+------------------
+This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
+parsed as type T(). Note that "Cannot convert..." errors are possible with this
+method.
+#### example
+```
+getarg(c, :x, Int64)
+    50
+```
+"""
+function getarg(c::AbstractConnection, s::Symbol, T::Type)
+    parse(T, getargs(http)[s])
+end
+
+"""
+**Interface**
+### getip(c::AbstractConnection) -> ::String
+------------------
+Returns the IP that is connected via the connection c.
+#### example
+```
+getip(c)
+"127.0.0.2"
+```
+"""
+function getip(c::AbstractConnection)
+    str = c.http.message["User-Agent"]
+    spl = split(str, "/")
+    ipstr = ""
+    for sub in spl
+        if contains(sub, ".")
+            if length(findall(".", sub)) > 1
+                ipstr = split(sub, " ")[1]
+            end
+        end
+    end
+    return(ipstr)
+end
+
+"""
+**Interface**
+### getpost(c::AbstractConnection) -> ::String
+------------------
+Returns the POST body of c.
+#### example
+```
+getpost(c)
+"hello, this is a post request"
+```
+"""
+getpost(c::AbstractConnection) = string(read(c.http))
+
+"""
+**Internals**
+### string(r::Vector{UInt8}) -> ::String
+------------------
+Turns a vector of UInt8s into a string.
+"""
+string(r::Vector{UInt8}) = String(UInt8.(r))
+
+"""
+**Interface**
+### get(url::String) -> ::String
+------------------
+Quick binding for an HTTP GET request.
+#### example
+```
+body = get("/")
+    "hi"
+```
+"""
+function get(url::String)
+    r = HTTP.request("GET", url)
+    string(r.body)
+end
+
+"""
+**Interface**
+### post(url::String, body::String) -> ::String
+------------------
+Quick binding for an HTTP POST request.
+#### example
+```
+response = post("/")
+    "my response"
+```
+"""
+function post(url::String, body::String)
+    r = HTTP.request("POST", url, body = body)
+    string(r.body)
+end
+
+"""
+**Interface**
+### download!(c::AbstractConnection, uri::String) -> _
+------------------
+Downloads a file to a given Connection's computer.
+#### example
+```
+download!(c, "files/mytext.txt")
+```
+"""
+function download!(c::AbstractConnection, uri::String)
+    write(c.http, HTTP.Response( 200, body = read(uri, String)))
+end
+
+"""
+**Interface**
+### navigate!(::AbstractConnection, ::String) -> _
+------------------
+Routes a connected stream to a given URL.
+#### example
+```
+navigate!(c, "https://github.com/ChifiSource/Toolips.jl")
+```
+"""
+function navigate!(c::AbstractConnection, url::String)
+    HTTP.get(url, response_stream = c.http, status_exception = false)
+end
+#==
+Routes
+==#
 """
 ### Route
 - path::String
@@ -122,6 +380,9 @@ mutable struct Route <: AbstractRoute
     end
 end
 
+#==
+Servers
+==#
 """
 ### WebServer <: ToolipsServer
 - host::String
@@ -234,6 +495,81 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
 end
+function consolidate(v::ServerTemplate ...)
+
+end
+#==
+Connection
+==#
+"""
+**Core**
+### has_extension(c::AbstractConnection, t::Type) -> ::Bool
+------------------
+Checks if c.extensions has an extension of type t.
+#### example
+```
+if has_extension(c, Logger)
+    c[:Logger].log("it has a logger, I think.")
+end
+```
+"""
+has_extension(c::AbstractConnection, t::Type) = has_extension(c.extensions,
+ Symbol(t))
+
+has_extension(c::AbstractConnection, e::Symbol) = has_extension(c.extensions, e)
+
+has_extension(e::Vector{ServerExtension}, s::Symbol) = has_extension(e, s)
+
+has_extension(e::Vector{ServerExtension}, s::Type) = has_extension(e, Symbol(s))
+
+"""
+**Internals**
+### has_extension(d::Dict, t::Type) -> ::Bool
+------------------
+Checks if d has an extension of type t.
+#### example
+```
+if has_extension(d, Logger)
+    d[:Logger].log("it has a logger, I think.")
+end
+```
+"""
+function has_extension(es::Vector{ServerExtension}, t::Symbol)
+    if t in es
+        return(true)
+    else
+        return(false)
+    end
+end
+
+#==
+Servables
+==#
+*(s::Servable, d::Servable ...) = servables(s, d ...)
+
+"""
+**Interface**
+### getindex(c::VectorServable, str::String) -> ::Servable
+------------------
+Returns the Servable (likely a AbstractComponent) with the name **str**
+#### example
+```
+comp1 = p("hello")
+comp2 = p("anotherp")
+cs = components(comp1, comp2)
+cs["hello"]
+    AbstractComponent("hello" ...)
+```
+"""
+function getindex(vs::Vector{Servable}, str::String)
+    vs[findall(s.name == str, vs)[1]]
+end
+
+
+#==
+Vector{ServerExtension}
+Vector{AbstractRoute}
+==#
 
 function getindex(v::Vector{ServerExtension}, t::Type)
     # my god, it's beautiful.
@@ -284,6 +620,9 @@ end
 keys(v::Vector{AbstractRoute}) = [r.path for r in v]
 values(v::Vector{AbstractRoute}) = [r.page for r in v]
 
+#==
+Core Server
+==#
 """
 **Core**
 ### serverfuncdefs(routes**::AbstractVector**, extensions::Dict) -> add::Function, remove::Function

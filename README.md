@@ -5,8 +5,8 @@
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
 </br>
 
-- [toolips.app](https://toolips.app/) - toolips hq
-- [documentation](https://doc.toolips.app) - all relevant main toolips documentation.
+- [toolips app](https://toolips.app/)
+- [documentation](https://doc.toolips.app)
 
 </div>
 

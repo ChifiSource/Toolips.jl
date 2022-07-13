@@ -247,32 +247,42 @@ function getindex(v::Vector{ServerExtension}, s::Symbol)
     getindex(v, eval(s))
 end
 
+function getindex(v::Vector{AbstractRoute}, s::String)
+    v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
+end
+
 function in(t::Type, v::Vector{ServerExtension})
     if length(findall(x -> typeof(x) == t, v)) > 0
-        true
-    else
-        false
+        return true
     end
+    false::Bool
 end
 
 function in(t::Symbol, v::Vector{ServerExtension})
     if length(findall(x -> typeof(x) == eval(t), v)) > 0
-        true
-    else
-        false
+        return true
     end
+    false::Bool
 end
 
 function in(t::String, v::Vector{AbstractRoute})
-    if length(findall(x -> typeof(x) == eval(t), v)) > 0
-        true
+    if length(findall(x -> x.path == t, v)) > 0
+        return true
+    end
+    false::Bool
+end
+
+function setindex!(v::Vector{AbstractRoute}, r::AbstractRoute)
+    if s in v
+        index = findall(x -> x.path == s, v)
+        v[index] = Route(s, f)
     else
-        false
+        push!(v, Route(s, f))
     end
 end
 
-keys(v::Vector{AbstractRoute}) = [r.page for r in v]
-values(v::Vector{AbstractRoute}) = [r.path for r in v]
+keys(v::Vector{AbstractRoute}) = [r.path for r in v]
+values(v::Vector{AbstractRoute}) = [r.page for r in v]
 
 """
 **Core**
@@ -407,17 +417,17 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
             catch e
                 throw(ExtensionError(typeof(extension[2]), e))
             end
+            c::AbstractConnection = Connection(routes, http, ces)
             try
-                try
+                T = methods(routes[fullpath].page)[1].sig
+                if length(T.parameters) == 2 && T.parameters[2] != AbstractConnection
                     cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
-                    c::AbstractConnection = cT(routes, http, ces)
-                catch
-                    c::Connection = Connection(routes, http, ces)
+                    c = cT(routes, http, ces)
                 end
-                routes[fullpath](c)
-            catch e
-                throw(RouteError(fullpath, e))
+            catch
+
             end
+            routes[fullpath].page(c)
             return
         else
             [extension.f(c) for extension in fes]

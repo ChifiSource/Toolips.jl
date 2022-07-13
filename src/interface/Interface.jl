@@ -817,7 +817,7 @@ end
 ```
 """
 function getindex(c::AbstractConnection, s::Symbol)
-    if ~(s in keys(c.extensions))
+    if ~(s in c.extensions)
         getindex(c, eval(s))
     end
     return(c.extensions[s])
@@ -934,7 +934,7 @@ Sets the route path s to serve at the function f.
 c["/"] = c -> write!(c, "hello")
 ```
 """
-setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
+setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = Route(c, f)
 #==
 Request/Args
 ==#

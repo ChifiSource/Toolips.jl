@@ -1147,11 +1147,15 @@ function showchildren(x::AbstractComponent)
     prnt
 end
 
-function display(m::MIME{Symbol("text/markdown")}, x::AbstractComponent)
+function display(m::MIME{Symbol("text/markdown")}, x::Component{Any})
 
 end
 
-function display(m::MIME{Symbol("text/html")}, x::AbstractComponent)
+function display(m::MIME{Symbol("text/html")}, x::Component{Any})
+
+end
+
+function display(m::MIME{Symbol("text/html")}, x::Vector{Servable})
 
 end
 
@@ -1193,23 +1197,7 @@ show(x)
 function show(t::Base.TTY, x::AbstractComponent)
     prnt = showchildren(x)
     header = "### " * string(x) * "\n"
-    display(t, "text/markdown", header * prnt)
-end
-
-"""
-**Interface**
-### show(x::AbstractComponent) -> _
-------------------
-Shows a component as HTML.
-#### example
-```
-show(x)
-```
-"""
-function show(IO::IO, x::AbstractComponent)
-    spf = SpoofConnection()
-    write!(spf, x)
-    display(IO, "text/html", spf.http.text)
+    show(Markdown.parse(header * prnt))
 end
 
 """

@@ -25,6 +25,7 @@ using HTTP
 using Pkg
 using ParseNotEval
 using Dates
+using Markdown
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
 import Base: showerror, in, Pairs, Exception, div, keys
 

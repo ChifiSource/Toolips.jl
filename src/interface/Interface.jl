@@ -859,3 +859,24 @@ function string(c::AbstractComponent)
     end
     base * properties
 end
+
+function show(io::Base.TTY, c::AbstractComponent)
+    children = showchildren(c)
+    display("text/markdown", """##### $(c.tag)
+        $(string(c))
+        $children
+        """)
+
+end
+
+function show(IO::IO, c::AbstractComponent)
+    myc = SpoofConnection()
+    write!(myc, c)
+    display("text/html", myc.http.text)
+end
+
+function display(m::MIME{Symbol("text/html")}, c::AbstractComponent)
+    myc = SpoofConnection()
+    write!(myc, c)
+    display("text/html", myc.http.text)
+end

@@ -237,6 +237,7 @@ include("interface/Interface.jl")
 
 # Core Server
 export ServerTemplate, Route, Connection, WebServer, Servable
+export Hash
 # Server Extensions
 export Logger, Files
 # Servables

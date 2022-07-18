@@ -82,6 +82,49 @@ end
 
 showerror(io::IO, e::CoreError) = print(io, "Toolips Core Error: $(e.message)")
 #==
+Hash
+==#
+"""
+### Hash
+- f::Function - The f function is used to return the Hash's value. \
+Creates an anonymous hashing function for a string of length(n). Can be
+    indexed with nothing to retrieve Hash.
+##### example
+```
+# 64-character hash
+h = Hash(64)          #    vv getindex(::Hash)
+buffer = Base.SecretBuffer(hash[])
+if String(buffer.data) == "Password"
+```
+------------------
+##### constructors
+- Hash(n::Integer = 32)
+- Hash(s::String)
+"""
+struct Hash
+    f::Function
+    function Hash(n::Integer = 32)
+        seed = rand(1:100000000)
+        f() = begin
+            Random.seed!(seed); randstring(n)
+        end
+        new(f)
+    end
+    function Hash(s::String)
+        seed = rand(1:100000000)
+        f() = begin
+
+        end
+        f(inp::String) = begin
+            if inp == s
+
+            else
+
+            end
+        end
+    end
+end
+#==
 Connections
 ==#
 """

@@ -215,6 +215,7 @@ function (:)(s::Style, name::String, ps::Vector{Pair{String, String}})
     push!(s.extras, newstyle)
 end
 
+(s::Style, name::String) = s.extras[string(split(name, ":")[2])]::AbstractComponent
 """
 **Interface**
 ### style!(c::Servable, s::Pair ...) -> _

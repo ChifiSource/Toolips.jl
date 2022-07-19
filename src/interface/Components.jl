@@ -201,6 +201,23 @@ h1 = h("heading1", 1)
 write!(c, h1)
 ```
 """
+function h(name::String = "", level::Integer = 1,
+    args::Pair{String, String} ...; keys ...)
+    tg = Symbol("h$level")
+    Component(name, "h$level", args ..., keys ...)::Component{tg}
+end
+
+"""
+### h(name::String; args ...) -> ::Component
+------------------
+Returns the h Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+h1 = h("heading1", 1)
+write!(c, h1)
+```
+"""
 function h1(name::String = "", args::Pair{String, String} ...; keys ...)
     Component(name, "h1", args ..., keys ...)::Component{:h1}
 end
@@ -248,6 +265,21 @@ write!(c, divider)
 ```
 """
 function div(name::String = "", args::Pair{String, String} ...; keys ...)
+    Component(name, "div", args ..., keys ...)::Component{:div}
+end
+
+"""
+### divider(name::String; args ...) -> ::Component
+------------------
+Returns the div Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+divider1 = divider("mylogo")
+write!(c, divider)
+```
+"""
+function divider(name::String = "", args::Pair{String, String} ...; keys ...)
     Component(name, "div", args ..., keys ...)::Component{:div}
 end
 

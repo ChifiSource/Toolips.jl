@@ -478,6 +478,8 @@ components(c, c2)
 """
 components(cs::Servable ...) = Vector{Servable}([s for s in cs])
 
+vect(cs::Servable ...) = Vector{Servable}([s for s in cs])
+vect(cs::AbstractComponent ...) = Vector{Servable}([s for s in cs])
 """
 **Interface**
 ### write!(c::AbstractConnection, s::Servable ...) -> _

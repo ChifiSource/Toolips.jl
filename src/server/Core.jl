@@ -1,5 +1,3 @@
-include("Extensions.jl")
-
 #==
 Exceptions
 ==#
@@ -81,6 +79,7 @@ mutable struct CoreError <: Exception
 end
 
 showerror(io::IO, e::CoreError) = print(io, "Toolips Core Error: $(e.message)")
+
 #==
 Hash
 ==#
@@ -125,10 +124,36 @@ struct Hash
     end
 end
 #==
+Servables
+==#
+"""
+### abstract type Servable
+Servables can be written to a Connection via thier f() function and the
+interface. They can also be indexed with strings or symbols to change properties
+##### Consistencies
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
+"""
+abstract type Servable <: Any end
+#==
 Connections
 ==#
 """
-**Interface**
+### abstract type AbstractConnection
+Connections are passed through function routes and can have Servables written
+    to it.
+##### Consistencies
+- routes::Dict - A {String, Function} dictionary that the server references to
+direct incoming connections.
+- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
+the Base.write method.
+- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
+access ServerExtensions.
+"""
+abstract type AbstractConnection end
+
+"""
+**Core**
 ### getindex(c::AbstractConnection, s::String) -> ::Function
 ------------------
 Returns the function that corresponds to the route dir s.
@@ -141,8 +166,9 @@ c["/"]
 """
 getindex(c::AbstractConnection, s::String) = c.routes[s]
 
+
 """
-**Interface**
+**Core**
 ### getindex(c::AbstractConnection, s::Symbol) -> ::ServerExtension
 ------------------
 Indexes the extensions in c.
@@ -161,7 +187,7 @@ function getindex(c::AbstractConnection, s::Symbol)
 end
 
 """
-**Interface**
+**Core**
 ### getindex(c::AbstractConnection, t::Type) -> ::ServerExtension
 ------------------
 Indexes the extensions in c by type.
@@ -181,7 +207,7 @@ function getindex(c::AbstractConnection, t::Type)
 end
 
 """
-**Interface**
+**Core**
 ### setindex!(c::AbstractConnection, f::Function, s::String) -> _
 ------------------
 Sets the route path s to serve at the function f.
@@ -191,10 +217,6 @@ c["/"] = c -> write!(c, "hello")
 ```
 """
 setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = Route(c, f)
-
-#==
-Request/Args
-==#
 
 """
 **Internals**
@@ -218,7 +240,7 @@ function argsplit(args::Vector{AbstractString})
 end
 
 """
-**Interface**
+**Core**
 ### getargs(c::AbstractConnection) -> ::Dict{Symbol, Any}
 ------------------
 The getargs method returns arguments from the HTTP target (GET requests.)
@@ -241,7 +263,7 @@ end
 
 
 """
-**Interface**
+**Core**
 ### getarg(c::AbstractConnection, s::Symbol) -> ::Any
 ------------------
 Returns the requested argument from the target.
@@ -256,7 +278,7 @@ function getarg(c::AbstractConnection, s::Symbol)
 end
 
 """
-**Interface**
+**Core**
 ### getarg(c::AbstractConnection, s::Symbol, t::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are
@@ -273,7 +295,7 @@ function getarg(c::AbstractConnection, s::Symbol, T::Type)
 end
 
 """
-**Interface**
+**Core**
 ### getip(c::AbstractConnection) -> ::String
 ------------------
 Returns the IP that is connected via the connection c.
@@ -298,7 +320,7 @@ function getip(c::AbstractConnection)
 end
 
 """
-**Interface**
+**Core**
 ### getpost(c::AbstractConnection) -> ::String
 ------------------
 Returns the POST body of c.
@@ -319,39 +341,7 @@ Turns a vector of UInt8s into a string.
 string(r::Vector{UInt8}) = String(UInt8.(r))
 
 """
-**Interface**
-### get(url::String) -> ::String
-------------------
-Quick binding for an HTTP GET request.
-#### example
-```
-body = get("/")
-    "hi"
-```
-"""
-function get(url::String)
-    r = HTTP.request("GET", url)
-    string(r.body)
-end
-
-"""
-**Interface**
-### post(url::String, body::String) -> ::String
-------------------
-Quick binding for an HTTP POST request.
-#### example
-```
-response = post("/")
-    "my response"
-```
-"""
-function post(url::String, body::String)
-    r = HTTP.request("POST", url, body = body)
-    string(r.body)
-end
-
-"""
-**Interface**
+**Core**
 ### download!(c::AbstractConnection, uri::String) -> _
 ------------------
 Downloads a file to a given Connection's computer.
@@ -365,7 +355,7 @@ function download!(c::AbstractConnection, uri::String)
 end
 
 """
-**Interface**
+**Core**
 ### navigate!(::AbstractConnection, ::String) -> _
 ------------------
 Routes a connected stream to a given URL.
@@ -380,6 +370,10 @@ end
 #==
 Routes
 ==#
+"""
+"""
+abstract type AbstractRoute end
+
 """
 ### Route
 - path::String
@@ -423,9 +417,43 @@ mutable struct Route <: AbstractRoute
     end
 end
 
+vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
+vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
+#==
+Server Extensions
+==#
+"""
+### abstract type ServerExtension
+Server extensions are loaded into the server on startup, and
+can have a few different abilities according to their type
+field's value. This value can be either a Symbol or a Vector of Symbols.
+##### Consistencies
+- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
+:func, :connection, or any combination inside of a Vector{Symbol}. :routing
+ServerExtensions must have an f() function that takes two dictionaries; e.g.
+f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
+the dictionary of routes, the second is the dictionary of server extensions.
+:func server extensions will be ran everytime the server is routed. They will
+need to have the same f function, but taking a single argument as a connection.
+    Lastly, :connection extensions are simply pushed to the connection.
+"""
+abstract type ServerExtension end
 #==
 Servers
 ==#
+"""
+### abstract type ToolipsServer
+ToolipsServers are returned whenever the ServerTemplate.start() field is
+called. If you are running your server as a module, it should be noted that
+commonly a global start() method is used and returns this server, and dev is
+where this module is loaded, served, and revised.
+##### Consistencies
+- routes::Dict - The server's route => function dictionary.
+- extensions::Dict - The server's currently loaded extensions.
+- server::Any - The server, whatever type it may be...
+"""
+abstract type ToolipsServer end
+
 """
 ### WebServer <: ToolipsServer
 - host::String
@@ -561,8 +589,6 @@ has_extension(c::AbstractConnection, t::Type) = has_extension(c.extensions,
 
 has_extension(c::AbstractConnection, e::Symbol) = has_extension(c.extensions, e)
 
-has_extension(e::Vector{ServerExtension}, s::Symbol) = has_extension(e, s)
-
 has_extension(e::Vector{ServerExtension}, s::Type) = has_extension(e, Symbol(s))
 
 """
@@ -591,7 +617,7 @@ Servables
 *(s::Servable, d::Servable ...) = servables(s, d ...)
 
 """
-**Interface**
+**Core**
 ### getindex(c::VectorServable, str::String) -> ::Servable
 ------------------
 Returns the Servable (likely a AbstractComponent) with the name **str**
@@ -608,11 +634,6 @@ function getindex(vs::Vector{Servable}, str::String)
     vs[findall(s.name == str, vs)[1]]
 end
 
-
-#==
-Vector{ServerExtension}
-Vector{AbstractRoute}
-==#
 
 function getindex(v::Vector{ServerExtension}, t::Type)
     # my god, it's beautiful.
@@ -827,3 +848,41 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
     end # serve()
     return(routeserver, routes, extensions)
 end
+#==
+Requests
+==#
+"""
+**Core**
+### get(url::String) -> ::String
+------------------
+Quick binding for an HTTP GET request.
+#### example
+```
+body = get("/")
+    "hi"
+```
+"""
+function get(url::String)
+    r = HTTP.request("GET", url)
+    string(r.body)
+end
+
+"""
+**Core**
+### post(url::String, body::String) -> ::String
+------------------
+Quick binding for an HTTP POST request.
+#### example
+```
+response = post("/")
+    "my response"
+```
+"""
+function post(url::String, body::String)
+    r = HTTP.request("POST", url, body = body)
+    string(r.body)
+end
+#==
+includes
+==#
+include("../interface/Extensions.jl")

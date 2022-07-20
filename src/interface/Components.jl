@@ -1,3 +1,36 @@
+"""
+### File <: Servable
+dir::String
+f::Function
+Serves a file into a Connection.
+##### example
+```
+f = File("hello.txt")
+r = route("/") do c
+    write!(c, f)
+end
+```
+------------------
+##### field info
+- dir::String - The directory of a file to serve.
+- f::Function - Function whose output to be written to http().
+------------------
+##### constructors
+- File(dir::String)
+"""
+mutable struct File <: Servable
+    dir::String
+    f::Function
+    function File(dir::String)
+        f(c::Connection) = begin
+            open(dir) do f
+                write(c.http, f)
+            end
+        end
+        new(dir, f)
+    end
+end
+
 abstract type AbstractComponent <: Servable end
 
 """

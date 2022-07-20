@@ -139,6 +139,35 @@ abstract type Servable <: Any end
 Connections
 ==#
 """
+### SpoofStream
+- text::String
+The SpoofStream allows us to fake a connection by building a SpoofConnection
+which will write to the SpoofStream.text field whenever write! is called. This
+is useful for testing, or just writing servables into a string.
+##### example
+```
+stream = SpoofStream()
+write(stream, "hello!")
+println(stream.text)
+
+    hello!
+conn = SpoofConnection()
+servab = Component()
+write!(conn, servab)
+```
+------------------
+##### field info
+- text::String - The text written to the stream.
+------------------
+##### constructors
+- SpoofStream()
+"""
+mutable struct SpoofStream
+    text::String
+    SpoofStream() = new("")
+end
+
+"""
 ### abstract type AbstractConnection
 Connections are passed through function routes and can have Servables written
     to it.
@@ -151,6 +180,72 @@ the Base.write method.
 access ServerExtensions.
 """
 abstract type AbstractConnection end
+
+"""
+### SpoofConnection <: AbstractConnection
+- routes::Dict
+- http::SpoofStream
+- extensions::Dict -
+Builds a fake connection with a SpoofStream. Useful if you want to write
+a Servable without a server.
+##### example
+```
+fakec = SpoofConnection()
+servable = Component()
+# write!(::AbstractConnection, ::Servable):
+write!(fakec, servable)
+```
+------------------
+##### field info
+- routes::Dict - A dictionary of routes, usually left empty.
+- http::SpoofStream - A fake http stream that instead writes output to a string.
+- extensions::Dict - A dictionary of extensions, usually empty.
+------------------
+##### constructors
+- SpoofStream(r::Dict, http::SpoofStream, extensions::Dict)
+- SpoofStream()
+"""
+mutable struct SpoofConnection <: AbstractConnection
+    routes::Vector{ServerExtension}
+    http::SpoofStream
+    extensions::Vector{ServerExtension}
+    function SpoofConnection(r::Vector{AbstractRoute}, http::Any,
+        extensions::Vector{ServerExtension})
+        new(r, SpoofStream(), extensions)
+    end
+    SpoofConnection() = new(Vector{AbstractRoute}(), SpoofStream(),
+                                    Vector{ServerExtension}())
+end
+
+"""
+**Internals**
+### write(s::SpoofStream, e::Servable) -> _
+------------------
+A binding to Base.write that allows one to write a Servable to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, p("hello"))
+println(s.text)
+    <p id = "hello"></p>
+```
+"""
+write(c::SpoofStream, s::Servable) = s.f(c)
+
+"""
+**Internals**
+### write(s::SpoofStream, e::Any) -> _
+------------------
+A binding to Base.write that allows one to write to SpoofStream.text.
+#### example
+```
+s = SpoofStream()
+write(s, "hi")
+println(s.text)
+    hi
+```
+"""
+write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
 
 """
 **Core**

@@ -1145,7 +1145,6 @@ function show(io::Base.TTY, c::AbstractComponent)
         $(string(c))
         $children
         """)
-
 end
 
 function show(IO::IO, c::AbstractComponent)
@@ -1185,4 +1184,22 @@ function showchildren(x::AbstractComponent)
         end
     end
     prnt
+end
+
+function display(m::MIME{Symbol("text/html")}, c::Style)
+    myc = SpoofConnection()
+    write!(myc, c)
+    displayer = h1("displayh", text = "style")
+    style!(displayer, c)
+    write!(myc, displayer)
+    display("text/html", myc.http.text)
+end
+
+function display(m::MIME{Symbol("text/html")}, c::Animation)
+    myc = SpoofConnection()
+    write!(myc, c)
+    displayer = h1("displayh", text = "style")
+    animate!(displayer, c)
+    write!(myc, displayer)
+    display("text/html", myc.http.text)
 end

@@ -123,6 +123,9 @@ struct Hash
         end
     end
 end
+function show(io::Base.TTY, c::Hash)
+    # intentionally nothing here, unbinding show.
+end
 #==
 Servables
 ==#
@@ -312,6 +315,14 @@ c["/"] = c -> write!(c, "hello")
 ```
 """
 setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = Route(c, f)
+
+function show(io::Base.TTY, c::AbstractConnection)
+    display("text/markdown", """### $(typeof(c))
+    $(c.routes)
+    ---
+    $(c.extensions)
+    """)
+end
 
 """
 **Internals**
@@ -728,6 +739,11 @@ mutable struct Route <: AbstractRoute
     function Route(path::String, f::Function)
         new(path, f)
     end
+end
+
+function show(io::Base.TTY, c::AbstractRoute)
+    display("text/markdown", """
+    """)
 end
 
 """

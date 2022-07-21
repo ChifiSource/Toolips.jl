@@ -1159,3 +1159,30 @@ function display(m::MIME{Symbol("text/html")}, c::AbstractComponent)
     write!(myc, c)
     display("text/html", myc.http.text)
 end
+
+"""
+**Internals**
+### showchildren(x::AbstractComponent) -> ::String
+------------------
+Get the children of x as a markdown string.
+#### example
+```
+c = divider("example")
+child = p("mychild")
+push!(c, child)
+s = showchildren(c)
+println(s)
+"##### children
+|-- mychild
+```
+"""
+function showchildren(x::AbstractComponent)
+    prnt = "##### children \n"
+    for c in x[:children]
+        prnt = prnt * "|-- " * string(c) * " \n "
+        for subc in c[:children]
+            prnt = prnt * "   |---- " * string(subc) * " \n "
+        end
+    end
+    prnt
+end

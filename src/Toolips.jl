@@ -11,12 +11,12 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
 ---
 - [`interface`]()
-- ["Interface.jl"]()
-- ["Servables.jl"]()
+- ["Extensions.jl"]()
+- ["Components.jl"]()
 ---
 - [`server`]()
 - ["Core.jl"]()
-- ["Extensions.jl"]()
+
 """
 module Toolips
 using Crayons
@@ -31,9 +31,8 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, vect
 #==
 Includes/Exports
 ==#
-include("interface/Components.jl")
 include("server/Core.jl")
-include("interface/Interface.jl")
+include("interface/Components.jl")
 # Core
 export ServerTemplate, Route, Connection, WebServer, Servable
 export Hash

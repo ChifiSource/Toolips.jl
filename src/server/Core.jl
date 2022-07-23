@@ -39,24 +39,6 @@ function showerror(io::IO, e::ExtensionError)
                 $(e.error)""")
 end
 
-mutable struct ConnectionError <: ConnectionException
-    connection::AbstractConnection
-    route::AbstractRoute
-    function ConnectionError(connection::AbstractConnection, route::AbstractRoute)
-        new(connection, route)::ConnectionError
-    end
-end
-
-function warn(c::Connection, e::Exception)
-    buff = IOBuffer()
-    showerror(buff, e)
-    if has_extension(c, :Logger)
-        c.logger.log(2, "! Server warning: Error in server \n" * String(buff.data))
-    else
-        @warn String(buff.data)
-    end
-end
-
 function warn(e::Exception)
     buff = IOBuffer()
     showerror(buff, e)

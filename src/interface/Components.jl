@@ -102,7 +102,6 @@ mutable struct Component{tag} <: AbstractComponent
              text::String = ""
              write!(c, open_tag)
              [begin
-             for property in keys(properties)
                  special_keys::Vector{Symbol} = [:text, :children]
                  if ~(property in special_keys)
                      prop::String = string(properties[property])

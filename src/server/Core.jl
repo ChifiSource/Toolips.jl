@@ -208,7 +208,7 @@ mutable struct Connection <: AbstractConnection
     routes::Vector{AbstractRoute}
     http::HTTP.Stream
     extensions::Vector{ServerExtension}
-    function Connection(routes::Vector{AbstactRoute}, http::HTTP.Stream,
+    function Connection(routes::Vector{AbstractRoute}, http::HTTP.Stream,
         extensions::Vector{ServerExtension})
         new(routes, http, extensions)::Connection
     end

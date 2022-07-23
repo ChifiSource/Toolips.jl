@@ -1303,8 +1303,8 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
+        c = Connection(routes, http, ces)
         if fullpath in routes
-            c = Connection(routes, http, ces)
             [extension.f(c) for extension in fes]
             routes[fullpath].page(c)
             return

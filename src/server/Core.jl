@@ -1303,20 +1303,15 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
             fullpath = split(http.message.target, '?')[1]
         end
         if fullpath in routes
-            try
-                [extension.f(c) for extension in fes]
-            catch e
-                throw(ExtensionError(typeof(extension[2]), e))
-            end
-            c::AbstractConnection = Connection(routes, http, ces)
+            [extension.f(c) for extension in fes]
             try
                 T = methods(routes[fullpath].page)[1].sig
                 if length(T.parameters) == 2 && T.parameters[2] != AbstractConnection
                     cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
-                    c = cT(routes, http, ces)
+                    c::AbstractConnection = cT(routes, http, ces)
                 end
             catch
-
+                c::Connection = Connection(routes, http, ces)
             end
             routes[fullpath].page(c)
             return

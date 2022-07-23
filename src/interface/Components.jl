@@ -98,7 +98,7 @@ mutable struct Component{tag} <: AbstractComponent
          push!(properties, :children => Vector{Servable}())
          extras = Vector{Servable}()
          f(c::AbstractConnection) = begin
-             open_tag::String = "<$tag id=$name"
+             open_tag::String = "<$tag id=`$name`"
              text::String = ""
              write!(c, open_tag)
              [begin
@@ -106,7 +106,7 @@ mutable struct Component{tag} <: AbstractComponent
                  if ~(property in special_keys)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
-                    open_tag = open_tag * " $propkey=$prop"
+                    open_tag = open_tag * " $propkey=\"$prop\""
                  else
                      if property == :text
                          text = properties[property]

@@ -1310,7 +1310,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
             return
         else
             if "404" in routes
-                routes["404"](c)
+                routes["404"].page(c)
             else
                 warn(
                 RouteError("404",

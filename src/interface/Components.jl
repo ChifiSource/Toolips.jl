@@ -124,7 +124,7 @@ mutable struct Component{tag} <: AbstractComponent
     end
 
     function Component(name::String, tag::String, props::Pair ...)
-        props = [prop for prop in props]
+        props::Vector{Pair{Any, Any}} = [prop for prop in props]
         Component(name, tag, Dict{Any, Any}(props))::Component
     end
 end
@@ -599,6 +599,7 @@ Animation(name::String = "animation", delay::Float64 = 0.0,
 mutable struct Animation <: StyleComponent
     name::String
     properties::Dict
+    extras::Vector{Servable}
     f::Function
     delay::Float64
     length::Float64
@@ -622,7 +623,7 @@ mutable struct Animation <: StyleComponent
             string(s * "}</style>")::String
         end
         properties::Dict = Dict()
-        new(name, properties, f, delay, length, iterations)
+        new(name, properties, Vector{Servable}(), f, delay, length, iterations)::Animation
     end
 end
 
@@ -658,15 +659,16 @@ mutable struct Style <: StyleComponent
     f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
-    function Style(name::String; props ...)
-        properties::Dict{Any, Any} = Dict{Any, Any}([prop for prop in props])
+    function Style(name::String, prop; props ...)
+        properties::Dict{Any, Any} = Dict{Any, Any}([prop for prop in vcat(prop, props)])
         extras::Vector{Servable} = Vector{Servable}()
         f(c::AbstractConnection) = begin
-            css = "<style>$name { "
-            for rule in keys(properties)
-                property = string(rule)
-                value = string(properties[rule])
+            css = "<style id=$name>$name { "
+            [begin
+                property::String = string(rule)
+                value::String = string(properties[rule])
                 css = css * "$property: $value; "
+            end for rule in keys(properties)]
             end
             css = css * "}</style>"
             write!(c, css)
@@ -950,6 +952,9 @@ style2["color"]
 """
 style!(s::Style, s2::Style) = merge!(s.properties, s2.properties)
 
+function style!(s::Style, p::Pair ...)
+    [push!(s.properties, pa) for pa in p]
+end
 """
 **Interface**
 ### animate!(s::Style, a::Animation) -> _

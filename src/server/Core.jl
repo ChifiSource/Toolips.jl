@@ -1129,7 +1129,7 @@ function getindex(v::Vector{ServerExtension}, t::Type)
 end
 
 function getindex(v::Vector{ServerExtension}, s::Symbol)
-    getindex(v, eval(s))
+    v[findall((x::ServerExtension) -> Symbol(typeof(x)) == s, v)[1]]
 end
 
 function getindex(v::Vector{AbstractRoute}, s::String)

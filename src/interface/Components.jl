@@ -106,7 +106,7 @@ mutable struct Component{tag} <: AbstractComponent
                  if ~(property in special_keys)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
-                    open_tag = open_tag * " $propkey=$prop")
+                    open_tag = open_tag * " $propkey=$prop"
                  else
                      if property == :text
                          text = properties[property]

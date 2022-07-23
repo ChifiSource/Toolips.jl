@@ -96,12 +96,10 @@ mutable struct Component{tag} <: AbstractComponent
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
-         push!(properties, :id => name)
          extras = Vector{Servable}()
          f(c::AbstractConnection) = begin
-             open_tag::String = "<$tag"
+             open_tag::String = "<$tag id=$name"
              text::String = ""
-             write!(c, open_tag)
              [begin
                  special_keys::Vector{Symbol} = [:text, :children]
                  if ~(property in special_keys)

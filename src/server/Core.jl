@@ -922,16 +922,10 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
         rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
-        routes::Vector{AbstractRoute} = routes(route("/",
-        (c::Connection) -> write!(c, p(text = "Hello world!")))),
+        routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         server::Type = WebServer)
-        if length(rs) != 0
-            @warn """positional routes for Server templates will be deprecated,
-            use ServerTemplate(routes = routes(homeroute)) with routes key-word
-            argument instead. This argument is currently vestigal"""
-            routes = vcat(routes, rs)
-        end
+        routes = vcat(routes, rs)
         if ~(server <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
@@ -1148,7 +1142,7 @@ function in(t::Type, v::Vector{ServerExtension})
 end
 
 function in(t::Symbol, v::Vector{ServerExtension})
-    if length(findall(x -> typeof(x) == eval(t), v)) > 0
+    if length(findall(x -> Symbol(typeof(x)) == Symbol(t), v)) > 0
         return true
     end
     false::Bool
@@ -1268,7 +1262,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
-    for extension in extensions
+    [begin
         if typeof(extension.type) == Symbol
             if extension.type == :connection
                 push!(ces, extension)
@@ -1296,7 +1290,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
                 push!(fes, extension)
             end
         end
-    end
+    end for extension in extensions]
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
         fullpath::String = http.message.target

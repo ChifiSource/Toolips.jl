@@ -170,6 +170,49 @@ end
 Connections
 ==#
 """
+### Connection <: AbstractConnection
+- routes::Dict
+- http::HTTP.Stream
+- extensions::Dict
+The connection type is passed into route functions and pages as an argument.
+This is both for functions, as well as Servable.f() methods. This constructor
+    should not be called directly. Instead, it is called by the server and
+    passed through the function pipeline. Indexing a Connection will return
+        the extension named with that symbol.
+##### example
+```
+                  #  v The Connection
+home = route("/") do c::Connection
+    c[Logger].log(1, "We can index extensions by type or symbol")
+    c[:logger].log(1, "see?")
+    c.routes["/"] = c::Connection -> write!(c, "rerouting!")
+    httpstream = c.http
+    write!(c, "Hello world!")
+    myheading::Component = h("myheading", 1, text = "Whoa!")
+    write!(c, myheading)
+end
+```
+------------------
+##### field info
+- **routes::Dict** - A dictionary of routes where the keys
+are the routed URL and the values are the functions to
+those keys.
+- **http::HTTP.Stream** - The stream for this current peer's connection.
+- **extensions::Dict** - A dictionary of extensions to load with the
+name to reference as keys and the extension as the pair.
+------------------
+##### constructors
+- Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
+"""
+mutable struct Connection <: AbstractConnection
+    routes::Dict
+    http::HTTP.Stream
+    extensions::Dict
+    function Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
+        new(routes, http, extensions)::Connection
+    end
+end
+"""
 ### SpoofStream
 - text::String
 The SpoofStream allows us to fake a connection by building a SpoofConnection

@@ -658,8 +658,8 @@ mutable struct Style <: StyleComponent
     f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
-    function Style(name::String, props::Vector{Any})
-        properties::Dict{Any, Any} = Dict{Any, Any}([prop for prop in props])
+    function Style(name::String, props::Pair ...; args ...)
+        properties::Dict{Any, Any} = Dict{Any, Any}([prop for prop in vcat(props, args)])
         extras::Vector{Servable} = Vector{Servable}()
         f(c::AbstractConnection) = begin
             css = "<style id=$name>$name { "
@@ -674,7 +674,6 @@ mutable struct Style <: StyleComponent
         end
         new(name::String, f::Function, properties::Dict, extras)::Style
     end
-    Style(name::String, p::Pair ...; a ...) = Style(name, vcat(p, a))::Style
 end
 
 """

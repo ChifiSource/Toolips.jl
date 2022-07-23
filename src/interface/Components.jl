@@ -96,9 +96,10 @@ mutable struct Component{tag} <: AbstractComponent
     function Component(name::String = "", tag::String = "",
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
+         push!(properties, :id => name)
          extras = Vector{Servable}()
          f(c::AbstractConnection) = begin
-             open_tag::String = "<$tag id=`$name`"
+             open_tag::String = "<$tag"
              text::String = ""
              write!(c, open_tag)
              [begin
@@ -106,7 +107,7 @@ mutable struct Component{tag} <: AbstractComponent
                  if ~(property in special_keys)
                      prop::String = string(properties[property])
                      propkey::String = string(property)
-                    open_tag = open_tag * " $propkey=\"$prop\""
+                    open_tag = open_tag * " $propkey=$prop"
                  else
                      if property == :text
                          text = properties[property]
@@ -607,11 +608,11 @@ mutable struct Animation <: StyleComponent
     function Animation(name::String = "animation"; delay::Float64 = 0.0,
         length::Float64 = 5.2, iterations::Integer = 1)
         f(c::AbstractConnection) = begin
-            s::String = "<style> @keyframes $name {"
-            for anim in keys(properties)
+            s::String = "<style id=$name> @keyframes $name {"
+            [begin
                 vals = properties[anim]
                 s = s * "$anim {" * vals * "}"
-            end
+            end for anim in keys(properties)]
             write!(c, string(s * "}</style>"))
         end
         f() = begin

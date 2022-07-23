@@ -1,3 +1,61 @@
+"""
+"""
+abstract type AbstractRoute end
+
+"""
+### abstract type Servable
+Servables can be written to a Connection via their f() function and the
+interface. They can also be indexed with strings or symbols to change properties
+##### Consistencies
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
+"""
+abstract type Servable <: Any end
+
+"""
+### abstract type AbstractConnection
+Connections are passed through function routes and can have Servables written
+    to it.
+##### Consistencies
+- routes::Dict - A {String, Function} dictionary that the server references to
+direct incoming connections.
+- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
+the Base.write method.
+- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
+access ServerExtensions.
+"""
+abstract type AbstractConnection end
+
+"""
+### abstract type ServerExtension
+Server extensions are loaded into the server on startup, and
+can have a few different abilities according to their type
+field's value. This value can be either a Symbol or a Vector of Symbols.
+##### Consistencies
+- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
+:func, :connection, or any combination inside of a Vector{Symbol}. :routing
+ServerExtensions must have an f() function that takes two dictionaries; e.g.
+f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
+the dictionary of routes, the second is the dictionary of server extensions.
+:func server extensions will be ran everytime the server is routed. They will
+need to have the same f function, but taking a single argument as a connection.
+    Lastly, :connection extensions are simply pushed to the connection.
+"""
+abstract type ServerExtension end
+
+"""
+### abstract type ToolipsServer
+ToolipsServers are returned whenever the ServerTemplate.start() field is
+called. If you are running your server as a module, it should be noted that
+commonly a global start() method is used and returns this server, and dev is
+where this module is loaded, served, and revised.
+##### Consistencies
+- routes::Dict - The server's route => function dictionary.
+- extensions::Dict - The server's currently loaded extensions.
+- server::Any - The server, whatever type it may be...
+"""
+abstract type ToolipsServer end
+
 #==
 Exceptions
 ==#
@@ -109,18 +167,6 @@ function show(io::Base.TTY, c::Hash)
     # intentionally nothing here, unbinding show.
 end
 #==
-Servables
-==#
-"""
-### abstract type Servable
-Servables can be written to a Connection via thier f() function and the
-interface. They can also be indexed with strings or symbols to change properties
-##### Consistencies
-- f::Function - Function whose output to be written to http. Must take a single
-positonal argument of type ::Connection or ::AbstractConnection
-"""
-abstract type Servable <: Any end
-#==
 Connections
 ==#
 """
@@ -151,20 +197,6 @@ mutable struct SpoofStream
     text::String
     SpoofStream() = new("")
 end
-
-"""
-### abstract type AbstractConnection
-Connections are passed through function routes and can have Servables written
-    to it.
-##### Consistencies
-- routes::Dict - A {String, Function} dictionary that the server references to
-direct incoming connections.
-- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
-the Base.write method.
-- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
-access ServerExtensions.
-"""
-abstract type AbstractConnection end
 
 """
 ### SpoofConnection <: AbstractConnection
@@ -677,10 +709,6 @@ extensions(c::AbstractConnection) = c.extensions
 Routes
 ==#
 """
-"""
-abstract type AbstractRoute end
-
-"""
 ### Route
 - path::String
 - page::Function -
@@ -784,40 +812,8 @@ routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 #==
-Server Extensions
-==#
-"""
-### abstract type ServerExtension
-Server extensions are loaded into the server on startup, and
-can have a few different abilities according to their type
-field's value. This value can be either a Symbol or a Vector of Symbols.
-##### Consistencies
-- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
-:func, :connection, or any combination inside of a Vector{Symbol}. :routing
-ServerExtensions must have an f() function that takes two dictionaries; e.g.
-f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
-the dictionary of routes, the second is the dictionary of server extensions.
-:func server extensions will be ran everytime the server is routed. They will
-need to have the same f function, but taking a single argument as a connection.
-    Lastly, :connection extensions are simply pushed to the connection.
-"""
-abstract type ServerExtension end
-#==
 Servers
 ==#
-"""
-### abstract type ToolipsServer
-ToolipsServers are returned whenever the ServerTemplate.start() field is
-called. If you are running your server as a module, it should be noted that
-commonly a global start() method is used and returns this server, and dev is
-where this module is loaded, served, and revised.
-##### Consistencies
-- routes::Dict - The server's route => function dictionary.
-- extensions::Dict - The server's currently loaded extensions.
-- server::Any - The server, whatever type it may be...
-"""
-abstract type ToolipsServer end
-
 """
 ### WebServer <: ToolipsServer
 - host::String

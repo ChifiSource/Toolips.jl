@@ -1304,23 +1304,18 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
         end
         if fullpath in routes
             [extension.f(c) for extension in fes]
-            try
-                T = methods(routes[fullpath].page)[1].sig
-                if length(T.parameters) == 2 && T.parameters[2] != AbstractConnection
-                    cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
-                    c::AbstractConnection = cT(routes, http, ces)
-                end
-            catch
+            if length(T.parameters) == 2 && T.parameters[2] != AbstractConnection
+                cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
+                c::AbstractConnection = cT(routes, http, ces)
+            else
                 c::Connection = Connection(routes, http, ces)
             end
             routes[fullpath].page(c)
             return
         else
-            [extension.f(c) for extension in fes]
-            try
+            if "404" in routes
                 routes["404"](c)
-                return
-            catch
+            else
                 warn(
                 RouteError("404",
                 CoreError("Tried to return 404, but there is no \"404\" route.")

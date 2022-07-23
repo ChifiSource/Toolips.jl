@@ -669,7 +669,6 @@ mutable struct Style <: StyleComponent
                 value::String = string(properties[rule])
                 css = css * "$property: $value; "
             end for rule in keys(properties)]
-            end
             css = css * "}</style>"
             write!(c, css)
             write!(c, extras)

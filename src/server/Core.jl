@@ -1308,7 +1308,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
                 cT::Type = methods(routes[fullpath])[1].sig.parameters[2]
                 c::AbstractConnection = cT(routes, http, ces)
             else
-                c::Connection = Connection(routes, http, ces)
+                c = Connection(routes, http, ces)
             end
             routes[fullpath].page(c)
             return

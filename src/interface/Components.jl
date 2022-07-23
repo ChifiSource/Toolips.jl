@@ -46,7 +46,7 @@ interface. They can also be indexed with strings or symbols to change properties
 positonal argument of type ::Connection or ::AbstractConnection
 ```
 """
-abstract type StyleComponent <: Servable end
+abstract type StyleComponent <: AbstractComponent end
 
 """
 ### Component <: AbstractComponent <: Servable

@@ -336,8 +336,10 @@ end
 ```
 """
 function getindex(c::AbstractConnection, s::Symbol)
-    if ~(s in c.extensions)
-        getindex(c, eval(s))
+    for e in c.extensions
+        if Symbol(typeof(e)) == s
+            return(e)
+        end
     end
     return(c.extensions[s])
 end

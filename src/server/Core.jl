@@ -572,34 +572,6 @@ end
 
 """
 **Interface**
-### write!(c::AbstractConnection, s::Vector{AbstractComponent}) -> _
-------------------
-A catch-all for when Vectors are accidentally stored as Vector{AbstractComponent}.
-#### example
-```
-write!(c, [p("mycomp", text = "bye")])
-```
-"""
-function write!(c::AbstractConnection, s::Vector{AbstractComponent})
-    for servable in s
-        write!(c, s)
-    end
-end
-
-"""
-**Interface**
-### write!(c::AbstractConnection, s::String) -> _
-------------------
-Writes the String into the Connection as HTML.
-#### example
-```
-write!(c, "hello world!")
-```
-"""
-write!(c::AbstractConnection, s::String) = write(c.http, s)
-
-"""
-**Interface**
 ### write!(::AbstractConnection, ::Any) -> _
 ------------------
 Attempts to write any type to the Connection's stream.

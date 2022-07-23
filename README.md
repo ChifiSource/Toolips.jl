@@ -5,8 +5,7 @@
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
 </br>
 
-- [toolips app](https://toolips.app/)
-- [documentation](https://doc.toolips.app)
+**|**    [toolips app](https://toolips.app/)   **|**  [documentation](https://doc.toolips.app) **|**   [examples]()    **|**    [extensions]()    **|**
 
 </div>
 
@@ -28,14 +27,3 @@ julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add Toolips
 ```
-##### getting started
-To get started with toolips, the first thing you will want to do is run `Toolips.new_webapp` in your terminal.
-```julia
-using Toolips
-Toolips.new_webapp("ProjectName")
-```
-TODO small walkthrough here
-##### standard library extensions
-TODO table here.
-##### curated extensions
-TODO table here

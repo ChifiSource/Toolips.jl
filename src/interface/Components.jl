@@ -856,7 +856,7 @@ mystyle = Style("mystyle", color = "lightblue")
 style!(serv, mystyle)
 ```
 """
-function style!(c::Component{Any}, s::Style)
+function style!(c::AbstractComponent, s::Style)
         if :class in keys(c.properties)
             if contains(s.name, ".")
                 c.properties[:class] = "$(c.properties[:class]) " * split(s.name, ".")[end]
@@ -904,7 +904,7 @@ mycomp = p("mycomp")
 style!(mycomp, "background-color" => "lightblue", "color" => "white")
 ```
 """
-function style!(c::Component{Any}, s::Pair ...)
+function style!(c::AbstractComponent, s::Pair ...)
     style!(c, [p for p in s])
 end
 
@@ -919,7 +919,7 @@ mycomp = p("mycomp")
 style!(mycomp, ["background-color" => "lightblue", "color" => "white"])
 ```
 """
-function style!(c::Component{Any}, s::Vector{Pair{String, String}})
+function style!(c::AbstractComponent, s::Vector{Pair{String, String}})
     if "style" in keys(c.properties)
         c["style"][length(c["style"])] = ""
     else

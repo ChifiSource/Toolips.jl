@@ -28,6 +28,28 @@ using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
 import Base: showerror, in, Pairs, Exception, div, keys, *, vect
 #==
+WebMeasures / Colors
+==#
+abstract type WebMeasure end
+
+mutable struct Px <: WebMeasure end
+const px = Px()
+*(i::Int64, p::Px) = "$(i)px"
+
+mutable struct Percentage <: WebMeasure end
+const percent = Percentage()
+*(i::Int64, p::Percentage) = "$(i)%"
+
+rgb(r::Int64, g::Int64, b::Int64) = "rgb($r, $g, $b)"
+
+rgba(r::Int64, g::Int64, b::Int64, a::Int64) = "rgba($r, $g, $b, $a)"
+
+function gradient(type::Symbol = :linear, dir::String, c::String ...)
+    "$type-gradient(to $dir, " * join(["$col, " for col in c]) * ")"
+end
+
+export percent, px, rgb, rgba, gradient
+#==
 Includes/Exports
 ==#
 include("server/Core.jl")

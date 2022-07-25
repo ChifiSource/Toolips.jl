@@ -30,21 +30,19 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, vect
 #==
 WebMeasures / Colors
 ==#
-abstract type WebMeasure end
+mutable struct WebMeasure{format} end
 
-mutable struct Px <: WebMeasure end
-const px = Px()
-*(i::Int64, p::Px) = "$(i)px"
+const px = WebMeasure{:px}()
+*(i::Int64, p::WebMeasure{:px}) = "$(i)px"
 
-mutable struct Percentage <: WebMeasure end
-const percent = Percentage()
-*(i::Int64, p::Percentage) = "$(i)%"
+const percent = WebMeasure{:percent}()
+*(i::Int64, p::WebMeasure{:percent}) = "$(i)%"
 
 rgb(r::Int64, g::Int64, b::Int64) = "rgb($r, $g, $b)"
 
 rgba(r::Int64, g::Int64, b::Int64, a::Int64) = "rgba($r, $g, $b, $a)"
 
-function gradient(type::Symbol = :linear, dir::String, c::String ...)
+function gradient(type::Symbol, dir::String = "right", c::String ...)
     "$type-gradient(to $dir, " * join(["$col, " for col in c]) * ")"
 end
 

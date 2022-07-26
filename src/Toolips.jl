@@ -139,7 +139,7 @@ of the file. Exts is a list of Server extensions.
 create_serverdeps("ToolipsApp")
 ```
 """
-function create_serverdeps(name::String, exts::Vector{String} = "Logger",
+function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     inc::String = "")
     extstr::String = "Vector{ServerExtension}(" * join(["$e, " for e in exts]) * ")"
     Pkg.generate(name)
@@ -246,7 +246,8 @@ Toolips.new_webapp("ToolipsApp")
 """
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
-    create_serverdeps(name, "using ToolipsSession")
+    create_serverdeps(name, ["Logger", "Files", "Session"],
+    "using ToolipsSession")
     Pkg.add("ToolipsSession")
     open(name * "/dev.jl", "w") do io
         write(io, """

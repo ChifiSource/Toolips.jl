@@ -41,7 +41,7 @@ mydiv = div("mydiv", align = "center")
 style!(mydiv, "padding" => 15px, "width" => 50percent)
 # What this looks like in toolips:
 const px = WebMeasure{:px}()
-*(i::Int64, p::WebMeasure{:px}) = "$(i)px"
+*(i::Int64, p::WebMeasure{:px}) = i * "px"
 ```
 ------------------
 ##### constructors

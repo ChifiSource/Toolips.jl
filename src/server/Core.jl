@@ -1,4 +1,10 @@
 """
+### abstract type AbstractRoute
+Abstract Routes are what connect incoming connections to functions. Each route
+must have two fields, `path`, and `page`. Path needs to be a String, but that is
+about it.
+##### Consistencies
+- type::T where T == Vector{Symbol}  || T == Symbol
 """
 abstract type AbstractRoute end
 
@@ -20,7 +26,7 @@ Connections are passed through function routes and can have Servables written
 - routes::Dict - A {String, Function} dictionary that the server references to
 direct incoming connections.
 - http::Any - Usually an HTTP.Stream, however can be anything that is binded to
-the Base.write method.
+the Base.write method, or the Toolips.write! method.
 - extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
 access ServerExtensions.
 """
@@ -33,13 +39,12 @@ can have a few different abilities according to their type
 field's value. This value can be either a Symbol or a Vector of Symbols.
 ##### Consistencies
 - type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
-:func, :connection, or any combination inside of a Vector{Symbol}. :routing
-ServerExtensions must have an f() function that takes two dictionaries; e.g.
-f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
-the dictionary of routes, the second is the dictionary of server extensions.
-:func server extensions will be ran everytime the server is routed. They will
-need to have the same f function, but taking a single argument as a connection.
-    Lastly, :connection extensions are simply pushed to the connection.
+:func, :connection, or any combination inside of a Vector{Symbol}.
+- :routing extensions are called once at server creation, and must have
+the field `f(r::Vector{AbstractRoute}, e::Vector{ServerExtension})`.
+- :func extensions are called each time the server is routed, and must have
+the field `f(c::AbstractConnection)`.
+- :connection extensions are passed inside of the Connection.
 """
 abstract type ServerExtension end
 
@@ -50,8 +55,8 @@ called. If you are running your server as a module, it should be noted that
 commonly a global start() method is used and returns this server, and dev is
 where this module is loaded, served, and revised.
 ##### Consistencies
-- routes::Dict - The server's route => function dictionary.
-- extensions::Dict - The server's currently loaded extensions.
+- routes::Vector{AbstractRoute} - The server's routes.
+- extensions::Vector{Route} - The server's currently loaded extensions.
 - server::Any - The server, whatever type it may be...
 """
 abstract type ToolipsServer end
@@ -59,6 +64,12 @@ abstract type ToolipsServer end
 #==
 Exceptions
 ==#
+"""
+### abstract type CoreException
+Core Exceptions are thrown whenever a random Core error happens.
+##### Consistencies
+- type::T where T == Vector{Symbol}  || T == Symbol
+"""
 abstract type CoreException <: Exception end
 abstract type ExtensionException <: CoreException end
 abstract type ConnectionException <: CoreException end
@@ -110,7 +121,7 @@ mutable struct RouteError <: ConnectionException
 end
 
 function showerror(io::IO, e::RouteError)
-    print(io, "Route $(e.route) on server")
+    print(io, "ERROR ON ROUTE: $(e.route) $(e.error)")
 end
 
 mutable struct CoreError <: Exception

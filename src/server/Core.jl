@@ -1257,26 +1257,11 @@ st.start()
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-     if has_extension(extensions, Logger)
-         extensions[:Logger].log(1,
-          "Toolips Server starting on port $port")
-      else
-          @warn "Toolips Server starting on port $port"
-     end
      routefunc, rdct, extensions = generate_router(routes, server, extensions)
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e
          throw(CoreError("Could not start Server $ip:$port; $(string(e))"))
-     end
-     if has_extension(extensions, Logger)
-         extensions[:Logger].log(2,
-          "Successfully started server on port $port")
-          extensions[:Logger].log(1,
-          "You may visit it now at http://$ip:$port")
-      else
-          @warn "Successfuly started server on port $port"
-          @warn "You may visit it now at http://$ip:$port"
      end
 end
 

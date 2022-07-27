@@ -844,7 +844,7 @@ vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 
 function setindex!(rs::Vector{AbstractRoute}, s::String, f::Function)
     if s in rs
-        rs[s].f = f
+        rs[findall(r.path == s, rs)[1]].f = f
     else
         push!(rs, Route(s, f))
     end

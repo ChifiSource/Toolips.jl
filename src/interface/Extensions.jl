@@ -209,7 +209,8 @@ mutable struct Files <: ServerExtension
         f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
-                push!(r, path[l:length(path)] => c::Connection -> write!(c, File(path)))
+                push!(r, Route(path[l:length(path)],
+                c::Connection -> write!(c, File(path))))
             end
         end
         new(:routing, directory, f)

@@ -385,7 +385,13 @@ Sets the route path s to serve at the function f.
 c["/"] = c -> write!(c, "hello")
 ```
 """
-setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
+function setindex!(c::AbstractConnection, f::Function, s::String)
+    if s in rs
+        rs[findall(r.path == s, rs)[1]].f = f
+    else
+        push!(rs, Route(s, f))
+    end
+end
 
 function show(io::Base.TTY, c::AbstractConnection)
     display("text/markdown", """### $(typeof(c))

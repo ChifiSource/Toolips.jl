@@ -1143,7 +1143,7 @@ cs["hello"]
 ```
 """
 function getindex(vs::Vector{Servable}, str::String)
-    vs[findall(s.name == str, vs)[1]]
+    vs[findall((s::Servable) -> s.name == str, vs)[1]]
 end
 
 
@@ -1330,7 +1330,6 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
         if fullpath in routes
             [extension.f(c) for extension in fes]
             routes[fullpath].page(c)
-            return
         else
             if "404" in routes
                 routes["404"].page(c)
@@ -1339,7 +1338,6 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
                 RouteError("404",
                 CoreError("Tried to return 404, but there is no \"404\" route.")
                 ))
-                return
             end
         end
     end # serve()

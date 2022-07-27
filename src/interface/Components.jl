@@ -31,6 +31,9 @@ mutable struct File <: Servable
     end
 end
 
+read(f::Function, file::File, s::String) = read(f, file.directory, s)
+read(f::File, s::Type) = read(f.directory, s)
+
 abstract type AbstractComponent <: Servable end
 
 """

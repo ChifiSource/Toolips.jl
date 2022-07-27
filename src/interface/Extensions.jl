@@ -216,5 +216,3 @@ mutable struct Files <: ServerExtension
         new(:routing, directory, f)
     end
 end
-read(f::Function, file::File, s::String) = read(f, file.directory, s)
-read(f::File, s::Type) = read(f.directory, s)

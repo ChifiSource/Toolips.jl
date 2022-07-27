@@ -842,7 +842,7 @@ vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
 
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 function getindex(rs::Vector{AbstractRoute}, s::String)
-    [findall(r -> r.name == s, rs)][1]
+    [findall(r -> r.path == s, rs)][1]
 end
 function setindex!(rs::Vector{AbstractRoute}, s::String, f::Function)
     if s in rs

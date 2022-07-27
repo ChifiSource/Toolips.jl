@@ -385,7 +385,7 @@ Sets the route path s to serve at the function f.
 c["/"] = c -> write!(c, "hello")
 ```
 """
-setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = Route(c, f)
+setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
 
 function show(io::Base.TTY, c::AbstractConnection)
     display("text/markdown", """### $(typeof(c))
@@ -839,7 +839,18 @@ routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 
 
 vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
+
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
+function getindex(rs::Vector{AbstractRoute}, s::String)
+    [findall(r -> r.name == s, rs)][1]
+end
+function setindex!(rs::Vector{AbstractRoute}, s::String, f::Function)
+    if s in rs
+        rs[s].f = f
+    else
+        push!(rs, Route(s, f))
+    end
+end
 #==
 Servers
 ==#
@@ -1048,7 +1059,7 @@ end
 route!(ws, r)
 ```
 """
-route!(ws::ToolipsServer, r::Route) = ws[r.path] = r.page
+route!(ws::ToolipsServer, r::AbstractRoute) = ws[r.path] = r.page
 
 """
 **Interface**

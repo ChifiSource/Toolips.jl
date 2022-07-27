@@ -105,7 +105,7 @@ Includes/Exports
 include("server/Core.jl")
 include("interface/Components.jl")
 # Core
-export ServerTemplate, Route, Connection, WebServer, Servable
+export ServerTemplate, Route, Connection, WebServer, Servable, ServerExtension
 export Hash
 # Server Extensions
 export Logger, Files
@@ -141,7 +141,7 @@ create_serverdeps("ToolipsApp")
 """
 function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     inc::String = "")
-    extstr::String = "Vector{ServerExtension}(" * join(["$e, " for e in exts]) * ")"
+    extstr::String = "Vector{ServerExtension}([" * join(["$e(), " for e in exts]) * "])"
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
@@ -186,7 +186,7 @@ The start function starts the WebServer.
 \"\"\"
 function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
      ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
-     ws.start; ws
+     ws.start(); ws
 end
 end # - module
         """)

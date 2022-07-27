@@ -388,7 +388,7 @@ c["/"] = c -> write!(c, "hello")
 function setindex!(c::AbstractConnection, f::Function, s::String)
     rs = c.routes
     if s in rs
-        rs[findall((r) -> r.path == s, rs)[1]].f = f
+        rs[findall((r) -> r.path == s, rs)[1]].page = f
     else
         push!(rs, Route(s, f))
     end
@@ -851,7 +851,7 @@ vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 
 function setindex!(rs::Vector{AbstractRoute}, s::String, f::Function)
     if s in rs
-        rs[findall(r.path == s, rs)[1]].f = f
+        rs[findall(r.path == s, rs)[1]].page = f
     else
         push!(rs, Route(s, f))
     end

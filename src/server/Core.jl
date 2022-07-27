@@ -174,6 +174,19 @@ struct Hash
         end
     end
 end
+
+"""
+**Remote**
+### getindex(h::Hash) -> ::String
+------------------
+Retrieves the value of the hashed data.
+#### example
+```
+pwd = h[]
+```
+"""
+getindex(h::Hash) = h.f()
+
 function show(io::Base.TTY, c::Hash)
     # intentionally nothing here, unbinding show.
 end
@@ -1331,14 +1344,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
             [extension.f(c) for extension in fes]
             routes[fullpath].page(c)
         else
-            if "404" in routes
-                routes["404"].page(c)
-            else
-                warn(
-                RouteError("404",
-                CoreError("Tried to return 404, but there is no \"404\" route.")
-                ))
-            end
+            routes["404"].page(c)
         end
     end # serve()
     return(routeserver, routes, extensions)

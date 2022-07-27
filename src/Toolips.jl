@@ -16,7 +16,6 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 ---
 - [`server`]()
 - ["Core.jl"]()
-
 """
 module Toolips
 using Crayons
@@ -26,7 +25,7 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, vect
+import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read
 #==
 WebMeasures / Colors
 ==#
@@ -55,6 +54,8 @@ const px = WebMeasure{:px}()
 const percent = WebMeasure{:percent}()
 *(i::Int64, p::WebMeasure{:percent}) = "$(i)%"
 
+const seconds = WebMeasure{:seconds}()
+*(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
 """
 **Interface**
 ### rgb(r::Int64, g::Int64, b::Int64) -> ::String

@@ -386,6 +386,7 @@ c["/"] = c -> write!(c, "hello")
 ```
 """
 function setindex!(c::AbstractConnection, f::Function, s::String)
+    rs = c.routes
     if s in rs
         rs[findall(r.path == s, rs)[1]].f = f
     else

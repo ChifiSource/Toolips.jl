@@ -1157,7 +1157,7 @@ end
 
 function setindex!(v::Vector{AbstractRoute}, r::AbstractRoute, s::String)
     if s in v
-        index = findfirst(x -> x.path == s, v)
+        index = findall(x -> x.path == s, v)[1]
         v[index] = Route(s, f)
     else
         push!(v, Route(s, f))

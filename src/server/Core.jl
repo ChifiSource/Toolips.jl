@@ -1102,7 +1102,13 @@ function getindex(v::Vector{ServerExtension}, t::Type)
 end
 
 function getindex(v::Vector{ServerExtension}, s::Symbol)
-    v[findall((x::ServerExtension) -> Symbol(typeof(x)) == s, v)[1]]
+    t = string(typeof(x))
+    name = t
+    if contains(t, ".")
+        splt = split(t, ".")
+        name = splt[length(splt)]
+    end
+    v[findall((x::ServerExtension) -> Symbol(name) == s, v)[1]]
 end
 
 function getindex(v::Vector{AbstractRoute}, s::String)

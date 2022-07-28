@@ -130,66 +130,6 @@ mutable struct CoreError <: Exception
 end
 
 showerror(io::IO, e::CoreError) = print(io, "Toolips Core Error: $(e.message)")
-
-#==
-Hash
-==#
-"""
-### Hash
-- f::Function - The f function is used to return the Hash's value. \
-Creates an anonymous hashing function for a string of length(n). Can be
-    indexed with nothing to retrieve Hash.
-##### example
-```
-# 64-character hash
-h = Hash(64)          #    vv getindex(::Hash)
-buffer = Base.SecretBuffer(hash[])
-if String(buffer.data) == "Password"
-```
-------------------
-##### constructors
-- Hash(n::Integer = 32)
-- Hash(s::String)
-"""
-struct Hash
-    f::Function
-    function Hash(n::Integer = 32)
-        seed = rand(1:100000000)
-        f() = begin
-            Random.seed!(seed); randstring(n)
-        end
-        new(f)
-    end
-    function Hash(s::String)
-        seed = rand(1:100000000)
-        f() = begin
-
-        end
-        f(inp::String) = begin
-            if inp == s
-
-            else
-
-            end
-        end
-    end
-end
-
-"""
-**Remote**
-### getindex(h::Hash) -> ::String
-------------------
-Retrieves the value of the hashed data.
-#### example
-```
-pwd = h[]
-```
-"""
-getindex(h::Hash) = h.f()
-
-function show(io::Base.TTY, c::Hash)
-    # intentionally nothing here, unbinding show.
-end
 #==
 Connections
 ==#
@@ -401,7 +341,16 @@ c["/"] = c -> write!(c, "hello")
 function setindex!(c::AbstractConnection, f::Function, s::String)
     rs = c.routes
     if s in rs
-        rs[findall((r) -> r.path == s, rs)[1]].page = f
+        rs[findfirst((r) -> r.path == s, rs)].page = f
+    else
+        push!(rs, Route(s, f))
+    end
+end
+
+function setindex!(c::Connection, f::Function, s::String)
+    rs = c.routes
+    if s in rs
+        rs[findfirst((r) -> r.path == s, rs)].page = f
     else
         push!(rs, Route(s, f))
     end
@@ -1174,6 +1123,10 @@ end
 
 function getindex(v::Vector{AbstractRoute}, s::String)
     v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
+end
+
+function getindex(v::Vector{<:AbstractRoute}, s::String)
+    v[findfirst((x::AbstractRoute) -> x.path == s, v)]
 end
 
 function in(t::Type, v::Vector{ServerExtension})

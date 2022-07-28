@@ -56,6 +56,9 @@ const percent = WebMeasure{:percent}()
 
 const seconds = WebMeasure{:seconds}()
 *(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
+
+const pt = WebMeasure{:pt}()
+*(i::Int64, p::WebMeasure{:pt}) = "$(i)pt"
 """
 **Interface**
 ### rgb(r::Int64, g::Int64, b::Int64) -> ::String
@@ -178,7 +181,7 @@ fourofour = route("404") do c
     write!(c, p("404message", text = "404, not found!"))
 end
 
-routes = [route("/", home), fourofour)]
+routes = [route("/", home), fourofour]
 extensions = $extstr
 \"\"\"
 start(IP::String, PORT::Integer, ) -> ::ToolipsServer

@@ -338,23 +338,7 @@ Sets the route path s to serve at the function f.
 c["/"] = c -> write!(c, "hello")
 ```
 """
-function setindex!(c::AbstractConnection, f::Function, s::String)
-    rs = c.routes
-    if s in rs
-        rs[findfirst((r) -> r.path == s, rs)].page = f
-    else
-        push!(rs, Route(s, f))
-    end
-end
-
-function setindex!(c::Connection, f::Function, s::String)
-    rs = c.routes
-    if s in rs
-        rs[findfirst((r) -> r.path == s, rs)].page = f
-    else
-        push!(rs, Route(s, f))
-    end
-end
+setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
 
 function show(io::Base.TTY, c::AbstractConnection)
     display("text/markdown", """### $(typeof(c))
@@ -811,9 +795,9 @@ vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
 
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 
-function setindex!(rs::Vector{AbstractRoute}, s::String, f::Function)
+function setindex!(rs::Vector{AbstractRoute}, f::Function, s::String)
     if s in rs
-        rs[findall(r.path == s, rs)[1]].page = f
+        rs[findall(r -> r.path == s, rs)[1]].page = f
     else
         push!(rs, Route(s, f))
     end

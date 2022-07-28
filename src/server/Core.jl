@@ -359,7 +359,7 @@ argsplit(["c=5", "b=8"])
     Dict(:c => 5, :b => 8)
 ```
 """
-function argsplit(args::Vector{AbstractString})
+function argsplit(args::AbstractVector{Any})
     arg_dict::Dict = Dict()
     for arg in args
         keyarg = split(arg, '=')

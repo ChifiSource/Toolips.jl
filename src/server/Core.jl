@@ -340,6 +340,18 @@ c["/"] = c -> write!(c, "hello")
 """
 setindex!(c::AbstractConnection, f::Function, s::String) = c.routes[s] = f
 
+"""
+**Core**
+### setindex!(c::AbstractConnection, f::Function, s::String) -> _
+------------------
+Sets the route path s to serve at the function f.
+#### example
+```
+c["/"] = c -> write!(c, "hello")
+```
+"""
+setindex!(c::AbstractConnection, f::AbstractRoute, s::String) = c.routes[s] = f
+
 function show(io::Base.TTY, c::AbstractConnection)
     display("text/markdown", """### $(typeof(c))
     $(c.routes)
@@ -1143,9 +1155,9 @@ function in(t::String, v::Vector{AbstractRoute})
     false::Bool
 end
 
-function setindex!(v::Vector{AbstractRoute}, r::AbstractRoute)
+function setindex!(v::Vector{AbstractRoute}, r::AbstractRoute, s::String)
     if s in v
-        index = findall(x -> x.path == s, v)
+        index = findfirst(x -> x.path == s, v)
         v[index] = Route(s, f)
     else
         push!(v, Route(s, f))

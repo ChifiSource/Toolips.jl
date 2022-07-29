@@ -1252,7 +1252,7 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
          println(1 => Crayon(foreground = :light_cyan),
-         "🌷 toolips server started at http://$host:$port")
+         "🌷 toolips server started at http://$ip:$port")
      catch e
          throw(CoreError("Could not start Server $ip:$port; $(string(e))"))
      end

@@ -924,7 +924,7 @@ style!(mycomp, ["background-color" => "lightblue", "color" => "white"])
 """
 function style!(c::AbstractComponent, s::Vector{Pair{String, String}})
     if "style" in keys(c.properties)
-        c["style"][length(c["style"]):length(c["style"])] = ""
+        c["style"] = c["style"][1:length(c["style"]) - 1]
     else
         c["style"] = "'"
     end

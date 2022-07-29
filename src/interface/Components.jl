@@ -1144,21 +1144,15 @@ function string(c::AbstractComponent)
     end
     base * properties
 end
-
-function show(io::Base.TTY, c::AbstractComponent)
-    children = showchildren(c)
-    display("text/markdown", """##### $(c.tag)
-        $(string(c))
-        $children
-        """)
+function show(io::IO, c::AbstractComponent)
+    print("""$(c.name) ($(c.tag))
+    $(join([prop[1] * " = " * prop[2] for prop in c.properties]))
+    $(showchildren(c))
+    """)
 end
-
-function show(IO::IO, c::AbstractComponent)
-    myc = SpoofConnection()
-    write!(myc, c)
-    display("text/html", myc.http.text)
+function show(io::IO, f::File)
+    print("File: $(f.dir)")
 end
-
 function display(m::MIME{Symbol("text/html")}, c::AbstractComponent)
     myc = SpoofConnection()
     write!(myc, c)
@@ -1182,7 +1176,7 @@ println(s)
 ```
 """
 function showchildren(x::AbstractComponent)
-    prnt = "##### children \n"
+    prnt = "children \n"
     for c in x[:children]
         prnt = prnt * "|-- " * string(c) * " \n "
         for subc in c[:children]

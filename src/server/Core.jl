@@ -899,7 +899,7 @@ type, e.g. :Logger
             connection::Type)
 """
 mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
-    ip::String
+    host::String
     port::Integer
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
@@ -1199,6 +1199,39 @@ function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     return(server)::ToolipsServer
 end
 
+function show(io::IO, ts::ToolipsServer)
+    status::String = "inactive"
+    if typeof(ts.server) != Symbol
+        status = "active"
+    end
+    print("""$(typeof(ts))
+        hosted at: http://$(ts.host):$(ts.port)
+        status: $status
+            routes
+            $(string(ts.routes))
+            extensions
+            $(string(ts.extensions))
+        """)
+end
+
+function show(io::IO, c::AbstractConnection)
+    print("""#### $(typeof(c))
+        routes
+        $(c.routes)
+        extensions
+        $(c.extensions)
+        """)
+end
+string(c::Vector{AbstractRoute}) = join([r.path * "\n" for r in c])
+function show(IO::IO, c::Vector{AbstractRoute})
+    print(string(c))
+end
+string(c::Vector{ServerExtension}) = join([string(typeof(e)) * "\n" for e in c])
+function show(IO::IO, c::Vector{ServerExtension})
+    print(string(c))
+end
+
+display(ts::ToolipsServer) = show(ts)
 """
 **Core - Internals**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
@@ -1214,10 +1247,12 @@ st.start()
 """
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      routefunc, rdct, extensions = generate_router(routes, server, extensions)
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
+         println(1 => Crayon(foreground = :light_cyan),
+         "🌷 toolips server started at http://$host:$port")
      catch e
          throw(CoreError("Could not start Server $ip:$port; $(string(e))"))
      end

@@ -373,11 +373,11 @@ argsplit(["c=5", "b=8"])
 """
 function argsplit(args::AbstractVector)
     arg_dict::Dict = Dict()
-    for arg in args
+    [begin
         keyarg = split(arg, '=')
         x = ParseNotEval.parse(keyarg[2])
         push!(arg_dict, Symbol(keyarg[1]) => x)
-    end
+    end for arg in args]
     return(arg_dict)
 end
 
@@ -397,8 +397,11 @@ end
 ```
 """
 function getargs(c::AbstractConnection)
-    target::String = split(c.http.message.target, '?')[2]
-    target = replace(target, "+" => " ")
+    target::AbstractVector = split(c.http.message.target, '?')
+    if length(target) < 2
+        return(Dict{Symbol, Any}())
+    end
+    target = replace(target[2], "+" => " ")
     args = split(target, '&')
     argsplit(args)
 end
@@ -451,13 +454,13 @@ function getip(c::AbstractConnection)
     str = c.http.message["User-Agent"]
     spl = split(str, "/")
     ipstr = ""
-    for sub in spl
+    [begin
         if contains(sub, ".")
             if length(findall(".", sub)) > 1
                 ipstr = split(sub, " ")[1]
             end
         end
-    end
+    end for sub in spl]
     return(ipstr)
 end
 
@@ -842,7 +845,7 @@ end
 """
 mutable struct WebServer <: ToolipsServer
     host::String
-    port::Integer
+    port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
     server::Any
@@ -900,7 +903,7 @@ type, e.g. :Logger
 """
 mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     host::String
-    port::Integer
+    port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
     server::Any

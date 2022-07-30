@@ -56,7 +56,9 @@ const percent = WebMeasure{:percent}()
 
 const seconds = WebMeasure{:seconds}()
 *(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
-
+*(i::Float64, p::WebMeasure{:seconds}) = "$(i)s"
+const ms = WebMeasure{:ms}()
+*(i::Int64, p::WebMeasure{:ms}) = "$(i)ms"
 const pt = WebMeasure{:pt}()
 *(i::Int64, p::WebMeasure{:pt}) = "$(i)pt"
 """
@@ -102,7 +104,7 @@ function gradient(type::Symbol, dir::String = "right", c::String ...)
     "$type-gradient(to $dir, " * join(["$col, " for col in c]) * ")"
 end
 
-export percent, px, rgb, rgba, gradient
+export percent, px, rgb, rgba, gradient, pt, seconds, ms
 #==
 Includes/Exports
 ==#
@@ -133,7 +135,7 @@ Project API
 ==#
 """
 **Internals**
-### create_serverdeps(name::String, exts::Vector{String} = "Logger", inc::String = "") -> _
+### create_serverdeps(name::String, exts::Vector{String} = ["Logger"], inc::String = "") -> _
 ------------------
 Creates the essential portions of the webapp file structure, where name is the
 project's name and inc is any extensions or strings to incorporate at the top

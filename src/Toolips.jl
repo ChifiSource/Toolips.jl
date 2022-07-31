@@ -324,7 +324,7 @@ function new_defaultapp(name::String = "ToolipsApp")
         """)
     end
     mkdir(pwd() * "/$name/public")
-    cp(@__DIR__ * "/../assets/icon.png", pwd() * "/$name/public/favicon.png", force = true)
+    cp((@__DIR__) * "/../assets/icon.png", pwd() * "/$name/public/favicon.png", force = true)
     open(name * "/src/$name.jl", "w") do io
         write(io, """module $name
         using Toolips

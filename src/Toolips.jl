@@ -300,7 +300,6 @@ function new_defaultapp(name::String = "ToolipsApp")
     Pkg.add("ToolipsDefaults")
     Pkg.add("ToolipsMarkdown")
     Pkg.add("ToolipsBase64")
-    "using ToolipsSession\nusing ToolipsDefaults\nusing ToolipsMarkdown")
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")

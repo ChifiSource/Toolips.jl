@@ -707,12 +707,12 @@ Routes
 ==#
 """
 ### Route
-- path::String
-- page::Function -
-A route is added to a ServerTemplate using either its constructor, or the
-ServerTemplate.add(::Route) method. Each route calls a function.
+- path**::String**  - The path to route to the function, e.g. "/".
+- page**::Function** - The function to route the path to.\n
+A route is added to a ToolipsServer using either its constructor, or the
+ToolipsServer.add(**::Route**) method. Each route calls a function.
 The Route type is commonly constructed using the do syntax with the
-route(::Function, ::String) method.
+route(**::Function**, **::String**) method.
 ##### example
 ```
 # Constructors
@@ -733,12 +733,8 @@ route = route("/") do c
 end
 ```
 ------------------
-##### field info
-- path::String - The path to route to the function, e.g. "/".
-- page::Function - The function to route the path to.
-------------------
 ##### constructors
-- Route(path::String, f::Function)
+- Route(path**::String**, f**::Function**)
 """
 mutable struct Route <: AbstractRoute
     path::String
@@ -807,9 +803,23 @@ routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 
 
 vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
-
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
 
+"""
+**Interface**
+### setindex!(rs::Vector{AbstractRoute}, f::Function, s::String)
+------------------
+Sets a given route in a Vector to a function.
+#### example
+```
+function example(c::Connection)
+    write!(c, h("myh", 1, text = "hello!"))
+end
+r = route("/", example)
+rts = [r]
+rts["/"] = (c::Connection) -> write!(c, p(text = "no longer a heading"))
+```
+"""
 function setindex!(rs::Vector{AbstractRoute}, f::Function, s::String)
     if s in rs
         rs[findall(r -> r.path == s, rs)[1]].page = f
@@ -822,10 +832,13 @@ Servers
 ==#
 """
 ### WebServer <: ToolipsServer
-- host::String
-- routes::Dict
-- extensions::Dict
-- server::Any -
+- host**::String**
+- routes**::Dict**
+- extensions**::Dict**
+- server**::Any**
+- add**::Function**
+- remove**::Function**
+- start**::Function**\n
 A web-server is given as a return from a ServerTemplate whenever
 ServerTemplate.start() is ran. It can be rerouted with route! and indexed
 similarly to the Connection, with Symbols representing extensions and Strings
@@ -865,18 +878,23 @@ end
 
 """
 ### ServerTemplate
-- ip**::String**
+- host**::String**
 - port**::Integer**
 - routes**::Vector{AbstractRoute}**
-- extensions**::Dict**
+- extensions**::Vector{ServerExtension}**
 - remove**::Function**
 - add**::Function**
-- start**::Function** -
+- start**::Function**\n
 The ServerTemplate is used to configure a server before
-running. These are usually made and started inside of a main server file.
+running. These are commonly used for reproducibility, especially when it comes
+to making servers from extensions
 ##### example
 ```
-st = ServerTemplate()
+home(c::Connection) = begin
+    write!(c, p(text = "hello world!"))
+end
+
+st = ServerTemplate("127.0.0.1", 8000, routes = [Route("/", home)])
 
 webserver = ServerTemplate.start()
 ```
@@ -926,9 +944,6 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
 end
-function consolidate(v::ServerTemplate ...)
-
-end
 """
 **Interface**
 ### routes(ws::ToolipsServer) -> ::Dict{String, Function}
@@ -955,7 +970,7 @@ Returns the server's extensions.
 ```
 ws = MyProject.start()
 extensions(ws)
-    :Logger => Logger(blah blah blah)
+    Logger(blah blah blah)
 ```
 """
 extensions(ws::ToolipsServer) = ws.extensions

@@ -33,13 +33,34 @@ end
 
 read(f::Function, file::File, s::String) = read(f, file.dir, s)
 read(f::File, s::Type) = read(f.dir, s)
+cp(f::File, s::String; force::Bool = false) = cp(f.dir, s, force = force)
 
+"""
+### abstract type AbstractComponent <: Servable
+Components are html elements.
+### Consistencies
+- properties::Dict{Any, Any}
+- extras::Vector{Servable}
+- name::String
+### Servable Consistencies
+```
+Servables can be written to a Connection via thier f() function and the
+interface. They can also be indexed with strings or symbols to change properties
+##### Consistencies
+- f::Function - Function whose output to be written to http. Must take a single
+positonal argument of type ::Connection or ::AbstractConnection
+```
+"""
 abstract type AbstractComponent <: Servable end
 
 """
 ### abstract type StyleComponent <: Servable
-No different from a normal Servable, simply an abstract type step for the
+Not much different from a normal **AbstractComponent**, simply an abstract type step for the
 interface to separate working with Animations and Styles.
+### AbstractComponent Consistencies
+ - properties::Dict{Any, Any}
+ - extras::Vector{Servable}
+ - name::String
 ### Servable Consistencies
 ```
 Servables can be written to a Connection via thier f() function and the
@@ -52,7 +73,7 @@ positonal argument of type ::Connection or ::AbstractConnection
 abstract type StyleComponent <: AbstractComponent end
 
 """
-### Component <: AbstractComponent <: Servable
+### Component{tag} <: AbstractComponent <: Servable
 - name::String
 - f::Function
 - tag::String
@@ -686,6 +707,9 @@ mutable struct Style <: StyleComponent
         props::Vector{Pair{Any, Any}} = Base.vect(args ..., a ...)
         properties::Dict{Any, Any} = Dict{Any, Any}(props)
         extras::Vector{Servable} = Vector{Servable}()
+        Style(name, properties, extras)::Style
+    end
+    function Style(name::String, properties::Dict{Any, Any}, extras::Vector{Servable})
         f(c::AbstractConnection) = begin
             css::String = "<style id=$name>$name { "
             [begin
@@ -697,7 +721,7 @@ mutable struct Style <: StyleComponent
             write!(c, css)
             write!(c, extras)
         end
-        new(name::String, f::Function, properties::Dict, extras)::Style
+        new(name, f, properties, extras)::Style
     end
 end
 
@@ -743,6 +767,21 @@ children(c)
 """
 children(c::AbstractComponent) = c.properties[:children]
 
+"""
+**Interface**
+### get(c::AbstractComponent, s::String) -> ::Servable
+------------------
+Returns the child with name `s` from c's children.
+#### example
+```
+comp = p("myp", text = "hello")
+c = div("c", align = "center")
+push!(c, comp)
+
+get(c, "myp")
+Component{:p}(...)
+```
+"""
 get(c::AbstractComponent, s::String) = c.properties[:children][s]
 
 """
@@ -766,14 +805,46 @@ function copy(c::Component{<:Any})
     comp
 end
 
+"""
+**Interface**
+### copy(c::Style) -> ::Style
+------------------
+copies c.
+#### example
+```
+c = Style("div", "background-color" => "blue")
+t = copy!(c)
+```
+"""
 function copy(c::Style)
     props = copy(c.properties)
     extras = copy(c.extras)
-    tag = copy(c.tag)
     name = copy(c.name)
     comp = Style(name, tag, props)
     comp.extras = extras
     comp
+end
+
+"""
+**Interface**
+### copy(c::Animation) -> ::Animation
+------------------
+copies c.
+#### example
+```
+c = Style("div", "background-color" => "blue")
+t = copy!(c)
+```
+"""
+function copy(c::Animation)
+    props = copy(c.properties)
+    extras = copy(c.extras)
+    name = copy(c.name)
+    comp = Animation(name, delay = copy(c.delay), length = copy(c.length),
+    iterations = copy(c.iterations))
+    comp.extras = extras
+    comp.properties = props
+    comp::Animation
 end
 
 """
@@ -928,7 +999,22 @@ function (:)(s::Style, name::String, ps::Vector{Pair{String, String}})
     push!(s.extras, newstyle)
 end
 
-(:)(s::Style, name::String) = s.extras[string(split(name, ":")[2])]::AbstractComponent
+(:)(s::Style, name::String) = s.extras[s.name * ":$name"]::AbstractComponent
+
+"""
+**Interface**
+### :(s**::AbstractComponent**, name**::String**) -> ::AbstractComponent
+------------------
+Indexes the `extras` of a given Component
+#### example
+```
+s = Style("buttonstyle", color = "white")
+s["background-color"] = "blue"
+s:"hover":["background-color" => "blue"]
+```
+"""
+(:)(s::AbstractComponent, name::String) = s.extras[name)]::AbstractComponent
+
 """
 **Interface**
 ### style!(c::Servable, s::Pair ...) -> _

@@ -25,7 +25,7 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read
+import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read, cp
 #==
 WebMeasures / Colors
 ==#
@@ -259,7 +259,6 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsSession
         using Revise
         using $name
 
@@ -272,7 +271,6 @@ function new_webapp(name::String = "ToolipsApp")
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsSession
         using $name
 
         IP = "127.0.0.1"
@@ -282,6 +280,98 @@ function new_webapp(name::String = "ToolipsApp")
     end
     public = pwd() * "/$name/public"
     mkdir(public)
+end
+
+"""
+**Core**
+### new_defaultapp(::String) -> _
+------------------
+Adds a toolips project with the standard library (Session, Base64, Markdown, Defaults)
+installed. More of a built default project with examples is created.
+#### example
+```
+using Toolips
+Toolips.new_defaultapp("ToolipsApp")
+```
+"""
+function new_defaultapp(name::String = "ToolipsApp")
+    create_serverdeps(name, ["Logger", "Files", "Session"],
+    Pkg.add("ToolipsSession")
+    Pkg.add("ToolipsDefaults")
+    Pkg.add("ToolipsMarkdown")
+    Pkg.add("ToolipsBase64")
+    "using ToolipsSession\nusing ToolipsDefaults\nusing ToolipsMarkdown")
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Toolips
+        using Revise
+        using $name
+
+        IP = "127.0.0.1"
+        PORT = 8000
+        $servername = $name.start(IP, PORT)
+        """)
+    end
+    open(name * "/prod.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Toolips
+        using $name
+
+        IP = "127.0.0.1"
+        PORT = 8000
+        $servername = $name.start(IP, PORT)
+        """)
+    end
+    mkdir(pwd() * "/$name/public")
+    cp(@__DIR__ * "/../assets/icon.png", pwd() * "/$name/public/favicon.png", force = true)
+    open(name * "/src/$name.jl", "w") do io
+        write(io, """module $name
+        using Toolips
+        using ToolipsSession
+        using ToolipsDefaults
+        using ToolipsMarkdown
+        using ToolipsBase64
+        # welcome to your new toolips project!
+        myheader = div("myheader", align = "center")
+        headerlogo = img("headerlogo", src = "/favicon.png")
+        push!(myheader, headerlogo, h("headerlabel", 4, text = "toolips"))
+
+        \"\"\"
+        home(c::Connection) -> _
+        --------------------
+        The home function is served as a route inside of your server by default. To
+            change this, view the start method below.
+        \"\"\"
+        function home(c::Connection)
+            styles::Component{:sheet} = sheet("newapp")
+            styles[:children][:button]["background-color"] = lineargradient("blue", "lightblue")
+            write!(c, styles)
+            write!(c, myheader)
+
+            mainbody::Component{:body} = body("mainbody")
+
+        end
+
+        fourofour = route("404") do c
+            write!(c, p("404message", text = "404, not found!"))
+        end
+
+        routes = [route("/", home), fourofour]
+        extensions = [Logger(), Files(), Session()]
+        \"\"\"
+        start(IP::String, PORT::Integer, ) -> ::ToolipsServer
+        --------------------
+        The start function starts the WebServer.
+        \"\"\"
+        function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
+             ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
+             ws.start(); ws
+        end
+        end # - module
+        """)
+    end
 end
 # --
 

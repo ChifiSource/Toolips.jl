@@ -1013,7 +1013,7 @@ s["background-color"] = "blue"
 s:"hover":["background-color" => "blue"]
 ```
 """
-(:)(s::AbstractComponent, name::String) = s.extras[name)]::AbstractComponent
+(:)(s::AbstractComponent, name::String) = s.extras[name]::AbstractComponent
 
 """
 **Interface**

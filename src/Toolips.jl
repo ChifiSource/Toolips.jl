@@ -295,7 +295,7 @@ Toolips.new_defaultapp("ToolipsApp")
 ```
 """
 function new_defaultapp(name::String = "ToolipsApp")
-    create_serverdeps(name, ["Logger", "Files", "Session"],
+    create_serverdeps(name)
     Pkg.add("ToolipsSession")
     Pkg.add("ToolipsDefaults")
     Pkg.add("ToolipsMarkdown")

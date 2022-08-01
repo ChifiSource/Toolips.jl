@@ -1124,15 +1124,15 @@ function animate!(s::AbstractComponent, a::Animation)
         iters = string(a.iterations)
     end
     if "style" in keys(s.properties)
-        sty = c["style"]
+        sty = s["style"]
         sty[length(sty)] = " "
         sty = sty * "'animation-name: $(a.name); animation-duration: $(a.length)"
         sty = sty * "animation-iteration-count: $iters;'"
-        c["style"] = sty
+        s["style"] = sty
     else
         str = "'animation-name: $(a.name); animation-duration: $(a.length);"
         str = str * "animation-iteration-count: $iters;'"
-        c["style"] = str
+        s["style"] = str
     end
 end
 

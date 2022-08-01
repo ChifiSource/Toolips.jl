@@ -180,45 +180,13 @@ function route_from_dir(dir::String)
     routes::Vector{String}
 end
 
-"""
-### File <: Servable
-dir::String
-f::Function
-Serves a file into a Connection.
-##### example
-```
-f = File("hello.txt")
-r = route("/") do c
-    write!(c, f)
-end
-```
-------------------
-##### field info
-- dir::String - The directory of a file to serve.
-- f::Function - Function whose output to be written to http().
-------------------
-##### constructors
-- File(dir::String)
-"""
-mutable struct File <: Servable
-    dir::String
-    f::Function
-    function File(dir::String)
-        f(c::Connection) = begin
-            open(dir) do f
-                write(c.http, f)
-            end
-        end
-        new(dir, f)
-    end
-end
-write!(c::Connection, f::File) = f.f(c)
+
 
 """
 ### Files <: ServerExtension
 - type::Symbol
 - directory::String
-- f::Function - 
+- f::Function -
 Writes all files in directory to their own routes in the server.
 ------------------
 ##### field info
@@ -238,10 +206,11 @@ mutable struct Files <: ServerExtension
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Dict, e::Dict) = begin
+        f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
-                push!(r, path[l:length(path)] => c::Connection -> write!(c, File(path)))
+                push!(r, Route(path[l:length(path)],
+                c::Connection -> write!(c, File(path))))
             end
         end
         new(:routing, directory, f)

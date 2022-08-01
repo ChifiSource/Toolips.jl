@@ -9,6 +9,13 @@ This software is MIT-licensed.
 and **reactive** web-development framework **always** written in **pure** Julia.
 ##### Module Composition
 - [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
+---
+- [`interface`]()
+- ["Extensions.jl"]()
+- ["Components.jl"]()
+---
+- [`server`]()
+- ["Core.jl"]()
 """
 module Toolips
 using Crayons
@@ -18,224 +25,94 @@ using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: Pairs
+import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read, cp
 #==
-SuperTypes
+WebMeasures / Colors
 ==#
 """
-### abstract type Servable
-Servables can be written to a Connection via thier f() function and the
-interface. They can also be indexed with strings or symbols to change properties
-##### Consistencies
-- f::Function - Function whose output to be written to http. Must take a single
-positonal argument of type ::Connection or ::AbstractConnection
-"""
-abstract type Servable <: Any end
-
-"""
-### abstract type StyleComponent <: Servable
-No different from a normal Servable, simply an abstract type step for the
-interface to separate working with Animations and Styles.
-### Servable Consistencies
-```
-Servables can be written to a Connection via thier f() function and the
-interface. They can also be indexed with strings or symbols to change properties
-##### Consistencies
-- f::Function - Function whose output to be written to http. Must take a single
-positonal argument of type ::Connection or ::AbstractConnection
-```
-"""
-abstract type StyleComponent <: Servable end
-
-"""
-### abstract type ToolipsServer
-ToolipsServers are returned whenever the ServerTemplate.start() field is
-called. If you are running your server as a module, it should be noted that
-commonly a global start() method is used and returns this server, and dev is
-where this module is loaded, served, and revised.
-##### Consistencies
-- routes::Dict - The server's route => function dictionary.
-- extensions::Dict - The server's currently loaded extensions.
-- server::Any - The server, whatever type it may be...
-"""
-abstract type ToolipsServer end
-
-"""
-### abstract type ServerExtension
-Server extensions are loaded into the server on startup, and
-can have a few different abilities according to their type
-field's value. This value can be either a Symbol or a Vector of Symbols.
-##### Consistencies
-- type::T where T == Vector{Symbol}  || T == Symbol. The type can be :routing,
-:func, :connection, or any combination inside of a Vector{Symbol}. :routing
-ServerExtensions must have an f() function that takes two dictionaries; e.g.
-f(r::Dict{String, Function}, e::Dict{Symbol, ServerExtension}) The first Dict is
-the dictionary of routes, the second is the dictionary of server extensions.
-:func server extensions will be ran everytime the server is routed. They will
-need to have the same f function, but taking a single argument as a connection.
-    Lastly, :connection extensions are simply pushed to the connection.
-"""
-abstract type ServerExtension end
-
-"""
-### abstract type AbstractConnection
-Connections are passed through function routes and can have Servables written
-    to it.
-##### Consistencies
-- routes::Dict - A {String, Function} dictionary that the server references to
-direct incoming connections.
-- http::Any - Usually an HTTP.Stream, however can be anything that is binded to
-the Base.write method.
-- extensions::Dict - A {Symbol, ServerExtension} dictionary that can be used to
-access ServerExtensions.
-"""
-abstract type AbstractConnection end
-
-"""
-### SpoofStream
-- text::String
-The SpoofStream allows us to fake a connection by building a SpoofConnection
-which will write to the SpoofStream.text field whenever write! is called. This
-is useful for testing, or just writing servables into a string.
+### WebMeasure{format}
+WebMeasures are simple measurement Symbols that are used to create
+the `px` and `percent` syntax.
 ##### example
 ```
-stream = SpoofStream()
-write(stream, "hello!")
-println(stream.text)
-
-    hello!
-conn = SpoofConnection()
-servab = Component()
-write!(conn, servab)
+# px/percent examples:
+mydiv = div("mydiv", align = "center")
+style!(mydiv, "padding" => 15px, "width" => 50percent)
+# What this looks like in toolips:
+const px = WebMeasure{:px}()
+*(i::Int64, p::WebMeasure{:px}) = i * "px"
 ```
 ------------------
-##### field info
-- text::String - The text written to the stream.
-------------------
 ##### constructors
-- SpoofStream()
+WebMeasure{format}()
 """
-mutable struct SpoofStream
-    text::String
-    SpoofStream() = new("")
-end
+mutable struct WebMeasure{format} end
 
+const px = WebMeasure{:px}()
+*(i::Int64, p::WebMeasure{:px}) = "$(i)px"
+
+const percent = WebMeasure{:percent}()
+*(i::Int64, p::WebMeasure{:percent}) = "$(i)%"
+
+const seconds = WebMeasure{:seconds}()
+*(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
+*(i::Float64, p::WebMeasure{:seconds}) = "$(i)s"
+const ms = WebMeasure{:ms}()
+*(i::Int64, p::WebMeasure{:ms}) = "$(i)ms"
+const pt = WebMeasure{:pt}()
+*(i::Int64, p::WebMeasure{:pt}) = "$(i)pt"
 """
-**Internals**
-### write(s::SpoofStream, e::Any) -> _
+**Interface**
+### rgb(r::Int64, g::Int64, b::Int64) -> ::String
 ------------------
-A binding to Base.write that allows one to write to SpoofStream.text.
+Creates a style rgb color.
 #### example
 ```
-s = SpoofStream()
-write(s, "hi")
-println(s.text)
-    hi
+myp = p("myp", text = "example")
+style!(myp, "color" => rgb(1, 5, 9))
 ```
 """
-write(s::SpoofStream, e::Any) = s.text = s.text * string(e)
+rgb(r::Int64, g::Int64, b::Int64) = "rgb($r, $g, $b)"
 
 """
-**Internals**
-### write(s::SpoofStream, e::Servable) -> _
+**Interface**
+### rgb(r::Int64, g::Int64, b::Int64, a::Int64) -> ::String
 ------------------
-A binding to Base.write that allows one to write a Servable to SpoofStream.text.
+Creates a style rgba color.
 #### example
 ```
-s = SpoofStream()
-write(s, p("hello"))
-println(s.text)
-    <p id = "hello"></p>
+myp = p("myp", text = "example")
+style!(myp, "color" => rgba(1, 5, 9, 100))
 ```
 """
-write(c::SpoofStream, s::Servable) = s.f(c)
+rgba(r::Int64, g::Int64, b::Int64, a::Int64) = "rgba($r, $g, $b, $a)"
 
 """
-### SpoofConnection <: AbstractConnection
-- routes::Dict
-- http::SpoofStream
-- extensions::Dict -
-Builds a fake connection with a SpoofStream. Useful if you want to write
-a Servable without a server.
-##### example
-```
-fakec = SpoofConnection()
-servable = Component()
-# write!(::AbstractConnection, ::Servable):
-write!(fakec, servable)
-```
+**Interface**
+### gradient(type::Symbol, dir::String = "right", c::String ...) -> ::String
 ------------------
-##### field info
-- routes::Dict - A dictionary of routes, usually left empty.
-- http::SpoofStream - A fake http stream that instead writes output to a string.
-- extensions::Dict - A dictionary of extensions, usually empty.
-------------------
-##### constructors
-- SpoofStream(r::Dict, http::SpoofStream, extensions::Dict)
-- SpoofStream()
+Creates a style a gradient of type type in direction dir with colors c. Types are
+- radial
+- linear
+#### example
+```
+mydiv = div("mydiv", text = "example")
+style!(mydiv, "background" => gradient(:linear, "right", "blue", "green"))
+```
 """
-mutable struct SpoofConnection <: AbstractConnection
-    routes::Dict
-    http::SpoofStream
-    extensions::Dict
-    function SpoofConnection(r::Dict, http::SpoofStream, extensions::Dict)
-        new(r, SpoofStream(), extensions)
-    end
-    SpoofConnection() = new(Dict(), SpoofStream(), Dict())
-end
-"""
-### Connection <: AbstractConnection
-- routes::Dict
-- http::HTTP.Stream
-- extensions::Dict
-The connection type is passed into route functions and pages as an argument.
-This is both for functions, as well as Servable.f() methods. This constructor
-    should not be called directly. Instead, it is called by the server and
-    passed through the function pipeline. Indexing a Connection will return
-        the extension named with that symbol.
-##### example
-```
-                  #  v The Connection
-home = route("/") do c::Connection
-    c[Logger].log(1, "We can index extensions by type or symbol")
-    c[:logger].log(1, "see?")
-    c.routes["/"] = c::Connection -> write!(c, "rerouting!")
-    httpstream = c.http
-    write!(c, "Hello world!")
-    myheading::Component = h("myheading", 1, text = "Whoa!")
-    write!(c, myheading)
-end
-```
-------------------
-##### field info
-- **routes::Dict** - A dictionary of routes where the keys
-are the routed URL and the values are the functions to
-those keys.
-- **http::HTTP.Stream** - The stream for this current peer's connection.
-- **extensions::Dict** - A dictionary of extensions to load with the
-name to reference as keys and the extension as the pair.
-------------------
-##### constructors
-- Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
-"""
-mutable struct Connection <: AbstractConnection
-    routes::Dict
-    http::HTTP.Stream
-    extensions::Dict
-    function Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
-        new(routes, http, extensions)::Connection
-    end
+function gradient(type::Symbol, dir::String = "right", c::String ...)
+    "$type-gradient(to $dir, " * join(["$col, " for col in c]) * ")"
 end
 
+export percent, px, rgb, rgba, gradient, pt, seconds, ms
 #==
 Includes/Exports
 ==#
-include("interface/Servables.jl")
 include("server/Core.jl")
-include("interface/Interface.jl")
-
-# Core Server
-export ServerTemplate, Route, Connection, WebServer, Servable
+include("interface/Components.jl")
+# Core
+export ServerTemplate, Route, Connection, WebServer, Servable, ServerExtension
+export Hash
 # Server Extensions
 export Logger, Files
 # Servables
@@ -258,28 +135,32 @@ Project API
 ==#
 """
 **Internals**
-### create_serverdeps(name::String, inc::String) -> _
+### create_serverdeps(name::String, exts::Vector{String} = ["Logger"], inc::String = "") -> _
 ------------------
 Creates the essential portions of the webapp file structure, where name is the
 project's name and inc is any extensions or strings to incorporate at the top
-of the file.
+of the file. Exts is a list of Server extensions.
 #### example
 ```
 create_serverdeps("ToolipsApp")
 ```
 """
-function create_serverdeps(name::String, inc::String = "")
+function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
+    inc::String = "")
+    extstr::String = "Vector{ServerExtension}([" * join(["$e(), " for e in exts]) * "])"
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
     Pkg.add("Revise")
     dir = pwd() * "/"
-    src = dir * name * "/src"
-    logs = dir * name * "/logs"
-    mkdir(logs)
+    src::String = dir * name * "/src"
+    if "Logger" in exts
+        logs::String = dir * name * "/logs"
+        mkdir(logs)
+        touch(logs * "/log.txt")
+    end
     touch(name * "/dev.jl")
     touch(name * "/prod.jl")
-    touch(logs * "/log.txt")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
@@ -287,7 +168,7 @@ function create_serverdeps(name::String, inc::String = "")
 module $name
 using Toolips
 $inc
-
+# welcome to your new toolips project!
 \"\"\"
 home(c::Connection) -> _
 --------------------
@@ -302,23 +183,20 @@ fourofour = route("404") do c
     write!(c, p("404message", text = "404, not found!"))
 end
 
+routes = [route("/", home), fourofour]
+extensions = $extstr
 \"\"\"
-start(IP::String, PORT::Integer, extensions::Vector{Any}) -> ::Toolips.WebServer
+start(IP::String, PORT::Integer, ) -> ::ToolipsServer
 --------------------
-The start function comprises routes into a Vector{Route} and then constructs
-    a ServerTemplate before starting and returning the WebServer.
+The start function starts the WebServer.
 \"\"\"
-function start(IP::String = "127.0.0.1", PORT::Integer = 8000,
-    extensions::Vector = [Logger()])
-    rs = routes(route("/", home), fourofour)
-    server = ServerTemplate(IP, PORT, rs, extensions = extensions)
-    server.start()
+function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
+     ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
+     ws.start(); ws
 end
-
 end # - module
         """)
     end
-
 end
 
 """
@@ -337,11 +215,6 @@ function new_app(name::String = "ToolipsApp")
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
-        #==
-        dev.jl is an environment file. This file loads and starts servers, and
-        defines environmental variables, setting the scope a lexical step higher
-        with modularity.
-        ==#
         using Pkg; Pkg.activate(".")
         using Toolips
         using Revise
@@ -349,8 +222,7 @@ function new_app(name::String = "ToolipsApp")
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = [Logger()]
-        $servername = $name.start(IP, PORT, extensions)
+        $servername = $name.start(IP, PORT)
         """)
     end
     open(name * "/prod.jl", "w") do io
@@ -361,8 +233,7 @@ function new_app(name::String = "ToolipsApp")
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = [Logger()]
-        $servername = $name.start(IP, PORT, extensions)
+        $servername = $name.start(IP, PORT)
         """)
     end
 end
@@ -381,47 +252,125 @@ Toolips.new_webapp("ToolipsApp")
 """
 function new_webapp(name::String = "ToolipsApp")
     servername = name * "Server"
-    create_serverdeps(name, "using ToolipsSession")
-    Pkg.add(url = "https://github.com/ChifiSource/ToolipsSession.jl.git")
+    create_serverdeps(name, ["Logger", "Files", "Session"],
+    "using ToolipsSession")
+    Pkg.add("ToolipsSession")
     open(name * "/dev.jl", "w") do io
         write(io, """
-        #==
-        dev.jl is an environment file. This file loads and starts servers, and
-        defines environmental variables.
-        ==#
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsSession
         using Revise
         using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        #==
-        Extension description
-        Logger -> Logs messages into both a file folder and the terminal.
-        Files -> Routes the files from the public directory.
-        Session -> ToolipsSession; allows us to make Servables reactive. See ?(on)
-        ==#
-        extensions = [Logger(), Files("public"), Session()]
-        $servername = $name.start(IP, PORT, extensions)
+        $servername = $name.start(IP, PORT)
         """)
     end
     open(name * "/prod.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
         using Toolips
-        using ToolipsSession
         using $name
 
         IP = "127.0.0.1"
         PORT = 8000
-        extensions = [Logger(), Files("public"), Session()]
-        $servername = $name.start(IP, PORT, extensions)
+        $servername = $name.start(IP, PORT)
         """)
     end
     public = pwd() * "/$name/public"
     mkdir(public)
+end
+
+"""
+**Core**
+### new_defaultapp(::String) -> _
+------------------
+Adds a toolips project with the standard library (Session, Base64, Markdown, Defaults)
+installed. More of a built default project with examples is created.
+#### example
+```
+using Toolips
+Toolips.new_defaultapp("ToolipsApp")
+```
+"""
+function new_defaultapp(name::String = "ToolipsApp")
+    create_serverdeps(name)
+    Pkg.add("ToolipsSession")
+    Pkg.add("ToolipsDefaults")
+    Pkg.add("ToolipsMarkdown")
+    Pkg.add("ToolipsBase64")
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Toolips
+        using Revise
+        using $name
+
+        IP = "127.0.0.1"
+        PORT = 8000
+        $servername = $name.start(IP, PORT)
+        """)
+    end
+    open(name * "/prod.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Toolips
+        using $name
+
+        IP = "127.0.0.1"
+        PORT = 8000
+        $servername = $name.start(IP, PORT)
+        """)
+    end
+    mkdir(pwd() * "/$name/public")
+    cp((@__DIR__) * "/../assets/icon.png", pwd() * "/$name/public/favicon.png", force = true)
+    open(name * "/src/$name.jl", "w") do io
+        write(io, """module $name
+        using Toolips
+        using ToolipsSession
+        using ToolipsDefaults
+        using ToolipsMarkdown
+        using ToolipsBase64
+        # welcome to your new toolips project!
+        myheader = div("myheader", align = "center")
+        headerlogo = img("headerlogo", src = "/favicon.png")
+        push!(myheader, headerlogo, h("headerlabel", 4, text = "toolips"))
+
+        \"\"\"
+        home(c::Connection) -> _
+        --------------------
+        The home function is served as a route inside of your server by default. To
+            change this, view the start method below.
+        \"\"\"
+        function home(c::Connection)
+            styles::Component{:sheet} = sheet("newapp")
+            styles[:children][:button]["background-color"] = lineargradient("blue", "lightblue")
+            write!(c, styles)
+            write!(c, myheader)
+
+            mainbody::Component{:body} = body("mainbody")
+
+        end
+
+        fourofour = route("404") do c
+            write!(c, p("404message", text = "404, not found!"))
+        end
+
+        routes = [route("/", home), fourofour]
+        extensions = [Logger(), Files(), Session()]
+        \"\"\"
+        start(IP::String, PORT::Integer, ) -> ::ToolipsServer
+        --------------------
+        The start function starts the WebServer.
+        \"\"\"
+        function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
+             ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
+             ws.start(); ws
+        end
+        end # - module
+        """)
+    end
 end
 # --
 

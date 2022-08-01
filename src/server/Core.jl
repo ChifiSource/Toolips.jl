@@ -397,12 +397,13 @@ end
 ```
 """
 function getargs(c::AbstractConnection)
-    target::AbstractVector = split(c.http.message.target, '?')
+    target = split(c.http.message.target, '?')
     if length(target) < 2
         return(Dict{Symbol, Any}())
     end
     target = replace(target[2], "+" => " ")
     args = split(target, '&')
+
     argsplit(args)
 end
 

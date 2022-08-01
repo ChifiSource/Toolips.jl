@@ -1322,3 +1322,10 @@ function display(m::MIME{Symbol("text/html")}, c::Animation)
     write!(myc, displayer)
     display("text/html", myc.http.text)
 end
+
+function in(name::String, v::Vector{Servable})
+    if length(findall(c::Servable -> c.name == name, v)) > 0
+        return(true)
+    end
+    return(false)
+end

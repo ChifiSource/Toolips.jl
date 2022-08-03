@@ -403,7 +403,6 @@ function getargs(c::AbstractConnection)
     end
     target = replace(target[2], "+" => " ")
     args = split(target, '&')
-
     argsplit(args)
 end
 
@@ -745,11 +744,6 @@ mutable struct Route <: AbstractRoute
     end
 end
 
-function show(io::Base.TTY, c::AbstractRoute)
-    display("text/markdown", """
-    """)
-end
-
 """
 **Interface**
 ### route(f::Function, r::String) -> ::Route
@@ -872,7 +866,7 @@ mutable struct WebServer <: ToolipsServer
         extensions::Vector{ServerExtension} = [Logger()])
         server = :inactive
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = _start(host, port, routes, extensions, server)
+        start() = begin server = _start(host, port, routes, extensions, server) end
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -1270,11 +1264,10 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
-         println(1 => Crayon(foreground = :light_cyan),
-         "🌷 toolips server started at http://$ip:$port")
      catch e
-         throw(CoreError("Could not start Server $ip:$port; $(string(e))"))
+         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
+     return(server)
 end
 
 """

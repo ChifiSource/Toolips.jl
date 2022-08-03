@@ -166,7 +166,7 @@ image = img("mylogo", src = "assets/logo.png")
 write!(c, image)
 ```
 """
-function img(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function img(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "img", args ..., keys ...)::Component{:img}
 end
 
@@ -181,7 +181,7 @@ mylink = link("mylink", href = "http://toolips.app")
 write!(c, mylink)
 ```
 """
-function link(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function link(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "link", args ..., keys ...)::Component{:link}
 end
 
@@ -196,7 +196,7 @@ metainfo = meta("metainfo", rel = "meta-description", text = "hello")
 write!(c, metainfo)
 ```
 """
-function meta(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function meta(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "meta", args ..., keys ...)::Component{:meta}
 end
 
@@ -211,7 +211,7 @@ element = input("mylogo")
 write!(c, element)
 ```
 """
-function input(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function input(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "input", args ..., keys ...)::Component{:input}
 end
 
@@ -226,7 +226,7 @@ element = a("mylogo")
 write!(c, element)
 ```
 """
-function a(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function a(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "a", args ..., keys ...)::Component{:a}
 end
 
@@ -242,7 +242,7 @@ p1 = input("mylogo")
 write!(c, p)
 ```
 """
-function p(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function p(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "p", args ..., keys ...)::Component{:p}
 end
 
@@ -258,7 +258,7 @@ write!(c, h1)
 ```
 """
 function h(name::String = " ", level::Integer = 1,
-    args::Pair{String, Any} ...; keys ...)
+    args::Pair{String, <:Any} ...; keys ...)
     tg = Symbol("h$level")
     Component(name, "h$level", args ..., keys ...)::Component{tg}
 end
@@ -274,7 +274,7 @@ h1 = h("heading1", 1)
 write!(c, h1)
 ```
 """
-function h1(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function h1(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "h1", args ..., keys ...)::Component{:h1}
 end
 
@@ -290,7 +290,7 @@ ul1 = ul("mylogo")
 write!(c, ul)
 ```
 """
-function ul(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function ul(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "ul", args ..., keys ...)::Component{:ul}
 end
 
@@ -305,22 +305,22 @@ li1 = li("mylogo")
 write!(c, li)
 ```
 """
-function li(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function li(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "li", args ..., keys ...)::Component{:li}
 end
 
 """
-### divider(name::String, p::Pair{String, Any} ...; args ...) -> ::Component
+### div(name::String, p::Pair{String, Any} ...; args ...) -> ::Component
 ------------------
 Returns the div Component with the key-word arguments provided in args as
 properties.
 #### example
 ```
-divider1 = divider("mylogo")
-write!(c, divider)
+divider1 = div"mylogo")
+write!(c, divider1)
 ```
 """
-function div(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function div(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "div", args ..., keys ...)::Component{:div}
 end
 
@@ -332,10 +332,10 @@ properties.
 #### example
 ```
 divider1 = divider("mylogo")
-write!(c, divider)
+write!(c, divider1)
 ```
 """
-function divider(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function divider(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "div", args ..., keys ...)::Component{:div}
 end
 
@@ -350,7 +350,7 @@ comp = br("newcomp")
 write!(c, comp)
 ```
 """
-function br(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function br(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "br", args ..., keys ...)::Component{:br}
 end
 
@@ -365,7 +365,7 @@ comp = i("newcomp")
 write!(c, comp)
 ```
 """
-function i(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function i(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "i", args ..., keys ...)::Component{:i}
 end
 
@@ -380,7 +380,7 @@ comp = title("newcomp")
 write!(c, comp)
 ```
 """
-function title(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function title(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "title", args ..., keys ...)::Component{:title}
 end
 
@@ -395,7 +395,7 @@ comp = span("newcomp")
 write!(c, comp)
 ```
 """
-function span(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function span(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "span", args ..., keys ...)::Component{:span}
 end
 
@@ -410,7 +410,7 @@ comp = iframe("newcomp")
 write!(c, comp)
 ```
 """
-function iframe(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function iframe(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "iframe", args ..., keys ...)::Component{:iframe}
 end
 
@@ -425,7 +425,7 @@ comp = svg("newcomp")
 write!(c, comp)
 ```
 """
-function svg(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function svg(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "svg", args ..., keys ...)::Component{:svg}
 end
 
@@ -440,7 +440,7 @@ comp = element("newcomp")
 write!(c, comp)
 ```
 """
-function element(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function element(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "element", args ..., keys ...)::Component{:element}
 end
 
@@ -455,7 +455,7 @@ lbl = label("mylogo", src = "assets/logo.png")
 write!(c, lbl)
 ```
 """
-function label(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function label(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "label", args ..., keys ...)::Component{:label}
 end
 
@@ -470,7 +470,7 @@ comp = script("newcomp")
 write!(c, comp)
 ```
 """
-function script(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function script(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "script", args ..., keys ...)::Component{:script}
 end
 """
@@ -484,7 +484,7 @@ comp = nav("newcomp")
 write!(c, comp)
 ```
 """
-function nav(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function nav(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "nav", args ..., keys ...)::Component{:nav}
 end
 
@@ -499,7 +499,7 @@ comp = button("newcomp")
 write!(c, comp)
 ```
 """
-function button(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function button(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "button", args ..., keys ...)::Component{:button}
 end
 
@@ -514,7 +514,7 @@ comp = form("newcomp")
 write!(c, comp)
 ```
 """
-function form(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function form(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "form", args ..., keys ...)::Component{:form}
 end
 
@@ -529,7 +529,7 @@ comp = section("newcomp")
 write!(c, comp)
 ```
 """
-function section(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function section(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "section", args ..., keys ...)::Component{:section}
 end
 
@@ -544,7 +544,7 @@ comp = body("newcomp")
 write!(c, comp)
 ```
 """
-function body(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function body(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "body", args ..., keys ...)::Component{:body}
 end
 
@@ -559,7 +559,7 @@ comp = header("newcomp")
 write!(c, comp)
 ```
 """
-function header(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function header(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "header", args ..., keys ...)::Component{:header}
 end
 
@@ -574,7 +574,7 @@ comp = footer("newcomp")
 write!(c, comp)
 ```
 """
-function footer(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function footer(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "footer", args ..., keys ...)::Component{:footer}
 end
 
@@ -589,7 +589,7 @@ comp = footer("newcomp")
 write!(c, comp)
 ```
 """
-function b(name::String = " ", args::Pair{String, Any} ...; keys ...)
+function b(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "b", args ..., keys ...)::Component{:b}
 end
 
@@ -1124,15 +1124,15 @@ function animate!(s::AbstractComponent, a::Animation)
         iters = string(a.iterations)
     end
     if "style" in keys(s.properties)
-        sty = c["style"]
+        sty = s["style"]
         sty[length(sty)] = " "
         sty = sty * "'animation-name: $(a.name); animation-duration: $(a.length)"
         sty = sty * "animation-iteration-count: $iters;'"
-        c["style"] = sty
+        s["style"] = sty
     else
         str = "'animation-name: $(a.name); animation-duration: $(a.length);"
         str = str * "animation-iteration-count: $iters;'"
-        c["style"] = str
+        s["style"] = str
     end
 end
 
@@ -1321,4 +1321,11 @@ function display(m::MIME{Symbol("text/html")}, c::Animation)
     animate!(displayer, c)
     write!(myc, displayer)
     display("text/html", myc.http.text)
+end
+
+function in(name::String, v::Vector{Servable})
+    if length(findall(c::Servable -> c.name == name, v)) > 0
+        return(true)
+    end
+    return(false)
 end

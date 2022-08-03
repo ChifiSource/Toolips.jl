@@ -397,7 +397,7 @@ end
 ```
 """
 function getargs(c::AbstractConnection)
-    target::AbstractVector = split(c.http.message.target, '?')
+    target = split(c.http.message.target, '?')
     if length(target) < 2
         return(Dict{Symbol, Any}())
     end
@@ -744,11 +744,6 @@ mutable struct Route <: AbstractRoute
     end
 end
 
-function show(io::Base.TTY, c::AbstractRoute)
-    display("text/markdown", """
-    """)
-end
-
 """
 **Interface**
 ### route(f::Function, r::String) -> ::Route
@@ -861,7 +856,7 @@ mutable struct WebServer <: ToolipsServer
     port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
-    server::Any
+    server::Vector{Any}
     add::Function
     remove::Function
     start::Function
@@ -869,9 +864,9 @@ mutable struct WebServer <: ToolipsServer
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        server = :inactive
+        server::Any = Vector{Any}()
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = _start(host, port, routes, extensions, server)
+        start() = push!(server, _start(host, port, routes, extensions, server))
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -940,7 +935,9 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         server::Any = :none
-        start() = _st_start(host, port, routes, extensions, servertype, server)
+        start() = begin
+            server = _st_start(host, port, routes, extensions, servertype, server)
+        end
         new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
 end
@@ -989,7 +986,13 @@ kill!(ws)
 ```
 """
 function kill!(ws::ToolipsServer)
-    close(ws.server)
+    close(ws.server[1])
+    ws.server = :inactive
+end
+
+function kill!(ws::ServerTemplate{<:ToolipsServer})
+    kill!(ws.server[1])
+    ws.server = :inactive
 end
 
 """
@@ -1213,13 +1216,27 @@ function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     server::ToolipsServer = servertype(ip, port, routes = routes,
     extensions = extensions)
     server.start()
-    s = server
     return(server)::ToolipsServer
 end
 
 function show(io::IO, ts::ToolipsServer)
     status::String = "inactive"
-    if typeof(ts.server) != Symbol
+    if length(ts.server) > 0
+        status = "active"
+    end
+    print("""$(typeof(ts))
+        hosted at: http://$(ts.host):$(ts.port)
+        status: $status
+            routes
+            $(string(ts.routes))
+            extensions
+            $(string(ts.extensions))
+        """)
+end
+
+function show(io::IO, ts::ServerTemplate)
+    status::String = "inactive"
+    if length(ts.server.server) > 0
         status = "active"
     end
     print("""$(typeof(ts))
@@ -1266,14 +1283,13 @@ st.start()
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
      routefunc, rdct, extensions = generate_router(routes, server, extensions)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    s = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
-         println(1 => Crayon(foreground = :light_cyan),
-         "🌷 toolips server started at http://$ip:$port")
      catch e
-         throw(CoreError("Could not start Server $ip:$port; $(string(e))"))
+         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
+     return(s)
 end
 
 """

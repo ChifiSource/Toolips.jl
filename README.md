@@ -5,7 +5,7 @@
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
 </br>
 
-**|**    [toolips app](https://toolips.app/)   **|**  [documentation](https://doc.toolips.app) **|**   [examples]()    **|**    [extensions]()    **|**
+**|**    [toolips app](https://toolips.app/)   **|**  [documentation](https://doc.toolips.app) **|**   [examples](https://toolips.app/?page=examples)    **|**    [extensions](https://toolips.app/?page=extensions)    **|**
 
 </div>
 

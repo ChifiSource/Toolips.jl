@@ -866,7 +866,7 @@ mutable struct WebServer <: ToolipsServer
         extensions::Vector{ServerExtension} = [Logger()])
         server::Any = :inactive
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start(; server = server) = begin server = _start(host, port, routes, extensions, server) end
+        start() = begin server = _start(host, port, routes, extensions, server) end
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -1216,7 +1216,6 @@ function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     server::ToolipsServer = servertype(ip, port, routes = routes,
     extensions = extensions)
     server.start()
-    s = server
     return(server)::ToolipsServer
 end
 
@@ -1269,13 +1268,13 @@ st.start()
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
      routefunc, rdct, extensions = generate_router(routes, server, extensions)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    s = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e
          throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     return(server)
+     return(s)
 end
 
 """

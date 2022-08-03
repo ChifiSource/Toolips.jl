@@ -864,9 +864,9 @@ mutable struct WebServer <: ToolipsServer
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        server = :inactive
+        server::Any = :inactive
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = begin server = _start(host, port, routes, extensions, server) end
+        start(server) = begin server = _start(host, port, routes, extensions, server) end
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -935,7 +935,9 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         server::Any = :none
-        start() = _st_start(host, port, routes, extensions, servertype, server)
+        start() = begin
+            server = _st_start(host, port, routes, extensions, servertype, server)
+        end
         new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
 end
@@ -985,6 +987,12 @@ kill!(ws)
 """
 function kill!(ws::ToolipsServer)
     close(ws.server)
+    ws.server = :inactive
+end
+
+function kill!(ws::ServerTemplate{<:ToolipsServer})
+    kill!(ws.server)
+    ws.server = :inactive
 end
 
 """

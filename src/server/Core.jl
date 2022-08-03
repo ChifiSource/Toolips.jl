@@ -866,7 +866,7 @@ mutable struct WebServer <: ToolipsServer
         extensions::Vector{ServerExtension} = [Logger()])
         server::Any = :inactive
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start(server) = begin server = _start(host, port, routes, extensions, server) end
+        start(; server = server) = begin server = _start(host, port, routes, extensions, server) end
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end

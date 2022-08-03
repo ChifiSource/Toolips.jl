@@ -856,7 +856,7 @@ mutable struct WebServer <: ToolipsServer
     port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
-    server::Any
+    server::Vector{Any}
     add::Function
     remove::Function
     start::Function
@@ -864,9 +864,9 @@ mutable struct WebServer <: ToolipsServer
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        server::Any = :inactive
+        server::Any = Vector{Any}()
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = begin server = _start(host, port, routes, extensions, server) end
+        start() = push!(server, _start(host, port, routes, extensions, server))
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
     end
 end
@@ -986,12 +986,12 @@ kill!(ws)
 ```
 """
 function kill!(ws::ToolipsServer)
-    close(ws.server)
+    close(ws.server[1])
     ws.server = :inactive
 end
 
 function kill!(ws::ServerTemplate{<:ToolipsServer})
-    kill!(ws.server)
+    kill!(ws.server[1])
     ws.server = :inactive
 end
 
@@ -1221,7 +1221,22 @@ end
 
 function show(io::IO, ts::ToolipsServer)
     status::String = "inactive"
-    if typeof(ts.server) != Symbol
+    if length(ts.server) > 0
+        status = "active"
+    end
+    print("""$(typeof(ts))
+        hosted at: http://$(ts.host):$(ts.port)
+        status: $status
+            routes
+            $(string(ts.routes))
+            extensions
+            $(string(ts.extensions))
+        """)
+end
+
+function show(io::IO, ts::ServerTemplate)
+    status::String = "inactive"
+    if length(ts.server.server) > 0
         status = "active"
     end
     print("""$(typeof(ts))

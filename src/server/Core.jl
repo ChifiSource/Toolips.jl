@@ -864,7 +864,7 @@ mutable struct WebServer <: ToolipsServer
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        server::Any = Vector{Any}()
+        server::Vector{Any} = Vector{Any}()
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         start() = push!(server, _start(host, port, routes, extensions, server))
         new(host, port, routes, extensions, server, add, remove, start)::WebServer
@@ -927,12 +927,11 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
-        server::Type = WebServer)
+        servertype::Type = WebServer)
         routes = vcat(routes, rs)
-        if ~(server <: ToolipsServer)
+        if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
-        servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         server::Vector{Any} = Vector{Any}([])
         start() = begin
@@ -1238,7 +1237,7 @@ end
 
 function show(io::IO, ts::ServerTemplate)
     status::String = "inactive"
-    if length(ts.server.server) > 0
+    if length(ts.server) > 0
         status = "active"
     end
     print("""$(typeof(ts))

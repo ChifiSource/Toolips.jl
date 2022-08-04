@@ -919,7 +919,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
-    server::Any
+    server::Vector{Any}
     remove::Function
     add::Function
     start::Function
@@ -934,9 +934,9 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         end
         servertype = server
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        server::Any = :none
+        server::Vector{Any} = Vector{Any}([])
         start() = begin
-            server = _st_start(host, port, routes, extensions, servertype, server)
+            push!(server, _st_start(host, port, routes, extensions, servertype, server))
         end
         new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
     end
@@ -988,11 +988,13 @@ kill!(ws)
 function kill!(ws::ToolipsServer)
     close(ws.server[1])
     ws.server = :inactive
+    deleteat!(ws.server, 1)
 end
 
 function kill!(ws::ServerTemplate{<:ToolipsServer})
     kill!(ws.server[1])
     ws.server = :inactive
+    deleteat!(ws.server, 1)
 end
 
 """
@@ -1283,13 +1285,13 @@ st.start()
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any)
      routefunc, rdct, extensions = generate_router(routes, server, extensions)
-    s = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e
          throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     return(s)
+     server
 end
 
 """

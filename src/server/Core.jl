@@ -169,12 +169,13 @@ name to reference as keys and the extension as the pair.
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
 mutable struct Connection <: AbstractConnection
+    hostname::String
     routes::Vector{AbstractRoute}
     http::HTTP.Stream
     extensions::Vector{ServerExtension}
     function Connection(routes::Vector{AbstractRoute}, http::HTTP.Stream,
-        extensions::Vector{ServerExtension})
-        new(routes, http, extensions)::Connection
+        extensions::Vector{ServerExtension}; hostname::String = "")
+        new(hostname, routes, http, extensions)::Connection
     end
 end
 """
@@ -852,6 +853,7 @@ end
 ```
 """
 mutable struct WebServer <: ToolipsServer
+    hostname::String
     host::String
     port::Int64
     routes::Vector{AbstractRoute}
@@ -861,13 +863,19 @@ mutable struct WebServer <: ToolipsServer
     remove::Function
     start::Function
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
+        hostname::String = ""
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
+        if hostname == ""
+            hostname = host
+        end
         server::Vector{Any} = Vector{Any}()
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = push!(server, _start(host, port, routes, extensions, server))
-        new(host, port, routes, extensions, server, add, remove, start)::WebServer
+        start() = push!(server, _start(host, port, routes, extensions, server,
+        hostname))
+        new(hostname, host, port, routes, extensions, server,
+        add, remove, start)::WebServer
     end
 end
 
@@ -915,6 +923,7 @@ type, e.g. :Logger
             connection::Type)
 """
 mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
+    hostname::String
     host::String
     port::Int64
     routes::Vector{AbstractRoute}
@@ -924,7 +933,8 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     add::Function
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
+        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();,
+        hostname::String = "",
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         servertype::Type = WebServer)
@@ -932,12 +942,17 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
+        if hostname == ""
+            hostname = host
+        end
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         server::Vector{Any} = Vector{Any}([])
         start() = begin
-            push!(server, _st_start(host, port, routes, extensions, servertype, server))
+            push!(server, _st_start(host, port, routes, extensions, servertype,
+            server))
         end
-        new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
+        new{servertype}(hostname, host, port, routes, extensions, server,
+        remove, add, start)::ServerTemplate
     end
 end
 """
@@ -1213,7 +1228,7 @@ function serverfuncdefs(routes::Vector{AbstractRoute}, extensions::Vector{Server
 end
 
 function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
-    extensions::Vector{ServerExtension}, servertype::Type, s::Any)
+    extensions::Vector{ServerExtension}, servertype::Type, s::Any, hostname::String)
     server::ToolipsServer = servertype(ip, port, routes = routes,
     extensions = extensions)
     server.start()
@@ -1282,8 +1297,9 @@ st.start()
 ```
 """
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
-     extensions::Vector{ServerExtension}, server::Any)
-     routefunc, rdct, extensions = generate_router(routes, server, extensions)
+     extensions::Vector{ServerExtension}, server::Any, hostname::String)
+     routefunc, rdct, extensions = generate_router(routes, server, extensions,
+     hostname)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
@@ -1313,7 +1329,7 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 ```
 """
 function generate_router(routes::Vector{AbstractRoute}, server::Any,
-    extensions::Vector{ServerExtension})
+    extensions::Vector{ServerExtension}, hostname::String)
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
@@ -1352,7 +1368,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
-        c = Connection(routes, http, ces)
+        c = Connection(routes, http, ces, hostname = hostname)
         if fullpath in routes
             [extension.f(c) for extension in fes]
             routes[fullpath].page(c)

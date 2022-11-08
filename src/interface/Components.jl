@@ -31,6 +31,12 @@ mutable struct File <: Servable
     end
 end
 
+function show(io::IO, m::MIME"text/html", s::Servable)
+    sc = SpoofConnection()
+    write!(sc, show)
+    show(io, m, sc.http.text)
+end
+
 read(f::Function, file::File, s::String) = read(f, file.dir, s)
 read(f::File, s::Type) = read(f.dir, s)
 cp(f::File, s::String; force::Bool = false) = cp(f.dir, s, force = force)
@@ -1269,13 +1275,24 @@ function show(io::IO, c::AbstractComponent)
     $(showchildren(c))
     """)
 end
+
 function show(io::IO, f::File)
     print("File: $(f.dir)")
 end
-function display(m::MIME{Symbol("text/html")}, c::AbstractComponent)
-    myc = SpoofConnection()
-    write!(myc, c)
-    display("text/html", myc.http.text)
+
+display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
+
+show(io::IO, m::MIME"text/html", s::Servable) = begin
+    sc = Toolips.SpoofConnection()
+    write!(sc, s)
+    show(io, m(), sc.http.text)
+end
+
+
+show(m::MIME"text/html", s::Component{:img}) = begin
+    sc = Toolips.SpoofConnection()
+    write!(sc, s)
+    show(m, sc.http.text)
 end
 
 """

@@ -33,6 +33,17 @@ access ServerExtensions.
 abstract type AbstractConnection end
 
 """
+### abstract type Modifier <: Servable
+Modifiers are used to interpret and respond to incoming data. The prime example
+for this is the **ComponentModifier**. This is used to bring Components into a
+    readable form and then change different Component properties.
+##### Consistencies
+- **Servable** Is bound to `Toolips.write!` in one form or another, and works
+in `Vector{Servable}`s.
+"""
+abstract type Modifier <: Servable end
+
+"""
 ### abstract type ServerExtension
 Server extensions are loaded into the server on startup, and
 can have a few different abilities according to their type

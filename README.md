@@ -46,13 +46,20 @@ Here are some projects created using Toolips to both inspire and demonstrate!
   </div>
   
 [EmsComputer](https://github.com/emmettgb/EmsComputer.jl) is a blog and project website.
-###### basics
-Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. Here are the different types you might encounter while using toolips:
+##### basics
+Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. If you prefer video, [here is a toolips tutorial playlist](https://www.youtube.com/playlist?list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd). To get started, you may create a new project with `Toolips.new_app` or `Toolips.new_webapp`
+
+- **Here are the different types you might encounter while using toolips**:
 - Connections
 - ServerExtensions
 - Routes
 - ToolipsServers
 - Modifiers
+- Servables
 
-`Connections` 
-###### extensions
+`Connections` are passed through our route functions. ServerExtensions are loaded by the server on startup and extend the capabilities of the framework. Routes are where the functions that write our pages go and tell the browser what to do with our client. `ToolipsServers` hold routes and extensions and create a server to serve said routes. While Connections facilitate incoming clients, client callbacks are left to `Modifiers`. These can be used for anything from changing properties of elements to changing incoming GET requests. Finally, there is the Servable; which is essentially anything with a `name` field which can be written to a `Connection` with `write!`. Let's write our first route! We will do so with the `route` method.
+```julia
+newroute = route("/") do c::Connection
+
+end
+```

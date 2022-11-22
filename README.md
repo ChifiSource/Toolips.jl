@@ -27,3 +27,5 @@ julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add Toolips
 ```
+###### basics
+###### extensions

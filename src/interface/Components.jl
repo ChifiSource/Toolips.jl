@@ -1271,6 +1271,12 @@ function show(io::IO, c::AbstractComponent)
     """)
 end
 
+function show(io::IO, c::StyleComponent)
+    print("""$(c.name) $(typeof(c))\n
+    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
+    """)
+end
+
 function show(io::IO, f::File)
     print("File: $(f.dir)")
 end

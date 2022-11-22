@@ -29,5 +29,30 @@ pkg> add Toolips
 ```
 ##### projects
 Here are some projects created using Toolips to both inspire and demonstrate!
+<div align = "center">
+  <img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/olive/olivelogo.png  width = 200 /img>
+  </div>
+ 
+[Olive](https://github.com/ChifiSource/Olive.jl) is a mission to create a cell-based IDE, rather tthan cell-based notebook environment, inside of Julia using only Julia. This is somewhat similar to Pluto.jl, however is also a lot more feature-rich, extensible, and built differently.
+
+<div align = "center">
+  <img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/toolipsapp.png  width = 200 /img>
+  </div>
+
+[ToolipsApp](https://github.com/ChifiSource/ToolipsApp.jl) was originally conceived in order to demonstrate the first version of toolips, and has continued to see development throughout the development of toolips itself.
+
+<div align = "center">
+  <img src = https://github.com/emmettgb/EmsComputer.jl/blob/main/public/images/animated.gif  width = 200 /img>
+  </div>
+  
+[EmsComputer](https://github.com/emmettgb/EmsComputer.jl) is a blog and project website.
 ###### basics
+Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. Here are the different types you might encounter while using toolips:
+- Connections
+- ServerExtensions
+- Routes
+- ToolipsServers
+- Modifiers
+
+`Connections` 
 ###### extensions

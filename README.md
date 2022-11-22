@@ -48,7 +48,9 @@ Here are some projects created using Toolips to both inspire and demonstrate!
 [EmsComputer](https://github.com/emmettgb/EmsComputer.jl) is a blog and project website.
 ##### basics
 Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. If you prefer video, [here is a toolips tutorial playlist](https://www.youtube.com/playlist?list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd). To get started, you may create a new project with `Toolips.new_app` or `Toolips.new_webapp`
+```julia
 
+```
 - **Here are the different types you might encounter while using toolips**:
 - Connections
 - ServerExtensions
@@ -59,7 +61,42 @@ Toolips is pretty easy to grasp, especially for those who have worked with simil
 
 `Connections` are passed through our route functions. ServerExtensions are loaded by the server on startup and extend the capabilities of the framework. Routes are where the functions that write our pages go and tell the browser what to do with our client. `ToolipsServers` hold routes and extensions and create a server to serve said routes. While Connections facilitate incoming clients, client callbacks are left to `Modifiers`. These can be used for anything from changing properties of elements to changing incoming GET requests. Finally, there is the Servable; which is essentially anything with a `name` field which can be written to a `Connection` with `write!`. Let's write our first route! We will do so with the `route` method.
 ```julia
+using Toolips
+
 newroute = route("/") do c::Connection
 
 end
+```
+We will use `write!` to write a `String` to our `Connection`:
+```julia
+using Toolips
+
+newroute = route("/") do c::Connection
+    write!(c, "Hello world!")
+end
+```
+Next, we need to make our server. For this we just provide our route in a `Vector`:
+```julia
+using Toolips
+
+newroute = route("/") do c::Connection
+    write!(c, "Hello world!")
+end
+
+server = WebServer(routes = [newroute])
+server.start()
+```
+It really is **that easy!**. As a final introduction, we will briefly review Components. Components can be constructed with basically whatever `String` Pairs or key-word arguments we want. These are HTML properties given to our elements. That being said, Component functions are simply HTML element names.
+```julia
+using Toolips
+
+newroute = route("/") do c::Connection
+    mydiv = div("mydiv")
+    myb = b("label", text = "hello world!")
+    push!(mydiv, myb)
+    write!(c, mydiv)
+end
+
+server = WebServer(routes = [newroute])
+server.start()
 ```

@@ -1,5 +1,5 @@
 <div align = "center">
-  <img src = https://github.com/ChifiSource/Toolips.jl/blob/Unstable/assets/logo.svg  width = 200 height = 300/img>
+  <img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/toolips.svg  width = 200 height = 300/img>
   
 [![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)

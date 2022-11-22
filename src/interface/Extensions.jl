@@ -166,7 +166,7 @@ x::Vector{String} = route_from_dir("mypath")
 function route_from_dir(dir::String)
     dirs::Vector{String} = readdir(dir)
     routes::Vector{String} = []
-    for directory in dirs
+    [begin
         if isfile("$dir/" * directory)
             push!(routes, "$dir/$directory")
         else
@@ -176,7 +176,7 @@ function route_from_dir(dir::String)
                 [push!(routes, r) for r in newrs]
             end
         end
-    end
+    end for directory in dirs]
     routes::Vector{String}
 end
 

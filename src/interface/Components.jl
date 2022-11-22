@@ -1263,19 +1263,37 @@ function string(c::AbstractComponent)
     end
     base * properties
 end
+
 function show(io::IO, c::AbstractComponent)
-    print("""$(c.name) ($(c.tag))
-    $(join([string(prop[1]) * " = " * string(prop[2]) for prop in c.properties]))
+    print("""$(c.name) ($(c.tag))\n
+    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
     $(showchildren(c))
     """)
 end
+
+function show(io::IO, c::StyleComponent)
+    print("""$(c.name) $(typeof(c))\n
+    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
+    """)
+end
+
 function show(io::IO, f::File)
     print("File: $(f.dir)")
 end
-function display(m::MIME{Symbol("text/html")}, c::AbstractComponent)
-    myc = SpoofConnection()
-    write!(myc, c)
-    display("text/html", myc.http.text)
+
+display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
+
+show(io::IO, m::MIME"text/html", s::Servable) = begin
+    sc = Toolips.SpoofConnection()
+    write!(sc, s)
+    show(io, m(), sc.http.text)
+end
+
+
+show(m::MIME"text/html", s::Component{:img}) = begin
+    sc = Toolips.SpoofConnection()
+    write!(sc, s)
+    show(m, sc.http.text)
 end
 
 """

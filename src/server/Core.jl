@@ -33,6 +33,17 @@ access ServerExtensions.
 abstract type AbstractConnection end
 
 """
+### abstract type Modifier <: Servable
+Modifiers are used to interpret and respond to incoming data. The prime example
+for this is the **ComponentModifier**. This is used to bring Components into a
+    readable form and then change different Component properties.
+##### Consistencies
+- **Servable** Is bound to `Toolips.write!` in one form or another, and works
+in `Vector{Servable}`s.
+"""
+abstract type Modifier <: Servable end
+
+"""
 ### abstract type ServerExtension
 Server extensions are loaded into the server on startup, and
 can have a few different abilities according to their type
@@ -169,12 +180,13 @@ name to reference as keys and the extension as the pair.
 - Connection(routes::Dict, http::HTTP.Stream, extensions::Dict)
 """
 mutable struct Connection <: AbstractConnection
+    hostname::String
     routes::Vector{AbstractRoute}
     http::HTTP.Stream
     extensions::Vector{ServerExtension}
     function Connection(routes::Vector{AbstractRoute}, http::HTTP.Stream,
-        extensions::Vector{ServerExtension})
-        new(routes, http, extensions)::Connection
+        extensions::Vector{ServerExtension}; hostname::String = "")
+        new(hostname, routes, http, extensions)::Connection
     end
 end
 """
@@ -796,6 +808,9 @@ rts = routes(r1, r2)
 """
 routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 
+function show(io::IO, r::AbstractRoute)
+    print(io, "route: $(r.path)\n")
+end
 
 vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
@@ -852,22 +867,29 @@ end
 ```
 """
 mutable struct WebServer <: ToolipsServer
+    hostname::String
     host::String
     port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
-    server::Vector{Any}
+    server::Sockets.TCPServer
     add::Function
     remove::Function
     start::Function
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
+        hostname::String = "",
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
-        server::Vector{Any} = Vector{Any}()
+        if hostname == ""
+            hostname = host
+        end
+        server::Sockets.TCPServer = Sockets.listen(Sockets.InetAddr(
+        parse(IPAddr, host), port))
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = push!(server, _start(host, port, routes, extensions, server))
-        new(host, port, routes, extensions, server, add, remove, start)::WebServer
+        start() = _start(host, port, routes, extensions, server, hostname)
+        new(hostname, host, port, routes, extensions, server,
+        add, remove, start)::WebServer
     end
 end
 
@@ -883,6 +905,8 @@ end
 The ServerTemplate is used to configure a server before
 running. These are commonly used for reproducibility, especially when it comes
 to making servers from extensions
+- **DEPRECATION WARNING** The `ServerTemplate` will eventually be deprecated and
+replaced solely with the `WebServer` type from toolips.
 ##### example
 ```
 home(c::Connection) = begin
@@ -915,6 +939,7 @@ type, e.g. :Logger
             connection::Type)
 """
 mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
+    hostname::String
     host::String
     port::Int64
     routes::Vector{AbstractRoute}
@@ -925,6 +950,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
         rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
+        hostname::String = "",
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         servertype::Type = WebServer)
@@ -932,12 +958,17 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
+        if hostname == ""
+            hostname = host
+        end
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
         server::Vector{Any} = Vector{Any}([])
         start() = begin
-            push!(server, _st_start(host, port, routes, extensions, servertype, server))
+            push!(server, _st_start(host, port, routes, extensions, servertype,
+            server, hostname))
         end
-        new{servertype}(host, port, routes, extensions, server, remove, add, start)::ServerTemplate
+        new{servertype}(hostname, host, port, routes, extensions, server,
+        remove, add, start)::ServerTemplate
     end
 end
 """
@@ -1148,6 +1179,8 @@ function getindex(v::Vector{ServerExtension}, s::Symbol)
     v[findfirst(findse, v)]
 end
 
+vect(r::ServerExtension ...) = Vector{ServerExtension}([x for x in r])
+
 function getindex(v::Vector{AbstractRoute}, s::String)
     v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
 end
@@ -1213,18 +1246,15 @@ function serverfuncdefs(routes::Vector{AbstractRoute}, extensions::Vector{Server
 end
 
 function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
-    extensions::Vector{ServerExtension}, servertype::Type, s::Any)
+    extensions::Vector{ServerExtension}, servertype::Type, s::Any, hostname::String)
     server::ToolipsServer = servertype(ip, port, routes = routes,
-    extensions = extensions)
+    extensions = extensions, hostname = hostname)
     server.start()
     return(server)::ToolipsServer
 end
 
 function show(io::IO, ts::ToolipsServer)
-    status::String = "inactive"
-    if length(ts.server) > 0
-        status = "active"
-    end
+    status::String = string(ts.server.status)
     print("""$(typeof(ts))
         hosted at: http://$(ts.host):$(ts.port)
         status: $status
@@ -1258,16 +1288,21 @@ function show(io::IO, c::AbstractConnection)
         $(c.extensions)
         """)
 end
+
 string(c::Vector{AbstractRoute}) = join([r.path * "\n" for r in c])
+
 function show(IO::IO, c::Vector{AbstractRoute})
     print(string(c))
 end
+
 string(c::Vector{ServerExtension}) = join([string(typeof(e)) * "\n" for e in c])
+
 function show(IO::IO, c::Vector{ServerExtension})
     print(string(c))
 end
 
 display(ts::ToolipsServer) = show(ts)
+
 """
 **Core - Internals**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
@@ -1282,15 +1317,19 @@ st.start()
 ```
 """
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
-     extensions::Vector{ServerExtension}, server::Any)
-     routefunc, rdct, extensions = generate_router(routes, server, extensions)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+     extensions::Vector{ServerExtension}, server::Any, hostname::String)
+     routefunc, rdct, extensions = generate_router(routes, server, extensions,
+     hostname)
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e
          throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     server
+     if has_extension(extensions, Logger)
+         extensions[:Logger].log("server started at: http://$hostname:$port\n")
+     else
+         @info "server started at: http://$hostname:$port"
+     end
 end
 
 """
@@ -1313,7 +1352,7 @@ routefunc, rdct, extensions = generate_router(routes, server, extensions,
 ```
 """
 function generate_router(routes::Vector{AbstractRoute}, server::Any,
-    extensions::Vector{ServerExtension})
+    extensions::Vector{ServerExtension}, hostname::String)
     # Load Extensions
     ces::Vector{ServerExtension} = Vector{ServerExtension}()
     fes::Vector{ServerExtension} = Vector{ServerExtension}()
@@ -1352,7 +1391,7 @@ function generate_router(routes::Vector{AbstractRoute}, server::Any,
         if contains(http.message.target, "?")
             fullpath = split(http.message.target, '?')[1]
         end
-        c = Connection(routes, http, ces)
+        c = Connection(routes, http, ces, hostname = hostname)
         if fullpath in routes
             [extension.f(c) for extension in fes]
             routes[fullpath].page(c)

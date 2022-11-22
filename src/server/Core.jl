@@ -1314,11 +1314,14 @@ st.start()
 """
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any, hostname::String)
-     routefunc, rdct, extensions = generate_router(routes, server, extensions,
-     hostname)
-    serve = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-    @async HTTP.listen(routefunc, ip, port, server = server)
-    serve
+     routefunc, rdct, extensions = generate_router(routes, server, extensions)
+    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+     try
+         @async HTTP.listen(routefunc, ip, port, server = server)
+     catch e
+         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
+     end
+     server
 end
 
 """

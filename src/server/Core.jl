@@ -808,6 +808,9 @@ rts = routes(r1, r2)
 """
 routes(rs::AbstractRoute ...) = Vector{AbstractRoute}([r for r in rs])
 
+function show(io::IO, r::AbstractRoute)
+    print(io, "route: $(r.path)\n")
+end
 
 vect(r::AbstractRoute ...) = Vector{AbstractRoute}([x for x in r])
 vect(r::Route ...) = Vector{AbstractRoute}([x for x in r])
@@ -874,7 +877,7 @@ mutable struct WebServer <: ToolipsServer
     remove::Function
     start::Function
     function WebServer(host::String = "127.0.0.1", port::Integer = 8000;
-        hostname::String = ""
+        hostname::String = "",
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
         extensions::Vector{ServerExtension} = [Logger()])
@@ -944,7 +947,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     add::Function
     start::Function
     function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();,
+        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
         hostname::String = "",
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
@@ -960,7 +963,7 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
         server::Vector{Any} = Vector{Any}([])
         start() = begin
             push!(server, _st_start(host, port, routes, extensions, servertype,
-            server))
+            server, hostname))
         end
         new{servertype}(hostname, host, port, routes, extensions, server,
         remove, add, start)::ServerTemplate
@@ -1174,6 +1177,8 @@ function getindex(v::Vector{ServerExtension}, s::Symbol)
     v[findfirst(findse, v)]
 end
 
+vect(r::ServerExtension ...) = Vector{ServerExtension}([x for x in r])
+
 function getindex(v::Vector{AbstractRoute}, s::String)
     v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
 end
@@ -1241,7 +1246,7 @@ end
 function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
     extensions::Vector{ServerExtension}, servertype::Type, s::Any, hostname::String)
     server::ToolipsServer = servertype(ip, port, routes = routes,
-    extensions = extensions)
+    extensions = extensions, hostname = hostname)
     server.start()
     return(server)::ToolipsServer
 end
@@ -1311,13 +1316,9 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any, hostname::String)
      routefunc, rdct, extensions = generate_router(routes, server, extensions,
      hostname)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
-     try
-         @async HTTP.listen(routefunc, ip, port, server = server)
-     catch e
-         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
-     end
-     server
+    serve = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
+    @async HTTP.listen(routefunc, ip, port, server = server)
+    serve
 end
 
 """

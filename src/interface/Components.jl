@@ -31,12 +31,6 @@ mutable struct File <: Servable
     end
 end
 
-function show(io::IO, m::MIME"text/html", s::Servable)
-    sc = SpoofConnection()
-    write!(sc, show)
-    show(io, m, sc.http.text)
-end
-
 read(f::Function, file::File, s::String) = read(f, file.dir, s)
 read(f::File, s::Type) = read(f.dir, s)
 cp(f::File, s::String; force::Bool = false) = cp(f.dir, s, force = force)
@@ -1270,8 +1264,8 @@ function string(c::AbstractComponent)
     base * properties
 end
 function show(io::IO, c::AbstractComponent)
-    print("""$(c.name) ($(c.tag))
-    $(join([string(prop[1]) * " = " * string(prop[2]) for prop in c.properties]))
+    print("""$(c.name) ($(c.tag))\n
+    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
     $(showchildren(c))
     """)
 end

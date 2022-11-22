@@ -1314,7 +1314,8 @@ st.start()
 """
 function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any, hostname::String)
-     routefunc, rdct, extensions = generate_router(routes, server, extensions)
+     routefunc, rdct, extensions = generate_router(routes, server, extensions,
+     hostname)
     server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)

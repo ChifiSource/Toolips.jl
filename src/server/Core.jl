@@ -1254,10 +1254,7 @@ function _st_start(ip::String, port::Integer, routes::Vector{AbstractRoute},
 end
 
 function show(io::IO, ts::ToolipsServer)
-    status::String = "inactive"
-    if length(ts.server) > 0
-        status = "active"
-    end
+    status::String = string(ts.server.status)
     print("""$(typeof(ts))
         hosted at: http://$(ts.host):$(ts.port)
         status: $status
@@ -1291,16 +1288,21 @@ function show(io::IO, c::AbstractConnection)
         $(c.extensions)
         """)
 end
+
 string(c::Vector{AbstractRoute}) = join([r.path * "\n" for r in c])
+
 function show(IO::IO, c::Vector{AbstractRoute})
     print(string(c))
 end
+
 string(c::Vector{ServerExtension}) = join([string(typeof(e)) * "\n" for e in c])
+
 function show(IO::IO, c::Vector{ServerExtension})
     print(string(c))
 end
 
 display(ts::ToolipsServer) = show(ts)
+
 """
 **Core - Internals**
 ### _start(routes::AbstractVector, ip::String, port::Integer,
@@ -1323,7 +1325,11 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      catch e
          throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     server
+     if :Logger in extensions
+         extensions[:Logger].log("server started at: https://$hostname:$port")
+     else
+         @info "server started at: https://$hostname:$port"
+     end
 end
 
 """

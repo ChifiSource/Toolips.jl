@@ -1263,6 +1263,7 @@ function string(c::AbstractComponent)
     end
     base * properties
 end
+
 function show(io::IO, c::AbstractComponent)
     print("""$(c.name) ($(c.tag))\n
     $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))

@@ -27,5 +27,7 @@ julia> # Press ] to enter your Pkg REPL
 julia> ]
 pkg> add Toolips
 ```
+##### projects
+Here are some projects created using Toolips to both inspire and demonstrate!
 ###### basics
 ###### extensions

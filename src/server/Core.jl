@@ -872,7 +872,7 @@ mutable struct WebServer <: ToolipsServer
     port::Int64
     routes::Vector{AbstractRoute}
     extensions::Vector{ServerExtension}
-    server::Vector{Any}
+    server::Sockets.TCPServer
     add::Function
     remove::Function
     start::Function
@@ -884,10 +884,10 @@ mutable struct WebServer <: ToolipsServer
         if hostname == ""
             hostname = host
         end
-        server::Vector{Any} = Vector{Any}()
+        server::Sockets.TCPServer = Sockets.listen(Sockets.InetAddr(
+        parse(IPAddr, host), port))
         add::Function, remove::Function = serverfuncdefs(routes, extensions)
-        start() = push!(server, _start(host, port, routes, extensions, server,
-        hostname))
+        start() = _start(host, port, routes, extensions, server, hostname)
         new(hostname, host, port, routes, extensions, server,
         add, remove, start)::WebServer
     end
@@ -905,6 +905,8 @@ end
 The ServerTemplate is used to configure a server before
 running. These are commonly used for reproducibility, especially when it comes
 to making servers from extensions
+- **DEPRECATION WARNING** The `ServerTemplate` will eventually be deprecated and
+replaced solely with the `WebServer` type from toolips.
 ##### example
 ```
 home(c::Connection) = begin
@@ -1316,7 +1318,6 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      extensions::Vector{ServerExtension}, server::Any, hostname::String)
      routefunc, rdct, extensions = generate_router(routes, server, extensions,
      hostname)
-    server = Sockets.listen(Sockets.InetAddr(parse(IPAddr, ip), port))
      try
          @async HTTP.listen(routefunc, ip, port, server = server)
      catch e

@@ -1286,7 +1286,7 @@ display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
 show(io::IO, m::MIME"text/html", s::Servable) = begin
     sc = Toolips.SpoofConnection()
     write!(sc, s)
-    show(io, m(), sc.http.text)
+    show(io, m, sc.http.text)
 end
 
 

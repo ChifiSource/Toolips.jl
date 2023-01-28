@@ -436,6 +436,32 @@ end
 
 """
 **Core**
+### getarg(c::AbstractConnection, s::Symbol, def::Any) -> ::Any
+------------------
+Get argument, but provide a default. If the argument is not found in the
+query parameters, then it will be substituted with `def`. Incoming values will
+also become the type of `def`
+#### example
+```
+getarg(c, :x)
+    50
+```
+"""
+function getarg(c::AbstractConnection, s::Symbol, def::Any)
+    T::Type = typeof(def)
+    args = getargs(c)
+    if ~(s in keys(args))
+        def::Any
+    end
+    try
+        parse(T, args[s])::Any
+    catch
+        args[s]
+    end
+end
+
+"""
+**Core**
 ### getarg(c::AbstractConnection, s::Symbol, t::Type) -> ::Vector
 ------------------
 This method is the same as getargs(::HTTP.Stream, ::Symbol), however types are

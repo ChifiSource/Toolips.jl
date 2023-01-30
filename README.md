@@ -46,6 +46,13 @@ Here are some projects created using Toolips to both inspire and demonstrate!
   </div>
   
 [EmsComputer](https://github.com/emmettgb/EmsComputer.jl) is a blog and project website.
+
+
+<div align = "center">
+  <img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/jlchat.png  width = 200 /img>
+  </div>
+  
+[JLChat](https://github.com/emmettgb/JLChat.jl) is a simple chat application that demonstrates the `ToolipsSession` RPC feature.
 ##### basics
 Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. If you prefer video, [here is a toolips tutorial playlist](https://www.youtube.com/playlist?list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd). To get started, you may create a new project with `Toolips.new_app` or `Toolips.new_webapp`
 ```julia
@@ -100,3 +107,9 @@ end
 server = WebServer(routes = [newroute])
 server.start()
 ```
+##### new in 0.2.3
+- new get binding for getting children from Components (get(::Component{<:Any}, s::String))
+- new `getarg` bindings that parse types or have a default, (`get_arg(::Connection, ::Symbol, ::Any)`, `get_arg(::Connection, ::Symbol, ::Type)`)
+- Some improvements to `style!`
+- Updated server display
+- `Modifier` abstract type (brought here from `ToolipsSession`)

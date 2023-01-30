@@ -948,6 +948,20 @@ c["align"] = "center"
 ```
 """
 setindex!(s::AbstractComponent, a::Any, symb::String) = s.properties[symb] = a
+
+"""
+**Interface**
+### get(c::Component{<:Any}, child::String) -> ::Servable
+------------------
+Pulls a child from the `Component` children.
+#### example
+```
+c = p("world")
+c["align"] = "center"
+```
+"""
+get(c::Component{<:Any}, child::String) = c[:children][child]::Servable
+
 #==
 Styles
 ==#
@@ -1286,7 +1300,7 @@ display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
 show(io::IO, m::MIME"text/html", s::Servable) = begin
     sc = Toolips.SpoofConnection()
     write!(sc, s)
-    show(io, m(), sc.http.text)
+    show(io, sc.http.text)
 end
 
 

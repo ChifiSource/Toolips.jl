@@ -1279,8 +1279,9 @@ function string(c::AbstractComponent)
 end
 
 function show(io::Base.TTY, c::AbstractComponent)
-    println("""$(c.name) ($(c.tag))\n
+    print("""$(c.name) ($(c.tag))\n
     $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
+    $(showchildren(c))
     """)
 end
 
@@ -1294,7 +1295,7 @@ end
 
 display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
 
-show(io::IO, s::Servable) = begin
+show(io::IO, m::MIME"text/html", s::Servable) = begin
     sc = Toolips.SpoofConnection()
     write!(sc, s)
     show(io, sc.http.text)

@@ -1278,36 +1278,26 @@ function string(c::AbstractComponent)
     base * properties
 end
 
-function show(io::IO, c::AbstractComponent)
-    print("""$(c.name) ($(c.tag))\n
+function show(io::Base.TTY, c::AbstractComponent)
+    println("""$(c.name) ($(c.tag))\n
     $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
-    $(showchildren(c))
     """)
 end
 
-function show(io::IO, c::StyleComponent)
-    print("""$(c.name) $(typeof(c))\n
-    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
-    """)
+function show(io::Base.TTY, c::StyleComponent)
+    println("$(c.name) $(typeof(c))\n")
 end
 
 function show(io::IO, f::File)
-    print("File: $(f.dir)")
+    println("File: $(f.dir)")
 end
 
 display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
 
-show(io::IO, m::MIME"text/html", s::Servable) = begin
+show(io::IO, s::Servable) = begin
     sc = Toolips.SpoofConnection()
     write!(sc, s)
     show(io, sc.http.text)
-end
-
-
-show(m::MIME"text/html", s::Component{:img}) = begin
-    sc = Toolips.SpoofConnection()
-    write!(sc, s)
-    show(m, sc.http.text)
 end
 
 """

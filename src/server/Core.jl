@@ -451,7 +451,7 @@ function getarg(c::AbstractConnection, s::Symbol, def::Any)
     T::Type = typeof(def)
     args = getargs(c)
     if ~(s in keys(args))
-        def::Any
+        return(def::Any)
     end
     try
         parse(T, args[s])::Any

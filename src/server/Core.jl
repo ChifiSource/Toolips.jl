@@ -598,7 +598,7 @@ comps = components(c, c2)
 write!(c, comps)
 ```
 """
-function write!(c::AbstractConnection, s::Vector{Servable})
+function write!(c::AbstractConnection, s::Vector{<:Servable})
     [write!(c, serv) for serv in s]
 end
 
@@ -613,7 +613,8 @@ Writes Servables as Vector{Servable}
 write!(c, p("mycomp", text = "hello!"), p("othercomp", text = "hi!"))
 ```
 """
-write!(c::AbstractConnection, s::Servable ...) = write!(c, Vector{Servable}(s))
+write!(c::AbstractConnection, s::Servable ...) = write!(c,
+Vector{Servable}([se for se in s]))
 
 """
 **Interface**
@@ -625,9 +626,9 @@ A catch-all for when Vectors are accidentally stored as Vector{Any}.
 write!(c, ["hello", p("mycomp", text = "hello!")])
 ```
 """
-function write!(c::AbstractConnection, s::Vector{Any})
+function write!(c::AbstractConnection, s::Vector{<:Any})
     for servable in s
-        write!(c, s)
+        write!(c, servable)
     end
 end
 

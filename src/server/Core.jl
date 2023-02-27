@@ -474,7 +474,7 @@ getarg(c, :x, Int64)
 ```
 """
 function getarg(c::AbstractConnection, s::Symbol, T::Type)
-    parse(T, getargs(http)[s])
+    parse(T, getargs(c)[s])
 end
 
 """

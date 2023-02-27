@@ -599,9 +599,7 @@ write!(c, comps)
 ```
 """
 function write!(c::AbstractConnection, s::Vector{Servable})
-    for s::Servable in s
-        write!(c, s)
-    end
+    [write!(c, serv) for serv in s]
 end
 
 

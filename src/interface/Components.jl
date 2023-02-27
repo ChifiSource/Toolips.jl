@@ -113,7 +113,6 @@ argument.
 """
 mutable struct Component{tag} <: AbstractComponent
     name::String
-    f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
     tag::String
@@ -121,35 +120,36 @@ mutable struct Component{tag} <: AbstractComponent
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
          extras = Vector{Servable}()
-         f(c::AbstractConnection) = begin
-             open_tag::String = "<$tag id=$name"
-             text::String = ""
-             [begin
-                 special_keys::Vector{Symbol} = [:text, :children]
-                 if ~(property in special_keys)
-                     prop::String = string(properties[property])
-                     propkey::String = string(property)
-                    open_tag = open_tag * " $propkey=$prop"
-                 else
-                     if property == :text
-                         text = properties[property]
-                     end
-                 end
-             end for property in keys(properties)]
-             write!(c, open_tag * ">")
-             if length(properties[:children]) > 0
-                 write!(c, properties[:children])
-            end
-            write!(c, "$text</$tag>")
-            write!(c, extras)
-         end
-         new{Symbol(tag)}(name, f, properties, extras, tag)::Component
+         new{Symbol(tag)}(name, properties, extras, tag)::Component
     end
 
     function Component(name::String, tag::String, props::Pair ...)
         props::Vector{Pair{Any, Any}} = [prop for prop in props]
         Component(name, tag, Dict{Any, Any}(props))::Component
     end
+end
+
+write!(c::AbstractConnection, c::Component{<:Any}) = begin
+    open_tag::String = "<$tag id=$name"
+    text::String = ""
+    [begin
+        special_keys::Vector{Symbol} = [:text, :children]
+        if ~(property in special_keys)
+            prop::String = string(properties[property])
+            propkey::String = string(property)
+           open_tag = open_tag * " $propkey=$prop"
+        else
+            if property == :text
+                text = properties[property]
+            end
+        end
+    end for property in keys(properties)]
+    write!(c, open_tag * ">")
+    if length(properties[:children]) > 0
+        write!(c, properties[:children])
+   end
+   write!(c, "$text</$tag>")
+   write!(c, extras)
 end
 #==
 Base

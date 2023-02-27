@@ -906,7 +906,8 @@ mutable struct WebServer <: ToolipsServer
         hostname::String = "",
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
-        extensions::Vector{ServerExtension} = [Logger()])
+        extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]
+        ))
         if hostname == ""
             hostname = host
         end
@@ -974,13 +975,11 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
+    function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000;
         hostname::String = "",
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         servertype::Type = WebServer)
-        routes = vcat(routes, rs)
         if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end

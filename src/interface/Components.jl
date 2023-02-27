@@ -579,18 +579,117 @@ function footer(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
 end
 
 """
-### footer(name::String, p::Pair{String, Any} ...; args ...) -> ::Component
+### b(name::String, p::Pair{String, Any} ...; args ...) -> ::Component{:b}
 ------------------
-Returns the form Component with the key-word arguments provided in args as
+Returns the b Component with the key-word arguments provided in args as
 properties.
 #### example
 ```
-comp = footer("newcomp")
+comp = b("newcomp", text = "hello!")
 write!(c, comp)
 ```
 """
 function b(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "b", args ..., keys ...)::Component{:b}
+end
+
+"""
+### sourcee(name::String, p::Pair{String, Any} ...; args ...) -> ::Component{:source}
+------------------
+Returns the source Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = b("newcomp", text = "hello!")
+write!(c, comp)
+```
+"""
+function source(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
+    Component(name, "source", args ..., keys ...)::Component{:source}
+end
+
+"""
+**Toolips**
+### audio(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{<:Any}
+------------------
+Creates an audio Component.
+#### example
+```
+
+```
+"""
+function audio(name::String, ps::Pair{String, <:Any} ...; args ...)
+    Component(name, "audio controls", ps..., args ...)
+end
+
+"""
+**Toolips**
+### video(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:video}
+------------------
+Creates a video Component.
+#### example
+```
+
+```
+"""
+function video(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "video", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### table(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:table}
+------------------
+Creates a table Component.
+#### example
+```
+
+```
+"""
+function table(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "table", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### tr(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:tr}
+------------------
+Creates a tr Component.
+#### example
+```
+
+```
+"""
+function tr(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "tr", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### th(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:th}
+------------------
+Creates a th Component.
+#### example
+```
+
+```
+"""
+function th(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "th", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### td(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:td}
+------------------
+Creates a td Component.
+#### example
+```
+
+```
+"""
+function td(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "td", ps ..., args ...)
 end
 
 """

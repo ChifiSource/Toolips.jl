@@ -803,29 +803,32 @@ this is an animation.
 """
 mutable struct Style <: StyleComponent
     name::String
-    f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
+    function Style(name::String, properties::Dict{Any, Any}, extras::Vector{Servable})
+        new(name, properties, extras)::Style
+    end
     function Style(name::String, a::Pair ...; args ...)
         props::Vector{Pair{Any, Any}} = Base.vect(args ..., a ...)
         properties::Dict{Any, Any} = Dict{Any, Any}(props)
         extras::Vector{Servable} = Vector{Servable}()
         Style(name, properties, extras)::Style
     end
-    function Style(name::String, properties::Dict{Any, Any}, extras::Vector{Servable})
-        f(c::AbstractConnection) = begin
-            css::String = "<style id=$name>$name { "
-            [begin
-                property::String = string(rule)
-                value::String = string(properties[rule])
-                css = css * "$property: $value; "
-            end for rule in keys(properties)]
-            css = css * "}</style>"
-            write!(c, css)
-            write!(c, extras)
-        end
-        new(name, f, properties, extras)::Style
-    end
+end
+
+write!(c::AbstractConnection, comp::Style) = begin
+    properties = comp.properties
+    name = comp.name
+    extras = comp.extras
+    css::String = "<style id=$name>$name { "
+    [begin
+        property::String = string(rule)
+        value::String = string(properties[rule])
+        css = css * "$property: $value; "
+    end for rule in keys(properties)]
+    css = css * "}</style>"
+    write!(c, css)
+    write!(c, extras)
 end
 
 """

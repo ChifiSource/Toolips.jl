@@ -129,7 +129,11 @@ mutable struct Component{tag} <: AbstractComponent
     end
 end
 
-write!(c::AbstractConnection, c::Component{<:Any}) = begin
+write!(c::AbstractConnection, comp::Component{<:Any}) = begin
+    properties::Dict{<:Any, <:Any} = comp.properties
+    extras::Vector{Servable} = comp.extras
+    tag::String = comp.tag
+    name::String = comp.name
     open_tag::String = "<$tag id=$name"
     text::String = ""
     [begin

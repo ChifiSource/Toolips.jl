@@ -1,6 +1,9 @@
 <div align = "center">
   <img src = https://github.com/ChifiSource/image_dump/blob/main/toolips/toolips.svg  width = 200 height = 300/img>
-  
+
+( the toolips website is going to be down for a bit, pending a new version release. sorry for the inconvenience )
+
+
 [![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
 </br>

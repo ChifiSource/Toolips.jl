@@ -15,7 +15,7 @@
 **Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **Fast and secure**. All routes are served through Julia, and anything that can be written must be written using a method that can only write very specific types.
 - **HTTPS capable**, load balancer friendly. Can easily be deployed with SSL.
-- **Extendable** servers, components, and methods, they are all extendable!
+- **Extensible** servers, components, and methods, they are all extendable!
 - **Modular** applications. Toolips applications are regular Julia modules.
 - **Regular Julia** projects.
 - **Declarative**, high-level syntax.

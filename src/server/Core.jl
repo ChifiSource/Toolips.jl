@@ -1040,15 +1040,11 @@ kill!(ws)
 ```
 """
 function kill!(ws::ToolipsServer)
-    close(ws.server[1])
-    ws.server = :inactive
-    deleteat!(ws.server, 1)
+    close(ws.server)
 end
 
 function kill!(ws::ServerTemplate{<:ToolipsServer})
-    kill!(ws.server[1])
-    ws.server = :inactive
-    deleteat!(ws.server, 1)
+    kill!(ws.server)
 end
 
 """

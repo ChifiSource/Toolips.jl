@@ -451,7 +451,7 @@ function getarg(c::AbstractConnection, s::Symbol, def::Any)
     T::Type = typeof(def)
     args = getargs(c)
     if ~(s in keys(args))
-        def::Any
+        return(def::Any)
     end
     try
         parse(T, args[s])::Any
@@ -474,7 +474,7 @@ getarg(c, :x, Int64)
 ```
 """
 function getarg(c::AbstractConnection, s::Symbol, T::Type)
-    parse(T, getargs(http)[s])
+    parse(T, getargs(c)[s])
 end
 
 """
@@ -598,10 +598,8 @@ comps = components(c, c2)
 write!(c, comps)
 ```
 """
-function write!(c::AbstractConnection, s::Vector{Servable})
-    for s::Servable in s
-        write!(c, s)
-    end
+function write!(c::AbstractConnection, s::Vector{<:Servable})
+    [write!(c, serv) for serv in s]
 end
 
 
@@ -615,7 +613,8 @@ Writes Servables as Vector{Servable}
 write!(c, p("mycomp", text = "hello!"), p("othercomp", text = "hi!"))
 ```
 """
-write!(c::AbstractConnection, s::Servable ...) = write!(c, Vector{Servable}(s))
+write!(c::AbstractConnection, s::Servable ...) = write!(c,
+Vector{Servable}([se for se in s]))
 
 """
 **Interface**
@@ -627,9 +626,9 @@ A catch-all for when Vectors are accidentally stored as Vector{Any}.
 write!(c, ["hello", p("mycomp", text = "hello!")])
 ```
 """
-function write!(c::AbstractConnection, s::Vector{Any})
+function write!(c::AbstractConnection, s::Vector{<:Any})
     for servable in s
-        write!(c, s)
+        write!(c, servable)
     end
 end
 
@@ -906,7 +905,8 @@ mutable struct WebServer <: ToolipsServer
         hostname::String = "",
         routes::Vector{AbstractRoute} = routes(route("/",
         (c::Connection) -> write!(c, p(text = "Hello world!")))),
-        extensions::Vector{ServerExtension} = [Logger()])
+        extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]
+        ))
         if hostname == ""
             hostname = host
         end
@@ -974,13 +974,11 @@ mutable struct ServerTemplate{T <: ToolipsServer} <: ToolipsServer
     remove::Function
     add::Function
     start::Function
-    function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000,
-        rs::Vector{AbstractRoute} = Vector{AbstractRoute}();
+    function ServerTemplate(host::String = "127.0.0.1", port::Integer = 8000;
         hostname::String = "",
         routes::Vector{AbstractRoute} = Vector{AbstractRoute}(),
         extensions::Vector{ServerExtension} = Vector{ServerExtension}([Logger()]),
         servertype::Type = WebServer)
-        routes = vcat(routes, rs)
         if ~(servertype <: ToolipsServer)
             throw(CoreError("Server provided as ServerType is not a ToolipsServer!"))
         end
@@ -1042,15 +1040,11 @@ kill!(ws)
 ```
 """
 function kill!(ws::ToolipsServer)
-    close(ws.server[1])
-    ws.server = :inactive
-    deleteat!(ws.server, 1)
+    close(ws.server)
 end
 
 function kill!(ws::ServerTemplate{<:ToolipsServer})
-    kill!(ws.server[1])
-    ws.server = :inactive
-    deleteat!(ws.server, 1)
+    kill!(ws.server)
 end
 
 """

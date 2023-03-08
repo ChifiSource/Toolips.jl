@@ -113,7 +113,6 @@ argument.
 """
 mutable struct Component{tag} <: AbstractComponent
     name::String
-    f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
     tag::String
@@ -121,35 +120,40 @@ mutable struct Component{tag} <: AbstractComponent
          properties::Dict = Dict{Any, Any}())
          push!(properties, :children => Vector{Servable}())
          extras = Vector{Servable}()
-         f(c::AbstractConnection) = begin
-             open_tag::String = "<$tag id=$name"
-             text::String = ""
-             [begin
-                 special_keys::Vector{Symbol} = [:text, :children]
-                 if ~(property in special_keys)
-                     prop::String = string(properties[property])
-                     propkey::String = string(property)
-                    open_tag = open_tag * " $propkey=$prop"
-                 else
-                     if property == :text
-                         text = properties[property]
-                     end
-                 end
-             end for property in keys(properties)]
-             write!(c, open_tag * ">")
-             if length(properties[:children]) > 0
-                 write!(c, properties[:children])
-            end
-            write!(c, "$text</$tag>")
-            write!(c, extras)
-         end
-         new{Symbol(tag)}(name, f, properties, extras, tag)::Component
+         new{Symbol(tag)}(name, properties, extras, tag)::Component
     end
 
     function Component(name::String, tag::String, props::Pair ...)
         props::Vector{Pair{Any, Any}} = [prop for prop in props]
         Component(name, tag, Dict{Any, Any}(props))::Component
     end
+end
+
+write!(c::AbstractConnection, comp::Component{<:Any}) = begin
+    properties::Dict{<:Any, <:Any} = comp.properties
+    extras::Vector{Servable} = comp.extras
+    tag::String = comp.tag
+    name::String = comp.name
+    open_tag::String = "<$tag id=$name"
+    text::String = ""
+    [begin
+        special_keys::Vector{Symbol} = [:text, :children]
+        if ~(property in special_keys)
+            prop::String = string(properties[property])
+            propkey::String = string(property)
+           open_tag = open_tag * " $propkey=$prop"
+        else
+            if property == :text
+                text = properties[property]
+            end
+        end
+    end for property in keys(properties)]
+    write!(c, open_tag * ">")
+    if length(properties[:children]) > 0
+        write!(c, properties[:children])
+   end
+   write!(c, "$text</$tag>")
+   write!(c, extras)
 end
 #==
 Base
@@ -579,18 +583,117 @@ function footer(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
 end
 
 """
-### footer(name::String, p::Pair{String, Any} ...; args ...) -> ::Component
+### b(name::String, p::Pair{String, Any} ...; args ...) -> ::Component{:b}
 ------------------
-Returns the form Component with the key-word arguments provided in args as
+Returns the b Component with the key-word arguments provided in args as
 properties.
 #### example
 ```
-comp = footer("newcomp")
+comp = b("newcomp", text = "hello!")
 write!(c, comp)
 ```
 """
 function b(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
     Component(name, "b", args ..., keys ...)::Component{:b}
+end
+
+"""
+### sourcee(name::String, p::Pair{String, Any} ...; args ...) -> ::Component{:source}
+------------------
+Returns the source Component with the key-word arguments provided in args as
+properties.
+#### example
+```
+comp = b("newcomp", text = "hello!")
+write!(c, comp)
+```
+"""
+function source(name::String = " ", args::Pair{String, <:Any} ...; keys ...)
+    Component(name, "source", args ..., keys ...)::Component{:source}
+end
+
+"""
+**Toolips**
+### audio(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{<:Any}
+------------------
+Creates an audio Component.
+#### example
+```
+
+```
+"""
+function audio(name::String, ps::Pair{String, <:Any} ...; args ...)
+    Component(name, "audio controls", ps..., args ...)
+end
+
+"""
+**Toolips**
+### video(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:video}
+------------------
+Creates a video Component.
+#### example
+```
+
+```
+"""
+function video(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "video", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### table(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:table}
+------------------
+Creates a table Component.
+#### example
+```
+
+```
+"""
+function table(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "table", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### tr(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:tr}
+------------------
+Creates a tr Component.
+#### example
+```
+
+```
+"""
+function tr(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "tr", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### th(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:th}
+------------------
+Creates a th Component.
+#### example
+```
+
+```
+"""
+function th(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "th", ps ..., args ...)
+end
+
+"""
+**Toolips**
+### td(name::String, ps::Pair{String, <:Any} ...; args ...) -> ::Component{:td}
+------------------
+Creates a td Component.
+#### example
+```
+
+```
+"""
+function td(name::String, ps::Pair{String, String} ...; args ...)
+    Component(name, "td", ps ..., args ...)
 end
 
 """
@@ -700,29 +803,32 @@ this is an animation.
 """
 mutable struct Style <: StyleComponent
     name::String
-    f::Function
     properties::Dict{Any, Any}
     extras::Vector{Servable}
+    function Style(name::String, properties::Dict{Any, Any}, extras::Vector{Servable})
+        new(name, properties, extras)::Style
+    end
     function Style(name::String, a::Pair ...; args ...)
         props::Vector{Pair{Any, Any}} = Base.vect(args ..., a ...)
         properties::Dict{Any, Any} = Dict{Any, Any}(props)
         extras::Vector{Servable} = Vector{Servable}()
         Style(name, properties, extras)::Style
     end
-    function Style(name::String, properties::Dict{Any, Any}, extras::Vector{Servable})
-        f(c::AbstractConnection) = begin
-            css::String = "<style id=$name>$name { "
-            [begin
-                property::String = string(rule)
-                value::String = string(properties[rule])
-                css = css * "$property: $value; "
-            end for rule in keys(properties)]
-            css = css * "}</style>"
-            write!(c, css)
-            write!(c, extras)
-        end
-        new(name, f, properties, extras)::Style
-    end
+end
+
+write!(c::AbstractConnection, comp::Style) = begin
+    properties = comp.properties
+    name = comp.name
+    extras = comp.extras
+    css::String = "<style id=$name>$name { "
+    [begin
+        property::String = string(rule)
+        value::String = string(properties[rule])
+        css = css * "$property: $value; "
+    end for rule in keys(properties)]
+    css = css * "}</style>"
+    write!(c, css)
+    write!(c, extras)
 end
 
 """
@@ -1278,21 +1384,19 @@ function string(c::AbstractComponent)
     base * properties
 end
 
-function show(io::IO, c::AbstractComponent)
+function show(io::Base.TTY, c::AbstractComponent)
     print("""$(c.name) ($(c.tag))\n
     $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
     $(showchildren(c))
     """)
 end
 
-function show(io::IO, c::StyleComponent)
-    print("""$(c.name) $(typeof(c))\n
-    $(join([string(prop[1]) * " = " * string(prop[2]) * "\n" for prop in c.properties]))
-    """)
+function show(io::Base.TTY, c::StyleComponent)
+    println("$(c.name) $(typeof(c))\n")
 end
 
 function show(io::IO, f::File)
-    print("File: $(f.dir)")
+    println("File: $(f.dir)")
 end
 
 display(io::IO, m::MIME"text/html", s::Servable) = show(io, m, s)
@@ -1301,13 +1405,6 @@ show(io::IO, m::MIME"text/html", s::Servable) = begin
     sc = Toolips.SpoofConnection()
     write!(sc, s)
     show(io, sc.http.text)
-end
-
-
-show(m::MIME"text/html", s::Component{:img}) = begin
-    sc = Toolips.SpoofConnection()
-    write!(sc, s)
-    show(m, sc.http.text)
 end
 
 """

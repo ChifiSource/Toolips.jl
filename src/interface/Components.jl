@@ -152,7 +152,7 @@ write!(c::AbstractConnection, comp::Component{<:Any}) = begin
     if length(properties[:children]) > 0
         write!(c, properties[:children])
    end
-   write!(c, "$text</$tag>")
+   write!(c, "$(web_format(text))</$tag>")
    write!(c, extras)
 end
 #==

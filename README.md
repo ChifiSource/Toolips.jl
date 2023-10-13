@@ -59,7 +59,7 @@ Here are some projects created using Toolips to both inspire and demonstrate!
 ##### basics
 Toolips is pretty easy to grasp, especially for those who have worked with similar web-frameworks in the past. If you prefer video, [here is a toolips tutorial playlist](https://www.youtube.com/playlist?list=PLCXbkShHt01s3kd2ZA62KoKhWBFfKXNTd). To get started, you may create a new project with `Toolips.new_app` or `Toolips.new_webapp`
 ```julia
-
+using Toolips; Toolips.new_webapp("ToolipsApp")
 ```
 - **Here are the different types you might encounter while using toolips**:
 - Connections
@@ -110,6 +110,12 @@ end
 server = WebServer(routes = [newroute])
 server.start()
 ```
+This system is made more complicated only by the use of components.
+##### new in 0.2.5
+- special `:style` keys.
+- improved indexing
+- child indexing for components
+- `Logger` improvements
 ##### new in 0.2.3
 - new get binding for getting children from Components (get(::Component{<:Any}, s::String))
 - new `getarg` bindings that parse types or have a default, (`get_arg(::Connection, ::Symbol, ::Any)`, `get_arg(::Connection, ::Symbol, ::Type)`)

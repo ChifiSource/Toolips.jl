@@ -1173,7 +1173,7 @@ cs["hello"]
     AbstractComponent("hello" ...)
 ```
 """
-function getindex(vs::Vector{Servable}, str::String)
+function getindex(vs::Vector{<:Servable}, str::String)
     vs[findall((s::Servable) -> s.name == str, vs)[1]]
 end
 
@@ -1186,7 +1186,7 @@ function getindex(v::Vector{ServerExtension}, t::Type)
     v[findall((x::ServerExtension) -> typeof(x) == t, v)[1]]::ServerExtension
 end
 
-function getindex(v::Vector{ServerExtension}, s::Symbol)
+function getindex(v::Vector{<:ServerExtension}, s::Symbol)
     findse(x::ServerExtension) = begin
     t = string(typeof(x))
     name = t
@@ -1201,7 +1201,7 @@ end
 
 vect(r::ServerExtension ...) = Vector{ServerExtension}([x for x in r])
 
-function getindex(v::Vector{AbstractRoute}, s::String)
+function getindex(v::Vector{<:AbstractRoute}, s::String)
     v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
 end
 
@@ -1209,14 +1209,14 @@ function getindex(v::Vector{<:AbstractRoute}, s::String)
     v[findfirst((x::AbstractRoute) -> x.path == s, v)]
 end
 
-function in(t::Type, v::Vector{ServerExtension})
+function in(t::Type, v::Vector{<:ServerExtension})
     if length(findall(x -> typeof(x) == t, v)) > 0
         return true
     end
     false::Bool
 end
 
-function in(t::Symbol, v::Vector{ServerExtension})
+function in(t::Symbol, v::Vector{<:ServerExtension})
     if length(findall(x -> Symbol(typeof(x)) == Symbol(t), v)) > 0
         return true
     end

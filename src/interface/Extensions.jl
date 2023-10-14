@@ -107,6 +107,8 @@ function _log(level::Int64, message::String, levels::Dict, out::String,
             show_log(1, message, levels,
             prefix, time)
         end
+    elseif level == 0
+        return
     else
         show_log(level, message, levels,
         prefix, time)

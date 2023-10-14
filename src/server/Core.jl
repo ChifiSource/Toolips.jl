@@ -1202,10 +1202,6 @@ end
 vect(r::ServerExtension ...) = Vector{ServerExtension}([x for x in r])
 
 function getindex(v::Vector{<:AbstractRoute}, s::String)
-    v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
-end
-
-function getindex(v::Vector{<:AbstractRoute}, s::String)
     v[findfirst((x::AbstractRoute) -> x.path == s, v)]
 end
 
@@ -1341,15 +1337,11 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      routefunc, rdct, extensions = generate_router(routes, server, extensions,
      hostname)
      try
-         @async HTTP.listen(routefunc, ip, port, server = server)
+        @async HTTP.listen(routefunc, ip, port, server = server)
      catch e
-         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
+        throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     if has_extension(extensions, Logger)
-         extensions[:Logger].log("server started at: http://$hostname:$port\n")
-     else
-         @info "server started at: http://$hostname:$port"
-     end
+     print("\n")
 end
 
 """

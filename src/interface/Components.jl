@@ -1053,7 +1053,7 @@ c = p("world")
 c["align"] = "center"
 ```
 """
-setindex!(s::Component{<:Any}, a::Any, symb::String) = s.properties[symb] = a
+setindex!(s::AbstractComponent, a::Any, symb::String) = s.properties[symb] = a
 
 
 function getindex(s::Component{<:Any}, symb::Symbol, strings::String ...)

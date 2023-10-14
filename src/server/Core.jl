@@ -1202,7 +1202,7 @@ end
 vect(r::ServerExtension ...) = Vector{ServerExtension}([x for x in r])
 
 function getindex(v::Vector{<:AbstractRoute}, s::String)
-    v[findfirst((x::AbstractRoute) -> x.path == s, v)]
+    v[findall((x::AbstractRoute) -> x.path == s, v)[1]]
 end
 
 function in(t::Type, v::Vector{<:ServerExtension})

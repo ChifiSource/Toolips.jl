@@ -92,7 +92,7 @@ log(message::String) = _log(1, message, levels, out)
 function _log(level::Int64, message::String, levels::Dict, out::String,
     prefix::String, timeformat::String, writeat::Int64)
     time = Dates.format(now(), Dates.DateFormat("$timeformat"))
-    if level >= writeat
+    if writeat > 0 && level >= writeat
         if isfile(out)
             open(out, "a") do o
                 write(o, "[" * string(time) * "]: $message\n")
@@ -107,8 +107,6 @@ function _log(level::Int64, message::String, levels::Dict, out::String,
             show_log(1, message, levels,
             prefix, time)
         end
-    elseif level == 0
-        return
     else
         show_log(level, message, levels,
         prefix, time)

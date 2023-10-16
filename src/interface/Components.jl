@@ -152,7 +152,7 @@ write!(c::AbstractConnection, comp::Component{<:Any}) = begin
     if length(properties[:children]) > 0
         write!(c, properties[:children])
    end
-   write!(c, "$(web_format(text))</$tag>")
+   write!(c, "$text</$tag>")
    write!(c, extras)
 end
 #==
@@ -1008,7 +1008,7 @@ c["opacity"]
     "50%"
 ```
 """
-getindex(s::Component{<:Any}, symb::Symbol) = s.properties[symb]
+getindex(s::AbstractComponent, symb::Symbol) = s.properties[symb]
 
 """
 **Interface**
@@ -1039,7 +1039,7 @@ c = p("world")
 c[:text] = "hello world!"
 ```
 """
-setindex!(s::Component{<:Any}, a::Any, symb::Symbol) = s.properties[symb] = a
+setindex!(s::AbstractComponent, a::Any, symb::Symbol) = s.properties[symb] = a
 
 """
 **Interface**
@@ -1054,19 +1054,6 @@ c["align"] = "center"
 ```
 """
 setindex!(s::AbstractComponent, a::Any, symb::String) = s.properties[symb] = a
-
-
-function getindex(s::Component{<:Any}, symb::Symbol, strings::String ...)
-    if symb != :children
-        throw("chain indexing for children only available for children.")
-    end
-    children = s[:children]
-    current_child::Component{<:Any} = children[strings[1]]
-    for name in str[2:length(str)]
-        current_child = current_child[:children][name]
-    end
-    current_child::Component{<:Any}
-end
 
 """
 **Interface**

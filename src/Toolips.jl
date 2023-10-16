@@ -54,60 +54,6 @@ const px = WebMeasure{:px}()
 const percent = WebMeasure{:percent}()
 *(i::Int64, p::WebMeasure{:percent}) = "$(i)%"
 
-"""
-**Toolips**
-### web_format(s::String) -> ::Component
-------------------
-
-#### example
-```
-tmd\"#hello world\"
-```
-"""
-function web_format(s::String)
-    join(["&#$(Int(codepoint(c)));" for c in s])
-end
-
-function julia_format(s::String)
-    string([Char(replace(c, "#" => "", "&" => "")) for c in split(s, ";")] ...)
-end
-
-"""
-**Toolips**
-### @wf_str -> ::String
-------------------
-Turns a String into a web-format String by replacing all characters with
-web-characters. Calls `web_format(::String)`
-This is useful for translating between HTML and Julia Strings.
-The inverse to this is `jf_str` or `julia_format(::String)`.
-#### example
-```
-wf"hello there!"
-
-"hello&nbsp;there!"
-```
-"""
-macro wf_str(s::String)
-    web_format(s)
-end
-
-"""
-**Toolips**
-### @jf_str -> ::String
-------------------
-Turns a String into julia format by calling `julia_format`, the inverse to
-this would be `wf_str` or `web_format`.
-#### example
-```
-jf"hello&nbsp;there!"
-
-"hello there!"
-```
-"""
-macro jf_str(s::String)
-    julia_format(s)
-end
-
 const seconds = WebMeasure{:seconds}()
 *(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
 *(i::Float64, p::WebMeasure{:seconds}) = "$(i)s"

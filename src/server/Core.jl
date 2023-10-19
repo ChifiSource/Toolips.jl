@@ -1345,11 +1345,7 @@ function _start(ip::String, port::Integer, routes::Vector{AbstractRoute},
      catch e
          throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
      end
-     if has_extension(extensions, Logger)
-         extensions[:Logger].log("server started at: http://$hostname:$port\n")
-     else
-         @info "server started at: http://$hostname:$port"
-     end
+     print("\n")
 end
 
 """

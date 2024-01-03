@@ -254,25 +254,37 @@ end
 
 function generate_router(ws::WebServer, mod::Module)
     # Load Extensions
-    routes::Vector{Route} = ws.routes
-    hostname::String = c.hostname
     data::Dict{Symbol, Dict{String, Any}} = ws.data
-    [on_start!(data, ext) for ext in methods()]
+    loaded::Vector{Type} = Vector{Type}()
+    if :load! in names(mod)
+        [begin
+            extname = m.sig.parameters[2]
+            on_start!(data, extname())
+        end for ext_m in methods(getfield(mod, :load!))]
+    end
+    # data grab
+    routes::Vector{Route} = ws.routes
+    hostname::String = ws.hostname
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
         fullpath::String = http.message.target
         if contains(http.message.target, "?")
-            fullpath = split(http.message.target, '?')[1]
+            fullpath = string(split(http.message.target, '?')[1])
         end
-        c = Connection(routes, http, ces, hostname = hostname)
+        c::Any = Connection(hostname, http, data, routes, http)
         if fullpath in routes
-            [extension.f(c) for extension in fes]
+            [route!(c, ext) for ext in loaded]
             routes[fullpath].page(c)
         else
             routes["404"].page(c)
         end
+        c = nothing
     end # serve()
     return(routeserver, routes, extensions)
+end
+
+function route!(c::AbstractConnection, ext::Extension{<:Any})
+
 end
 
 function start!(ws::WebServer, mod::Module = Main)

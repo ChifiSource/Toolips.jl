@@ -97,7 +97,11 @@ main = route("/") do cm::ComponentModifier
 end
 
 # 404
-err_404 = route("404", Toolips.default_404)
+err_404 = route(Toolips.default_404, "404")
+
+# import: export `load!`
+
+export load!
 end # - module
         """)
     end

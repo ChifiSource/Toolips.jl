@@ -1169,7 +1169,7 @@ function style!(c::AbstractComponent, s::Vector{Pair{String, String}})
     end
     for style in s
         k, v = style[1], style[2]
-        c["style"] = c["style"] * "$k: $v;"
+        c["style"] = c["style"] * "$k:$v;"
     end
     c["style"] = c["style"] * "'"
 end

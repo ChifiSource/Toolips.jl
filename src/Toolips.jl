@@ -10,12 +10,17 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 module Toolips
 using Crayons
 using Sockets
+using ToolipsWebMeasures
 using HTTP
 using Pkg
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
 import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read, cp
+
+const WebMeasures = ToolipsWebMeasures
+
+const Servables = ToolipsServables
 
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
@@ -38,13 +43,10 @@ function getindex(mod::Module, T::Function, args::Type ...)
     [arguments]
 end
 
-#==
-Includes/Exports
-==#
-include("server/Core.jl")
-include("interface/Components.jl")
+include("core.jl")
+include("extensions.jl")
 # Core
-export Extension
+export Extension, route, Connection, WebServer, Files, Logger, log!
 #==
 Project API
 ==#
@@ -79,31 +81,26 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
     write(io, 
-"""module $name
-# toolips 0.3 syntax
-using Toolips
+    """module $name
+    # toolips 0.3 syntax
+    using Toolips
 
-function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
-    ws = WebServer(IP, PORT)
-    start!(ws, $name)
-end
+    start(IP::String = "127.0.0.1", PORT::Integer = 8000) = start!($name, ip, PORT)
 
-# load extensions
-# function load!(ext::Extension{Files}) end
+    # load extensions
+    # function load!(ext::Extension{Files}) end
 
-# main
-main = route("/") do cm::ComponentModifier
+    # routes
+    main = route("/") do cm::ComponentModifier
 
-end
+    end
 
-# 404
-err_404 = route(Toolips.default_404, "404")
+    # 404
+    err_404 = route(Toolips.default_404, "404")
 
-# import: export `load!`
-
-export load!
-end # - module
-        """)
+    # important !: export `load!` to use extensions.
+    export load!
+    end # - module""")
     end
 end
 

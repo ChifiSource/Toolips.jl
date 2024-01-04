@@ -41,7 +41,7 @@ Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
                     out::String = pwd() * "logs/log.txt")
 Logger(; out::String = pwd() * "/logs/log.txt")
 """
-mutable struct Logger <: ServerExtension
+mutable struct Logger
     type::Symbol
     out::String
     levels::Dict
@@ -201,18 +201,16 @@ specific function to run from the top-end to the server.
 ##### constructors
 Files(dir::String)
 """
-mutable struct Files <: ServerExtension
+mutable struct Files
     type::Symbol
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
                 push!(r, Route(path[l:length(path)],
                 c::Connection -> write!(c, File(path))))
             end
-        end
         new(:routing, directory, f)
     end
 end

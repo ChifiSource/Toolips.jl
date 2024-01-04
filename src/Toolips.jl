@@ -11,16 +11,18 @@ module Toolips
 using Crayons
 using Sockets
 using ToolipsWebMeasures
+using ToolipsServables
+using ToolipsServables: File
 using HTTP
 using Pkg
 using ParseNotEval
 using Dates
-import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read, cp
+import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
+import Base: showerror, in, Pairs, Exception, div, keys, *, read
 
 const WebMeasures = ToolipsWebMeasures
 
-const Servables = ToolipsServables
+const Components = ToolipsServables
 
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
@@ -28,25 +30,36 @@ end
 
 function getindex(mod::Module, T::Type)
     fields = names(mod, all = true)
-    founds = Vector{Any}(filter!(x -> ~(isnothing(x)), [begin 
-        if typeof(mod[t]) == T
-            getfield(mod, t)
+    res = [begin 
+        try
+            feld = getfield(mod, name)
+            if typeof(feld) <: T
+                feld::T
+            end
+        catch
+            
         end
-    end for t in fields]))
+    end for name in fields]
+    res = filter!(x -> ~(isnothing(x)), res)
+    if length(res) == 0
+        return(Vector{T}()::Vector{T})
+    end
+    Vector{T}(res)::Vector{<:T}
 end
 
 function getindex(mod::Module, T::Function, args::Type ...)
     ms = methods()
     arguments = [begin
 
-    end]
+    end for m in ms]
     [arguments]
 end
 
 include("core.jl")
-include("extensions.jl")
+#include("extensions.jl")
+include("toolipsapp.jl")
 # Core
-export Extension, route, Connection, WebServer, Files, Logger, log!
+export Extension, route, Connection, WebServer, Files, Logger, log!, write!, File, start!
 #==
 Project API
 ==#
@@ -164,7 +177,5 @@ function new_webapp(name::String = "ToolipsApp")
     public = pwd() * "/$name/public"
     mkdir(public)
 end
-
-# --
 
 end

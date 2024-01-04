@@ -53,6 +53,12 @@ end
 
 route(f::Function, r::String) = Route(r, f)::Route
 
+function getindex(vec::Vector{<:AbstractRoute}, path::String)
+    rt = findfirst(r::AbstractRoute -> r.path == path, vec)
+    if ~(isnothing(rt))
+        vec[rt]::AbstractRoute
+    end
+end
 # extensions
 abstract type Extension{T <: Any} end
 
@@ -82,12 +88,9 @@ abstract type AbstractConnection end
 """
 mutable struct Connection <: AbstractConnection
     hostname::String
-    data::Dict{Symbol, Dict{String, Any}}
-    routes::Vector{Route}
     stream::HTTP.Stream
-    function Connection(routes::Vector{Route}, http::HTTP.Stream; hostname::String = "")
-        new(hostname, routes, http, extensions)::Connection
-    end
+    data::Dict{Symbol, Dict{String, Any}}
+    routes::Vector{AbstractRoute}
 end
 
 
@@ -108,7 +111,7 @@ write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream
 
 # args
 function getargs(c::AbstractConnection)
-    target = split(c.http.message.target, '?')
+    target = split(c.stream.message.target, '?')
     if length(target) < 2
         return(Dict{Symbol, Any}())
     end
@@ -118,7 +121,7 @@ function getargs(c::AbstractConnection)
 end
 
 function getip(c::AbstractConnection)
-    str = c.http.message["User-Agent"]
+    str = c.stream.message["User-Agent"]
     spl = split(str, "/")
     ipstr = ""
     [begin
@@ -131,15 +134,15 @@ function getip(c::AbstractConnection)
     return(ipstr)
 end
 
-get_post(c::AbstractConnection) = string(read(c.http))
+get_post(c::AbstractConnection) = string(read(c.stream))
 
 function download!(c::AbstractConnection, uri::String)
-    write(c.http, HTTP.Response( 200, body = read(uri, String)))
+    write(c.stream, HTTP.Response(200, body = read(uri, String)))
 end
 
-function proxy!(f::Function = c -> nothing, c::AbstractConnection, url::String)
+function proxy!(f::Function, c::AbstractConnection, url::String)
     try
-        HTTP.get(url, response_stream = c.http, status_exception = false)
+        HTTP.get(url, response_stream = c.stream, status_exception = false)
     catch
         f(c)
     end
@@ -156,9 +159,9 @@ A "catch-all" for pushing data to a stream. Produces a full response with
 
 ```
 """
-push!(c::AbstractConnection, data::Any) = write!(c.http, HTTP.Response(200, body = string(data)))
+push!(c::AbstractConnection, data::Any) = write!(c.stream, HTTP.Response(200, body = string(data)))
 
-startread!(c::AbstractConnection) = startread(c.http)
+startread!(c::AbstractConnection) = startread(c.stream)
 
 string(r::Vector{UInt8}) = String(UInt8.(r))
 
@@ -175,6 +178,8 @@ where this module is loaded, served, and revised.
 """
 abstract type ToolipsServer end
 
+abstract type WebServer <: ToolipsServer end
+
 function kill!(ws::ToolipsServer)
     close(ws.server)
 end
@@ -190,13 +195,24 @@ mutable struct RouteError <: Exception
     end
 end
 
-
 showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 
-function start!(mod::Module = Main; ip::String = "127.0.0.1", port::Int64 = 8000, hostname::String)
+mutable struct StartMode{T <: Any} end
+
+function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000, ws::Type{<:ToolipsServer} = WebServer; hostname::String = ip, 
+    mode::StartMode{<:Any} = StartMode{:async}())
     server::Sockets.TCPServer = Sockets.listen(Sockets.InetAddr(
-    parse(IPAddr, host), port))
-    routefunc::Function = generate_router(ws, mod)
+    parse(IPAddr, ip), port))
+    mod.server = 
+    routefunc::Function = generate_router(mod, hostname)
+    if mode == StartMode{:async}()
+        try
+            @async HTTP.listen(routefunc, ip, port, server = server)
+        catch e
+            throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
+        end
+        return
+    end
     try
         @async HTTP.listen(routefunc, ip, port, server = server)
     catch e
@@ -204,48 +220,53 @@ function start!(mod::Module = Main; ip::String = "127.0.0.1", port::Int64 = 8000
     end
 end
 
-function generate_router(ws::WebServer, mod::Module)
+function respond!(c::AbstractConnection, code::Int64, body::String = "")
+    write(c.stream, HTTP.Response(code, body = "hello world"))
+end
+
+function generate_router(mod::Module, hostname::String)
     # Load Extensions
-    data::Dict{Symbol, Dict{String, Any}} = ws.data
+    data::Dict{Symbol, Dict{Symbol, Any}} = Dict{Symbol, Any}()
+    routes::Vector{<:AbstractRoute} = mod[AbstractRoute]
     loaded::Vector{Type} = Vector{Type}()
     if :load! in names(mod)
         [begin
             extname = ext_m.sig.parameters[2]
             if ~(extname == Extension{<:Any})
-                on_start(ws, extname())
+                on_start(extname(), routes, data)
                 push!(loaded, extname)
             end
         end for ext_m in methods(getfield(mod, :load!))]
     end
-    # data grab
-    routes::Vector{Route} = ws.routes
-    hostname::String = ws.hostname
+    mod.data, mod.routes = data, routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
         fullpath::String = http.message.target
-        if contains(http.message.target, "?")
-            fullpath = string(split(http.message.target, '?')[1])
+        c::Any = Connection(hostname, http, data, routes)
+        if contains(fullpath, "?")
+            fullpath = string(split(fullpath, '?')[1])
         end
-        c::Any = Connection(hostname, http, data, routes, http)
         if fullpath in routes
             [route!(c, ext) for ext in loaded]
             routes[fullpath].page(c)
         else
-            routes["404"].page(c)
+            if "404" in routes
+                routes["404"].page(c)
+            end
+            respond!(c, 404)
         end
         c = nothing
-    end # serve()
-    return(routeserver, routes, extensions)
+    end
+    routeserver::Function
 end
 
 function in(t::String, v::Vector{<:AbstractRoute})
-    if length(findall(x -> x.path == t, v)) > 0
-        return true
+    found = findfirst(x -> x.path == t, v)
+    if ~(isnothing(found))
+        return(true)::Bool
     end
     false::Bool
 end
-
-keys(v::Vector{AbstractRoute}) = [r.path for r in v]
 
 function show(io::IO, ts::ToolipsServer)
     status::String = string(ts.server.status)
@@ -296,7 +317,3 @@ function post(url::String, body::String)
     r = HTTP.request("POST", url, body = body)
     string(r.body)
 end
-#==
-includes
-==#
-include("../interface/Extensions.jl")

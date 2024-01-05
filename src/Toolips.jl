@@ -48,11 +48,11 @@ function getindex(mod::Module, T::Function, args::Type ...)
 end
 
 include("core.jl")
-#include("extensions.jl")
+include("extensions.jl")
 include("toolipsapp.jl")
 # Core
-export Extension, route, Connection, WebServer, Files, Logger, log!, write!, File, start!
-export get, post, proxy_pass!, get_route, getargs, get_url
+export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!
+export get, post, proxy_pass!, get_route, getargs, get_host, get_parent
 #==
 Project API
 ==#

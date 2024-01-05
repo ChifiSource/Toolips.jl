@@ -1,59 +1,12 @@
-"""
-#### abstract type AbstractRoute
-Abstract Routes are what connect incoming connections to functions. A route must be 
-dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
-###### Consistencies
-- path**::String**
-- route!(c::AbstractConnection, **route::AbstractRoute**)
-"""
-abstract type AbstractRoute end
+string(r::Vector{UInt8}) = String(UInt8.(r))
 
-function show(io::IO, r::AbstractRoute)
-    print(io, "route: $(r.path) -> $(r.page)\n")
+mutable struct IP4
+    ip::String
+    port::Int64
 end
 
-"""
-```julia
-Route <: AbstractRoute
-```
-- path**::String**
-- page**::Function**
----
-The `Route` is the most basic form of `AbstractRoute`. This constructor should **not** be called directly, 
-instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
-```julia
-using Toolips
+(:)(ip::String, port::Int64) = IP4(ip, port)
 
-route("/") do c::AbstractConnection
-    write!(c, "Hello world!")
-end
-````
-"""
-mutable struct Route <: AbstractRoute
-    path::String
-    page::Function
-    function Route(path::String, f::Function)
-        new(path, f)
-    end
-end
-
-"""
-"""
-function route end
-
-route(f::Function, r::String) = Route(r, f)::Route
-
-function getindex(vec::Vector{<:AbstractRoute}, path::String)
-    rt = findfirst(r::AbstractRoute -> r.path == path, vec)
-    if ~(isnothing(rt))
-        vec[rt]::AbstractRoute
-    end
-end
-# extensions
-abstract type Extension{T <: Any} end
-function on_start(ext::Extension{<:Any}, mod::Module, routes, a)
-
-end
 """
 
 """
@@ -67,38 +20,32 @@ abstract type AbstractConnection end
 
 abstract type AbstractClient end
 
-mutable struct Client <: AbstractClient
-    ip::String
-    hostname::String
-    Client(hostname::String) = begin
-        new("", hostname)::Client
-    end
-end
-
+"""
+#### abstract type AbstractRoute
+Abstract Routes are what connect incoming connections to functions. A route must be 
+dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
+###### Consistencies
+- path**::String**
+- route!(c::AbstractConnection, **route::AbstractRoute**)
+"""
+abstract type AbstractRoute end
 """
 
 """
 mutable struct Connection <: AbstractConnection
-    client::Client
     stream::HTTP.Stream
-    data::Dict{Symbol, Dict{String, Any}}
+    data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
 end
 
-"""
-"""
-route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
+mutable struct MobileConnection <: AbstractConnection
 
-function route!(c::AbstractConnection, e::Extension{<:Any})
 end
 
-function route!(c::Connection, r::Vector{<:AbstractRoute})
-    path::String = c.stream.message.target
-    if contains(path, "?")
-        path = string(split(path, '?')[1])
-    end
-    route!(c, r[path])
+function convert!(c::Connection, into::MobileConnection)
+
 end
+
 """
 
 """
@@ -113,12 +60,80 @@ write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args
 
 write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream, join([string(args) for args in args]))
 
+function show(io::IO, r::AbstractRoute)
+    println(r.path)
+end
+
+"""
+```julia
+Route{T <: AbstractConnection} <: AbstractRoute
+```
+- path**::String**
+- page**::Function**
+---
+The `Route` is the most basic form of `AbstractRoute`. This constructor should **not** be called directly, 
+instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
+```julia
+using Toolips
+
+route("/") do c::AbstractConnection
+    write!(c, "Hello world!")
+end
+````
+"""
+mutable struct Route{T <: AbstractConnection} <: AbstractRoute
+    path::String
+    page::Function
+    function Route(path::String, f::Function)
+        params = methods(f)[1].sig.parameters
+        rtype::Type{<:AbstractConnection} = Connection
+        if length(params) > 1
+            if params[2] <: AbstractConnection
+                rtype = params[2]
+            end
+        end
+        new{rtype}(path, f)
+    end
+end
+
+"""
+"""
+route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
+
+"""
+"""
+function route end
+
+route(f::Function, r::String) = begin
+    Route(r, f)::Route{<:Any}
+end
+
+function getindex(vec::Vector{<:AbstractRoute}, path::String)
+    rt = findfirst(r::AbstractRoute -> r.path == path, vec)
+    if ~(isnothing(rt))
+        vec[rt]::AbstractRoute
+    end
+end
+
+function route!(c::Connection, r::Vector{<:AbstractRoute})
+    path::String = get_route(c)
+    if path in r
+        route!(c, r[path])
+    else
+        if "404" in r
+            routes["404"].page(c)
+        else
+            respond!(c, 404)
+        end
+    end
+end
+
 # args
-function getargs(c::AbstractConnection)
+function get_args(c::AbstractConnection)
     HTTP.URIs.query_params(c.http)
 end
 
-function getip(c::AbstractConnection)
+function get_ip(c::AbstractConnection)
     str = c.stream.message["User-Agent"]
     spl = split(str, "/")
     ipstr = ""
@@ -131,6 +146,7 @@ function getip(c::AbstractConnection)
     end for sub in spl]
     return(ipstr)
 end
+
 
 get_post(c::AbstractConnection) = string(read(c.stream))
 
@@ -146,22 +162,22 @@ function proxy_pass!(f::Function, c::AbstractConnection, url::String)
     end
 end
 
-"""
-**Interface**
-### push!(c::AbstractConnection, data::Any) -> _
-------------------
-A "catch-all" for pushing data to a stream. Produces a full response with
-**data** as the body.
-#### example
-```
-
-```
-"""
-push!(c::AbstractConnection, data::Any) = write!(c.stream, HTTP.Response(200, body = string(data)))
-
 startread!(c::AbstractConnection) = startread(c.stream)
 
-string(r::Vector{UInt8}) = String(UInt8.(r))
+# extensions
+abstract type AbstractExtension end
+abstract type Extension{T <: Any} <: AbstractExtension end
+
+function route!(c::AbstractConnection, e::Extension{<:Any})
+end
+
+function on_start(extmod::Pair{Module, Extension{<:Any}})
+
+end
+
+function get_args(mod::Module; keyargs ...)
+
+end
 
 """
 ### abstract type ToolipsServer
@@ -187,7 +203,6 @@ mutable struct StartError <: Exception
 end
 
 mutable struct RouteError <: Exception
-
     function showerror(io::IO, e::RouteError)
         print(io, "ERROR ON ROUTE: $(e.route) $(e.error)")
     end
@@ -198,24 +213,46 @@ showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 mutable struct StartMode{T <: Any} end
 
 function get_route(c::AbstractConnection)
-    c.stream.message.target::String
+    fullpath::String = c.stream.message.target
+    fullpath = string(split(fullpath, '?')[1])
+    fullpath
 end
 
-function get_url(c::AbstractConnection)
-    uri = c.stream.message["User-Agent"]
-    string(uri)::String
+function get_method(c::AbstractConnection)
+    
+end
+
+function get_host(c::AbstractConnection)
+    string(c.stream.message["Host"])::String
+end
+
+function get_parent(c::AbstractConnection)
+    string(c.stream.message.parent)
 end
 
 function get_client_system(c::AbstractConnection)
     uri = c.stream.message["User-Agent"]
+    mobile = false
+    system = "Linux"
+    if contains(uri, "Windows")
+        system = "Windows"
+    elseif contains(uri, "OSX")
+        system = "OSX"
+    elseif contains(uri, "Android")
+        system = "Android"
+        mobile = true
+    elseif contains(uri, "IOS")
+        system = "IOS"
+        mobile = true
+    end
+    system, mobile
 end
 
-function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000, ws::Type{<:ToolipsServer} = WebServer; hostname::String = ip, 
-    mode::StartMode{<:Any} = StartMode{:async}())
-    server::Sockets.TCPServer = Sockets.listen(Sockets.InetAddr(
-    parse(IPAddr, ip), port))
-    mod.server = 
-    routefunc::Function = generate_router(mod, hostname)
+function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000, ws::Type{<:ToolipsServer} = WebServer; mode::StartMode{<:Any} = StartMode{:async}())
+    IP = Sockets.InetAddr(parse(IPAddr, ip), port)
+    server::Sockets.TCPServer = Sockets.listen(IP)
+    mod.server = server
+    routefunc::Function = generate_router(mod)
     if mode == StartMode{:async}()
         try
             @async HTTP.listen(routefunc, ip, port, server = server)
@@ -235,37 +272,24 @@ function respond!(c::AbstractConnection, code::Int64, body::String = "")
     write(c.stream, HTTP.Response(code, body = body))
 end
 
-function generate_router(mod::Module, hostname::String)
+function generate_router(mod::Module)
     # Load Extensions
-    data::Dict{Symbol, Dict{Symbol, Any}} = Dict{Symbol, Any}()
+    server_ns::Vector{Symbol} = names(mod)
+    fieldgen = [begin
+        f = getfield(mod, x) 
+        typeof(f) => f 
+    end for x in server_ns]
+    onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
+    println(onlydata)
+    loaded = [t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen))]
     routes = mod[AbstractRoute]
-    println(Crayon(foreground = :blue), "$(typeof(routes))")
-    loaded::Vector{Type} = Vector{Type}()
-    if :load! in names(mod, all = true)
-        [begin
-            extname = ext_m.sig.parameters[2]
-            if ~(extname == Extension{<:Any})
-                on_start(extname(), mod, routes, data)
-                push!(loaded, extname)
-            end
-        end for ext_m in methods(getfield(mod, :load!))]
-    end
-    mod.data, mod.routes = data, routes
+    println(loaded)
+    mod.data, mod.routes = [Symbol(n) => getfield(mod, n) for n in server_ns], routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
-        newclient::Client = Client(hostname)
-        c::Any = Connection(newclient, http, data, routes)
-        newclient.ip = getip(c)
-        if http.message.target in routes
-            [route!(c, ext) for ext in loaded]
-            route!(c, routes)
-        else
-            if "404" in routes
-                routes["404"].page(c)
-            else
-                respond!(c, 404)
-            end
-        end
+        c::AbstractConnection = Connection(http, mod.data, mod.routes)
+        [route!(c, ext) for ext in loaded]
+        route!(c, routes)::Any
     end
     routeserver::Function
 end

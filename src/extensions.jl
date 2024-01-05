@@ -1,3 +1,4 @@
+#==
 """
 ### Logger <: ServerExtension
 - type::Symbol
@@ -112,7 +113,16 @@ function _log(level::Int64, message::String, levels::Dict, out::String,
         prefix, time)
     end
 end
+==#
 
+mutable struct Logger <: AbstractExtension
+
+end
+
+on_start(mod::Pair{Module, Extension{Logger}}) = begin
+    println("HELLO")
+end
+#==
 """
 **Extensions**
 ### show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
@@ -180,7 +190,14 @@ function route_from_dir(dir::String)
     routes::Vector{String}
 end
 
+module Files
+    import Toolips: on_start
+    function on_start(mod::Module, ext::Extension{Files})
 
+    end
+    function load!(ext::{Files}) end
+    export load!
+end
 
 """
 ### Files <: ServerExtension
@@ -214,3 +231,4 @@ mutable struct Files
         new(:routing, directory, f)
     end
 end
+==#

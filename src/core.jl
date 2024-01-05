@@ -51,7 +51,9 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
 end
 # extensions
 abstract type Extension{T <: Any} end
+function on_start(ext::Extension{<:Any}, mod::Module, routes, a)
 
+end
 """
 
 """
@@ -68,7 +70,9 @@ abstract type AbstractClient end
 mutable struct Client <: AbstractClient
     ip::String
     hostname::String
-    Client(hostname::String)
+    Client(hostname::String) = begin
+        new("", hostname)::Client
+    end
 end
 
 """
@@ -86,15 +90,14 @@ end
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
 function route!(c::AbstractConnection, e::Extension{<:Any})
-
 end
 
-function route!(r::Vector{<:AbstractRoute}, c::Connection)
-    path::String = http.message.target
-    if contains(fullpath, "?")
+function route!(c::Connection, r::Vector{<:AbstractRoute})
+    path::String = c.stream.message.target
+    if contains(path, "?")
         path = string(split(path, '?')[1])
     end
-    route!(r[path], c)
+    route!(c, r[path])
 end
 """
 
@@ -112,13 +115,7 @@ write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream
 
 # args
 function getargs(c::AbstractConnection)
-    target = split(c.stream.message.target, '?')
-    if length(target) < 2
-        return(Dict{Symbol, Any}())
-    end
-    target = replace(target[2], "+" => " ")
-    args = split(target, '&')
-    argsplit(args)
+    HTTP.URIs.query_params(c.http)
 end
 
 function getip(c::AbstractConnection)
@@ -200,6 +197,19 @@ showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 
 mutable struct StartMode{T <: Any} end
 
+function get_route(c::AbstractConnection)
+    c.stream.message.target::String
+end
+
+function get_url(c::AbstractConnection)
+    uri = c.stream.message["User-Agent"]
+    string(uri)::String
+end
+
+function get_client_system(c::AbstractConnection)
+    uri = c.stream.message["User-Agent"]
+end
+
 function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000, ws::Type{<:ToolipsServer} = WebServer; hostname::String = ip, 
     mode::StartMode{<:Any} = StartMode{:async}())
     server::Sockets.TCPServer = Sockets.listen(Sockets.InetAddr(
@@ -228,13 +238,14 @@ end
 function generate_router(mod::Module, hostname::String)
     # Load Extensions
     data::Dict{Symbol, Dict{Symbol, Any}} = Dict{Symbol, Any}()
-    routes::Vector{<:AbstractRoute} = mod[AbstractRoute]
+    routes = mod[AbstractRoute]
+    println(Crayon(foreground = :blue), "$(typeof(routes))")
     loaded::Vector{Type} = Vector{Type}()
-    if :load! in names(mod)
+    if :load! in names(mod, all = true)
         [begin
             extname = ext_m.sig.parameters[2]
             if ~(extname == Extension{<:Any})
-                on_start(extname(), routes, data)
+                on_start(extname(), mod, routes, data)
                 push!(loaded, extname)
             end
         end for ext_m in methods(getfield(mod, :load!))]
@@ -242,8 +253,10 @@ function generate_router(mod::Module, hostname::String)
     mod.data, mod.routes = data, routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
-        c::Any = Connection(hostname, http, data, routes)
-        if fullpath in routes
+        newclient::Client = Client(hostname)
+        c::Any = Connection(newclient, http, data, routes)
+        newclient.ip = getip(c)
+        if http.message.target in routes
             [route!(c, ext) for ext in loaded]
             route!(c, routes)
         else

@@ -24,27 +24,19 @@ const WebMeasures = ToolipsWebMeasures
 
 const Components = ToolipsServables
 
+export Components
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
 end
 
 function getindex(mod::Module, T::Type)
-    fields = names(mod, all = true)
-    res = [begin 
-        try
-            feld = getfield(mod, name)
-            if typeof(feld) <: T
-                feld::T
-            end
-        catch
-            
-        end
-    end for name in fields]
-    res = filter!(x -> ~(isnothing(x)), res)
+    fields = names(mod)
+    poss = findall(feld -> typeof(getfield(mod, feld)) <: T, fields)
+    res = [getfield(mod, fields[feld]) for feld in poss]
     if length(res) == 0
         return(Vector{T}()::Vector{T})
     end
-    Vector{T}(res)::Vector{<:T}
+    res::Vector{<:T}
 end
 
 function getindex(mod::Module, T::Function, args::Type ...)
@@ -60,7 +52,7 @@ include("core.jl")
 include("toolipsapp.jl")
 # Core
 export Extension, route, Connection, WebServer, Files, Logger, log!, write!, File, start!
-export get, post, proxy_pass!
+export get, post, proxy_pass!, get_route, getargs, get_url
 #==
 Project API
 ==#

@@ -1,10 +1,10 @@
 """
-### abstract type AbstractRoute
-Abstract Routes are what connect incoming connections to functions. Each route
-must have two fields, `path`, and `page`. Path needs to be a String, but that is
-about it.
-##### Consistencies
-- type::T where T == Vector{Symbol}  || T == Symbol
+#### abstract type AbstractRoute
+Abstract Routes are what connect incoming connections to functions. A route must be 
+dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
+###### Consistencies
+- path**::String**
+- route!(c::AbstractConnection, **route::AbstractRoute**)
 """
 abstract type AbstractRoute end
 
@@ -13,35 +13,21 @@ function show(io::IO, r::AbstractRoute)
 end
 
 """
-### Route
-- path**::String**  - The path to route to the function, e.g. "/".
-- page**::Function** - The function to route the path to.\n
-A route is added to a ToolipsServer using either its constructor, or the
-ToolipsServer.add(**::Route**) method. Each route calls a function.
-The Route type is commonly constructed using the do syntax with the
-route(**::Function**, **::String**) method.
-##### example
+```julia
+Route <: AbstractRoute
 ```
-# Constructors
-route = Route("/", p(text = "hello"))
+- path**::String**
+- page**::Function**
+---
+The `Route` is the most basic form of `AbstractRoute`. This constructor should **not** be called directly, 
+instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
+```julia
+using Toolips
 
-function example(c::Connection)
-    write!(c, "hello")
-end
-
-route = Route("/", example)
-
-# method
-route = route("/") do c
+route("/") do c::AbstractConnection
     write!(c, "Hello world!")
-    write!(c, p(text = "hello"))
-    # we can also use extensions!
-    c[:logger].log("hello world!")
 end
-```
-------------------
-##### constructors
-- Route(path**::String**, f**::Function**)
+````
 """
 mutable struct Route <: AbstractRoute
     path::String
@@ -50,6 +36,10 @@ mutable struct Route <: AbstractRoute
         new(path, f)
     end
 end
+
+"""
+"""
+function route end
 
 route(f::Function, r::String) = Route(r, f)::Route
 
@@ -63,38 +53,49 @@ end
 abstract type Extension{T <: Any} end
 
 """
-### abstract type Modifier <: Servable
-Modifiers are used to interpret and respond to incoming data. The prime example
-for this is the **ComponentModifier**. This is used to bring Components into a
-    readable form and then change different Component properties.
-##### Consistencies
-- **Servable** Is bound to `Toolips.write!` in one form or another, and works
-in `Vector{Servable}`s.
+
 """
 abstract type Modifier <: Servable end
 
 # connections
 """
-### abstract type AbstractConnection
-Connections are passed through function routes and can have Servables written
-    to it.
-##### Consistencies
-- stream
+
 """
 abstract type AbstractConnection end
+
+abstract type AbstractClient end
+
+mutable struct Client <: AbstractClient
+    ip::String
+    hostname::String
+    Client(hostname::String)
+end
 
 """
 
 """
 mutable struct Connection <: AbstractConnection
-    hostname::String
+    client::Client
     stream::HTTP.Stream
     data::Dict{Symbol, Dict{String, Any}}
     routes::Vector{AbstractRoute}
 end
 
+"""
+"""
+route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
+function route!(c::AbstractConnection, e::Extension{<:Any})
 
+end
+
+function route!(r::Vector{<:AbstractRoute}, c::Connection)
+    path::String = http.message.target
+    if contains(fullpath, "?")
+        path = string(split(path, '?')[1])
+    end
+    route!(r[path], c)
+end
 """
 
 """
@@ -140,7 +141,7 @@ function download!(c::AbstractConnection, uri::String)
     write(c.stream, HTTP.Response(200, body = read(uri, String)))
 end
 
-function proxy!(f::Function, c::AbstractConnection, url::String)
+function proxy_pass!(f::Function, c::AbstractConnection, url::String)
     try
         HTTP.get(url, response_stream = c.stream, status_exception = false)
     catch
@@ -221,7 +222,7 @@ function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000
 end
 
 function respond!(c::AbstractConnection, code::Int64, body::String = "")
-    write(c.stream, HTTP.Response(code, body = "hello world"))
+    write(c.stream, HTTP.Response(code, body = body))
 end
 
 function generate_router(mod::Module, hostname::String)
@@ -241,21 +242,17 @@ function generate_router(mod::Module, hostname::String)
     mod.data, mod.routes = data, routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
-        fullpath::String = http.message.target
         c::Any = Connection(hostname, http, data, routes)
-        if contains(fullpath, "?")
-            fullpath = string(split(fullpath, '?')[1])
-        end
         if fullpath in routes
             [route!(c, ext) for ext in loaded]
-            routes[fullpath].page(c)
+            route!(c, routes)
         else
             if "404" in routes
                 routes["404"].page(c)
+            else
+                respond!(c, 404)
             end
-            respond!(c, 404)
         end
-        c = nothing
     end
     routeserver::Function
 end

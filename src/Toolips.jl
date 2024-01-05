@@ -60,6 +60,7 @@ include("core.jl")
 include("toolipsapp.jl")
 # Core
 export Extension, route, Connection, WebServer, Files, Logger, log!, write!, File, start!
+export get, post, proxy_pass!
 #==
 Project API
 ==#

@@ -45,21 +45,21 @@ pkg> add Toolips
     - [building extensions]()
 ---
 
-#### get started
-##### add toolips
+## get started
+### add toolips
 ###### main builds
 ###### development builds
-##### servers
+### servers
 ###### routing
 ###### extensions
-##### templating
+### templating
 ###### components
 ###### style components
 ###### files
-##### quick start
-###### api example
-###### form example
-###### blog example
-###### animated splash
-#### contributing
-###### guidelines
+## quick start
+##### api example
+##### form example
+##### blog example
+##### animated splash
+### contributing
+##### guidelines

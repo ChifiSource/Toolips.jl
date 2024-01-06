@@ -1,22 +1,16 @@
-
-
-abstract type AbstractMultiRoute  <: AbstractRoute end
-
-mutable struct MultiRoute <: AbstractMultiRoute
-    path::String
-    routes::Vector{Route}
-end
-
 mutable struct MobileConnection <: AbstractConnection
 
 end
 
 function convert(c::Connection, into::Type{MobileConnection})
-
+    false
 end
 
-function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
-    false
+abstract type ThreadedRoute <: AbstractRoute end
+
+
+route(r::Pair{<:Number, Route} ...; workers::Int64 = 2) = begin
+
 end
 #==
 """

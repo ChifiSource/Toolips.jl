@@ -89,38 +89,60 @@ mutable struct Route{T <: AbstractConnection} <: AbstractRoute
     end
 end
 
+abstract type AbstractMultiRoute <: AbstractRoute end
+
+mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
+    path::String
+    routes::Vector{T}
+    function MultiRoute{T}(path::String, routes::Vector{<:Any}) where {T <: AbstractRoute}
+
+    end
+    function MultiRoute(r::Route ...)
+        new{Route}(r[1].path, [rout for rout in r])
+    end
+end
 
 """
 """
 function route end
 
-function route(r::Route ...)
-    sig = typeof(r[1]).parameters[1]
-    
+function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
+    false
 end
 
 route(f::Function, r::String) = begin
     Route(r, f)::Route{<:Any}
 end
 
-
-function route!(c::Connection, tr::Vector{AbstractRoute})
-
+route(r::Route ...) = begin
+    
 end
 
 """
 """
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
-abstract type AbstractMultiRoute <: AbstractRoute end
-
-mutable struct ThreadRoute{T <: AbstractConnection} <: AbstractMultiRoute
-    path::String
-    routes::Vector{Route}
-    processes
+function route!(c::Connection, tr::Vector{AbstractRoute})
+    target::String = get_target(c)
+    if target in tr
+        route!(c, vec[target])
+    else
+        throw("Route not found!")
+    end
 end
 
-
+function route!(c::AbstractConnection, r::AbstractMultiRoute)
+    met = findfirst(r -> convert(c, typeof(r).parameters[1]), r.routes)
+    if isnothing(met)
+        default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
+        if ~(isnothing(default))
+            r.routes[default].page(c)
+        else
+            r.routes[1].page(c)
+        end
+    end
+    c.routes[met].page(c)
+end
 
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)

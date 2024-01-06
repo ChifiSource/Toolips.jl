@@ -48,7 +48,6 @@ end
 
 include("core.jl")
 include("extensions.jl")
-include("toolipsapp.jl")
 # Core
 export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!
 export get, post, proxy_pass!, get_route, getargs, get_host, get_parent

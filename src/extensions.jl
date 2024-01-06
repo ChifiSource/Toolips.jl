@@ -15,10 +15,10 @@ function convert(c::Connection, into::Type{MobileConnection})
 
 end
 
-function convert(c::Type{<:AbstractConnection}, c2::{<:AbstractConnection})
+function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
     false
 end
-
+#==
 """
 """
 route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
@@ -27,7 +27,7 @@ route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
         if typeof(rout) != Route{Connection} && typeof(rout) != Route 
             typeof(rout).parameters[1]
             if typeof(convert) <: AbstractConnection
-                findfirst(s -> )
+     #           findfirst(s -> )
                 return(r.routes)
             end
         else
@@ -35,61 +35,7 @@ route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
         end
     for rout in r]
 end
-
-
-
-function html_properties(s::AbstractString)
-    propvec::Vector{SubString} = split(s, " ")
-    properties::Dict{Any, Any} = Dict{Any, Any}(begin
-        ppair::Vector{SubString} = split(segment, "=")
-        if length(ppair) < 2
-            string(ppair[1]) => string(ppair[1])
-        else
-            string(ppair[1]) => replace(string(ppair[2]), "\"" => "")
-        end
-    end for segment in propvec)
-    properties::Dict{Any, Any}
-end
-
-function htmlcomponent(s::String)
-    i::Int64 = 1
-    while parsing
-        if i == 1
-
-        end
-
-    end
-end
-
-function htmlcomponent(s::String, readonly::Vector{String})
-    if readonly[1] == "none"
-        return Vector{Servable}()
-    end
-    Vector{Servable}(filter!(x -> ~(isnothing(x)), [begin
-        element_sect = findfirst(" id=\"$compname\"", s)
-        if ~(isnothing(element_sect))
-            starttag = findprev("<", s, element_sect[1])[1]
-            ndtag = findnext(" ", s, element_sect[1])[1]
-            argfinish = findnext(">", s, ndtag)[1] + 1
-            tg = s[starttag + 1:ndtag - 1]
-            finisher = findnext("</$tg", s, argfinish)
-            fulltxt = s[argfinish:finisher[1] - 1]
-            properties = html_properties(s[ndtag:argfinish - 2])
-            name::String = ""
-            if "id" in keys(properties)
-                name = properties["id"]
-                delete!(properties, "id")
-            end
-            push!(properties, "text" => replace(fulltxt, "<br>" => "\n", "<div>" => "", 
-            "&#36;" => "\$", "&#37;" => "%", "&#38;" => "&", "&nbsp;" => " ", "&#60;" => "<", "	&lt;" => "<", 
-            "&#62;" => ">", "&gt;" => ">", "<br" => "\n", "&bsol;" => "\\", "&#63;" => "?"))
-            Component(compname, string(tg), properties)
-        else
-        end
-    end for compname in readonly]))::Vector{Servable}
-end
-
-
+==#
 toolips_app = route("/") do c::Connection
     write!(c, "new toolips app incoming ...")
 end
@@ -202,6 +148,15 @@ end
 
 on_start(mod::Module, ext::Logger) = begin
     println("HELLO")
+end
+
+# html interpolation
+string(f::Components.File{:html}) = begin
+    rawfile = read(path(f), String)    
+end
+
+function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
+
 end
 #==
 """

@@ -112,6 +112,7 @@ end
 """
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
+abstract type AbstractMultiRoute <: AbstractRoute end
 
 mutable struct ThreadRoute{T <: AbstractConnection} <: AbstractMultiRoute
     path::String

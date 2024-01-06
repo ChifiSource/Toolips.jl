@@ -1,11 +1,14 @@
 """
 #### toolips - a manic web-development framework
-Created in February, 2022 by
-[chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
+- 0.3 January
+- Created in February, 2022 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
-### Toolips
-**Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**,
-and **reactive** web-development framework **always** written in **pure** Julia.
+
+Toolips is an extensible and declarative web-development platform built 
+atop the Julian paradigm of multiple dispatch.
+```example
+
+```
 """
 module Toolips
 using Crayons
@@ -20,14 +23,6 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, read
 
 const Components = ToolipsServables
 
-# html interpolation
-string(f::File{:html}) = begin
-    rawfile = read(path(f), String)    
-end
-
-function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
-
-end
 export Components
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)

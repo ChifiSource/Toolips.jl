@@ -10,9 +10,7 @@ and **reactive** web-development framework **always** written in **pure** Julia.
 module Toolips
 using Crayons
 using Sockets
-using ToolipsWebMeasures
 using ToolipsServables
-using ToolipsServables: File
 using HTTP
 using Pkg
 using ParseNotEval
@@ -20,10 +18,16 @@ using Dates
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
 import Base: showerror, in, Pairs, Exception, div, keys, *, read
 
-const WebMeasures = ToolipsWebMeasures
-
 const Components = ToolipsServables
 
+# html interpolation
+string(f::File{:html}) = begin
+    rawfile = read(path(f), String)    
+end
+
+function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
+
+end
 export Components
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
@@ -89,44 +93,44 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     write(io, 
     """module $name
     using Toolips
-    using Toolips: Logger
 
     # routes
     main = route("/") do cm::ComponentModifier
 
     end
 
-    # 404
-    err_404 = Toolips.default_404
-
-    # `export` puts data into your server.
-    export main, err_404
-    export Logger
+    # `export` puts data, extensions, and routes into your server.
+    # extensions
+    export main, Toolips.default_404, Toolips.toolips
+    # routes
+    export Toolips.Logger()
     end # - module""")
     end
 end
 
 """
-**Core**
-### new_app(::String) -> _
-------------------
-Creates a minimalistic app, usually used for creating APIs and endpoints.
+```julia
+new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Nothing
+```
+---
+Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
+from a `ServerTemplate`.
 #### example
 ```
 using Toolips
 Toolips.new_app("ToolipsApp")
 ```
 """
-function new_app(name::String = "ToolipsApp")
+function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     create_serverdeps(name)
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
         using Revise
-        using $name
+        using Toolips
 
-        $servername = $name.start("127.0.0.1", PORT)
+        using $name; start!(name)
         """)
     end
 end

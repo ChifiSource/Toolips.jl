@@ -29,6 +29,7 @@ dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
 - route!(c::AbstractConnection, **route::AbstractRoute**)
 """
 abstract type AbstractRoute end
+
 """
 
 """
@@ -36,14 +37,6 @@ mutable struct Connection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
-end
-
-mutable struct MobileConnection <: AbstractConnection
-
-end
-
-function convert!(c::Connection, into::MobileConnection)
-
 end
 
 """
@@ -96,35 +89,43 @@ mutable struct Route{T <: AbstractConnection} <: AbstractRoute
     end
 end
 
-"""
-"""
-route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
 """
 """
 function route end
 
+function route(r::Route ...)
+    sig = typeof(r[1]).parameters[1]
+    
+end
+
 route(f::Function, r::String) = begin
     Route(r, f)::Route{<:Any}
 end
+
+
+function route!(c::Connection, tr::Vector{AbstractRoute})
+
+end
+
+"""
+"""
+route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
+
+
+mutable struct ThreadRoute{T <: AbstractConnection} <: AbstractMultiRoute
+    path::String
+    routes::Vector{Route}
+    processes
+end
+
+
+
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)
     rt = findfirst(r::AbstractRoute -> r.path == path, vec)
     if ~(isnothing(rt))
         vec[rt]::AbstractRoute
-    end
-end
-
-function route!(c::Connection, r::Vector{<:AbstractRoute})
-    path::String = get_route(c)
-    if path in r
-        route!(c, r[path])
-    else
-        if "404" in r
-            routes["404"].page(c)
-        else
-            respond!(c, 404)
-        end
     end
 end
 
@@ -175,8 +176,8 @@ function get_args(mod::Module; keyargs ...)
 end
 
 """
-### abstract type ToolipsServer
-ToolipsServers are returned whenever the ServerTemplate.start() field is
+### abstract type ServerTemplate
+ServerTemplates are returned whenever the ServerTemplate.start() field is
 called. If you are running your server as a module, it should be noted that
 commonly a global start() method is used and returns this server, and dev is
 where this module is loaded, served, and revised.
@@ -185,11 +186,11 @@ where this module is loaded, served, and revised.
 - extensions::Vector{Route} - The server's currently loaded extensions.
 - server::Any - The server, whatever type it may be...
 """
-abstract type ToolipsServer end
+abstract type ServerTemplate end
 
-abstract type WebServer <: ToolipsServer end
+abstract type WebServer <: ServerTemplate end
 
-function kill!(ws::ToolipsServer)
+function kill!(ws::ServerTemplate)
     close(ws.server)
 end
 
@@ -263,7 +264,7 @@ function server_cli(ARGS)
     end
 end
 
-function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS), ws::Type{<:ToolipsServer} = WebServer; mode::StartMode{<:Any} = StartMode{:async}())
+function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS), ws::Type{<:ServerTemplate} = WebServer; mode::StartMode{<:Any} = StartMode{:async}())
     IP = Sockets.InetAddr(parse(IPAddr, ip4.ip), ip4.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
@@ -316,7 +317,7 @@ function in(t::String, v::Vector{<:AbstractRoute})
     false::Bool
 end
 
-function show(io::IO, ts::ToolipsServer)
+function show(io::IO, ts::ServerTemplate)
     status::String = string(ts.server.status)
     print("""$(typeof(ts))
         hosted at: http://$(ts.host):$(ts.port)
@@ -330,7 +331,7 @@ string(c::Vector{<:AbstractRoute}) = join([begin
     r.path * "\n" 
 end for r in c])
 
-display(ts::ToolipsServer) = show(ts)
+display(ts::ServerTemplate) = show(ts)
 #==
 Requests
 ==#

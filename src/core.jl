@@ -154,12 +154,8 @@ function download!(c::AbstractConnection, uri::String)
     write(c.stream, HTTP.Response(200, body = read(uri, String)))
 end
 
-function proxy_pass!(f::Function, c::AbstractConnection, url::String)
-    try
-        HTTP.get(url, response_stream = c.stream, status_exception = false)
-    catch
-        f(c)
-    end
+function proxy_pass!(c::AbstractConnection, url::String)
+    HTTP.get(url, response_stream = c.stream, status_exception = false)
 end
 
 startread!(c::AbstractConnection) = startread(c.stream)
@@ -168,11 +164,10 @@ startread!(c::AbstractConnection) = startread(c.stream)
 abstract type AbstractExtension end
 abstract type Extension{T <: Any} <: AbstractExtension end
 
-function route!(c::AbstractConnection, e::Extension{<:Any})
+function route!(c::AbstractConnection, e::AbstractExtension)
 end
 
-function on_start(extmod::Pair{Module, Extension{<:Any}})
-
+function on_start(mod::Module, e::AbstractExtension)
 end
 
 function get_args(mod::Module; keyargs ...)
@@ -248,21 +243,41 @@ function get_client_system(c::AbstractConnection)
     system, mobile
 end
 
-function start!(mod::Module = Main, ip::String = "127.0.0.1", port::Int64 = 8000, ws::Type{<:ToolipsServer} = WebServer; mode::StartMode{<:Any} = StartMode{:async}())
-    IP = Sockets.InetAddr(parse(IPAddr, ip), port)
+function ip4_cli(ARGS)
+    IP = "127.0.0.1"
+    PORT = 8000
+    if length(ARGS) > 0
+        IP = ARGS[1]
+    end
+    if length(ARGS) > 1
+        PORT = parse(Int64, ARGS[2])
+    end
+    IP:PORT
+end
+
+function server_cli(ARGS)
+    SERVER = Main
+    ip4::IP4 = ip4_cli(ARGS)
+    if length(ARGS) == 3
+        SERVER = SERVER.eval(ARGS[3])
+    end
+end
+
+function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS), ws::Type{<:ToolipsServer} = WebServer; mode::StartMode{<:Any} = StartMode{:async}())
+    IP = Sockets.InetAddr(parse(IPAddr, ip4.ip), ip4.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function = generate_router(mod)
     if mode == StartMode{:async}()
         try
-            @async HTTP.listen(routefunc, ip, port, server = server)
+            @async HTTP.listen(routefunc, ip4.ip, ip4.port, server = server)
         catch e
             throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
         end
         return
     end
     try
-        @async HTTP.listen(routefunc, ip, port, server = server)
+        @async HTTP.listen(routefunc, ip4.ip, ip4.port, server = server)
     catch e
         throw(CoreError("Could not start Server $ip:$port\n $(string(e))"))
     end
@@ -280,11 +295,10 @@ function generate_router(mod::Module)
         typeof(f) => f 
     end for x in server_ns]
     onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
-    println(onlydata)
     loaded = [t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen))]
+    [on_start(mod, ext) for ext in loaded]
     routes = mod[AbstractRoute]
-    println(loaded)
-    mod.data, mod.routes = [Symbol(n) => getfield(mod, n) for n in server_ns], routes
+    mod.data, mod.routes = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns), routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)
         c::AbstractConnection = Connection(http, mod.data, mod.routes)

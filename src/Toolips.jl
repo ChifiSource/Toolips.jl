@@ -88,13 +88,8 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     open(src * "/$name.jl", "w") do io
     write(io, 
     """module $name
-    # toolips 0.3 syntax
     using Toolips
-
-    start(IP::String = "127.0.0.1", PORT::Integer = 8000) = start!($name, ip, PORT)
-
-    # load extensions
-    # function load!(ext::Extension{Files}) end
+    using Toolips: Logger
 
     # routes
     main = route("/") do cm::ComponentModifier
@@ -102,10 +97,11 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     end
 
     # 404
-    err_404 = route(Toolips.default_404, "404")
+    err_404 = Toolips.default_404
 
-    # important !: export `load!` to use extensions.
-    export load!
+    # `export` puts data into your server.
+    export main, err_404
+    export Logger
     end # - module""")
     end
 end
@@ -127,48 +123,12 @@ function new_app(name::String = "ToolipsApp")
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
-        using Toolips
         using Revise
         using $name
 
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
+        $servername = $name.start("127.0.0.1", PORT)
         """)
     end
-end
-
-"""
-**Core**
-### new_webapp(::String) -> _
-------------------
-Creates a fully-featured Toolips web-app. Adds ToolipsSession, ideal for
-full-stack web-sites.
-#### example
-```
-using Toolips
-Toolips.new_webapp("ToolipsApp")
-```
-"""
-function new_webapp(name::String = "ToolipsApp")
-    servername = name * "Server"
-    create_serverdeps(name, ["Logger", "Files", "Session"],
-    "using ToolipsSession")
-    Pkg.add("ToolipsSession")
-    open(name * "/dev.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
-        using Toolips
-        using Revise
-        using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
-    end
-    public = pwd() * "/$name/public"
-    mkdir(public)
 end
 
 end

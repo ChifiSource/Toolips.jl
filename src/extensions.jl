@@ -119,7 +119,11 @@ mutable struct Logger <: AbstractExtension
 
 end
 
-on_start(mod::Pair{Module, Extension{Logger}}) = begin
+function route!(c::AbstractConnection, e::Logger)
+    println("hello")
+end
+
+on_start(mod::Module, ext::Logger) = begin
     println("HELLO")
 end
 #==

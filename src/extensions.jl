@@ -1,26 +1,50 @@
-"""
-### Logger <: ServerExtension
-- type::Symbol
-- out::String
-- levels::Dict
-- log::Function
-- prefix::String
-- timeformat::String
-- writeat::Int64 -
-A Logger logs information with different levels. Holds the function log(),
-connected to the function _log(). Methods.
-##### example
-```
-logger = Logger()
-st = ServerTemplate(extensions = [Logger()])
-r = route("/") do c::Connection
-    write!(c, "hello world!")
-    c[:Logger].log("Hello world delivered, mission accomplished.")
+
+
+abstract type AbstractMultiRoute  <: AbstractRoute end
+
+mutable struct MultiRoute <: AbstractMultiRoute
+    path::String
+    routes::Vector{Route}
 end
-st.add(r)
-st.start()
-```
-------------------
+
+mutable struct MobileConnection <: AbstractConnection
+
+end
+
+function convert(c::Connection, into::Type{MobileConnection})
+
+end
+
+function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
+    false
+end
+#==
+"""
+"""
+route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
+    mainroute = nothing
+    ts = [begin 
+        if typeof(rout) != Route{Connection} && typeof(rout) != Route 
+            typeof(rout).parameters[1]
+            if typeof(convert) <: AbstractConnection
+     #           findfirst(s -> )
+                return(r.routes)
+            end
+        else
+            mainroute = rout
+        end
+    for rout in r]
+end
+==#
+toolips_app = route("/") do c::Connection
+    write!(c, "new toolips app incoming ...")
+end
+
+default_404 = route("404") do c::Connection
+    write!(c, "404")
+end
+#==
+"""
 ##### field info
 - type::Symbol - The type of server extension -- in this case, Connection.
 - out::String - Logfile output directory.
@@ -41,7 +65,7 @@ Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
                     out::String = pwd() * "logs/log.txt")
 Logger(; out::String = pwd() * "/logs/log.txt")
 """
-mutable struct Logger <: ServerExtension
+mutable struct Logger
     type::Symbol
     out::String
     levels::Dict
@@ -112,7 +136,29 @@ function _log(level::Int64, message::String, levels::Dict, out::String,
         prefix, time)
     end
 end
+==#
 
+mutable struct Logger <: AbstractExtension
+
+end
+
+function route!(c::AbstractConnection, e::Logger)
+    println("hello")
+end
+
+on_start(mod::Module, ext::Logger) = begin
+    println("HELLO")
+end
+
+# html interpolation
+string(f::Components.File{:html}) = begin
+    rawfile = read(path(f), String)    
+end
+
+function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
+
+end
+#==
 """
 **Extensions**
 ### show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
@@ -180,7 +226,14 @@ function route_from_dir(dir::String)
     routes::Vector{String}
 end
 
+module Files
+    import Toolips: on_start
+    function on_start(mod::Module, ext::Extension{Files})
 
+    end
+    function load!(ext::{Files}) end
+    export load!
+end
 
 """
 ### Files <: ServerExtension
@@ -201,18 +254,17 @@ specific function to run from the top-end to the server.
 ##### constructors
 Files(dir::String)
 """
-mutable struct Files <: ServerExtension
+mutable struct Files
     type::Symbol
     directory::String
     f::Function
     function Files(directory::String = "public")
-        f(r::Vector{AbstractRoute}, e::Vector{ServerExtension}) = begin
             l = length(directory) + 1
             for path in route_from_dir(directory)
                 push!(r, Route(path[l:length(path)],
                 c::Connection -> write!(c, File(path))))
             end
-        end
         new(:routing, directory, f)
     end
 end
+==#

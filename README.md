@@ -24,17 +24,42 @@ julia> ]
 pkg> add Toolips
 ```
 ###### map
-- [Toolips]()
-  - [get started]()
-  - [routing]()
-    - [basics]()
+- [get started](#get-started)
+  - [add toolips](#add-toolips)
+    - [main builds](#main-builds)
+    - [development builds](#development-build)
+  - [servers](#basics)
+    - [routing](#routing)
+    - [extensions](#extensions)
+  - [templating](#templating)
     - [components]()
     - [style components]()
-  - [connections]()
-  - [toolips servers]()
-  - [extensions]()
-    - [components]()
-    - [routes]()
-    - [connections]()
+    - [files]()
+  - [quick start](#quick-start)
+    - [API](#api-example)
+    - [Online form](#form-example)
+    - [Blog](#blog-example)
+    - [Animated splash](#animated-example)
+  - [contributing]()
+    - [guidelines]()
+    - [building extensions]()
 ---
 
+#### get started
+##### add toolips
+###### main builds
+###### development builds
+##### servers
+###### routing
+###### extensions
+##### templating
+###### components
+###### style components
+###### files
+##### quick start
+###### api example
+###### form example
+###### blog example
+###### animated splash
+#### contributing
+###### guidelines

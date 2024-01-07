@@ -13,6 +13,7 @@ atop the Julian paradigm of multiple dispatch.
 module Toolips
 using Crayons
 using Sockets
+using Sockets: TCPServer
 using ToolipsServables
 using HTTP
 using Pkg
@@ -47,11 +48,9 @@ function getindex(mod::Module, T::Function, args::Type ...)
 end
 
 include("core.jl")
+export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, toolips_app
 include("extensions.jl")
-include("toolipsapp.jl")
-# Core
-export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!
-export get, post, proxy_pass!, get_route, getargs, get_host, get_parent
 #==
 Project API
 ==#

@@ -1,71 +1,32 @@
-
-
-abstract type AbstractMultiRoute  <: AbstractRoute end
-
-mutable struct MultiRoute <: AbstractMultiRoute
-    path::String
-    routes::Vector{Route}
-end
-
 mutable struct MobileConnection <: AbstractConnection
 
 end
 
-function convert(c::Connection, into::Type{MobileConnection})
-
-end
-
-function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
+function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
     false
 end
-#==
-"""
-"""
-route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
-    mainroute = nothing
-    ts = [begin 
-        if typeof(rout) != Route{Connection} && typeof(rout) != Route 
-            typeof(rout).parameters[1]
-            if typeof(convert) <: AbstractConnection
-     #           findfirst(s -> )
-                return(r.routes)
-            end
-        else
-            mainroute = rout
-        end
-    for rout in r]
+
+abstract type ThreadedConnection <: AbstractConnection end
+
+function convert(c::Connection, routes::Routes, into::Type{ThreadedConnection})
+    false
 end
-==#
-toolips_app = route("/") do c::Connection
+
+abstract type Threader end
+
+default_404 = Toolips.route("404") do c::Toolips.Connection
+    write!(c, "404")
+end
+
+
+toolips_app = Toolips.route("/toolips") do c::Toolips.Connection
     write!(c, "new toolips app incoming ...")
 end
 
-default_404 = route("404") do c::Connection
-    write!(c, "404")
-end
 #==
 """
-##### field info
-- type::Symbol - The type of server extension -- in this case, Connection.
-- out::String - Logfile output directory.
-- log(level::Int64, message::String) - Logs the message at the provided level.
-- log(message::String) - Logs the message at level 1.
-- log(c::Connection, message::String) - Logs to level one and to JavaScript
-console.
-- levels::Dict - A {Any, Crayon} dict that contains all of the crayons for the
-logger. Also contains two special crayons under the keys :time_crayon and
-:message_crayon
-- prefix::String - The prefix to write before the message.
-- timeformat::String - A string representing DT format, must be able to be
-passed through the datetime_str macro from Dates.
-- writeat::Int64 - The log level to write to out at.
-------------------
-##### constructors
-Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
-                    out::String = pwd() * "logs/log.txt")
-Logger(; out::String = pwd() * "/logs/log.txt")
 """
-mutable struct Logger
+struct Logger
     type::Symbol
     out::String
     levels::Dict
@@ -97,67 +58,77 @@ mutable struct Logger
                     prefix::String, timeformat::String, writeat::Int64)::Logger
     end
 end
-
-"""
-**Extensions**
-### _log(level::Int64, message::String, levels::Dict, out::String) -> _
-------------------
-Binded call for the field log() inside of Logger(). See ?(Logger) for more
-    details on the field log. All arguments are fields of that type. Return is a
-    printout into the REPL as well as an append to the log file, provided by the
-    out URI.
-------------------
-### example (Closure from Logger)
-```
-log(level::Int64, message::String) = _log(level, message, levels, out)
-log(message::String) = _log(1, message, levels, out)
-```
-"""
-function _log(level::Int64, message::String, levels::Dict, out::String,
-    prefix::String, timeformat::String, writeat::Int64)
-    time = Dates.format(now(), Dates.DateFormat("$timeformat"))
-    if writeat > 0 && level >= writeat
-        if isfile(out)
-            open(out, "a") do o
-                write(o, "[" * string(time) * "]: $message\n")
-                touch(out)
-                write(o, "[" * string(time) * "]: $message\n")
-            end
-            show_log(level, message, levels,
-            prefix, time)
-        else
-            show_log(1, "$out not in current working directory.", levels,
-            prefix, time)
-            show_log(1, message, levels,
-            prefix, time)
-        end
-    else
-        show_log(level, message, levels,
-        prefix, time)
-    end
-end
 ==#
 
 mutable struct Logger <: AbstractExtension
+    function Logger()
+
+    end
+end
+
+
+function on_start(ext::Logger, loaded::Vector{<:AbstractExtension}, 
+    data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+end
+
+function log!(c::AbstractConnection, message::String, at::Int64 = 1)
 
 end
 
-function route!(c::AbstractConnection, e::Logger)
-    println("hello")
+mutable struct AbstractFileRoute <: AbstractRoute end
+
+mutable struct FileRoute{CT <: AbstractConnection, T <: Any} <: AbstractRoute
+    path::String
+    file::File{T}
 end
 
-on_start(mod::Module, ext::Logger) = begin
-    println("HELLO")
+mutable struct InterpolatedFileRoute{CT <: AbstractConnection, T <: Any} <: AbstractRoute
+    path::String
+    file::File{T}
+    args::Any
+    keyargs::Any
+    function InterpolatedFileRoute()
+
+    end
 end
 
-# html interpolation
+function route()
+
+end
+
+function route(path::Pair{String, String}; raw::Bool = true, connection::Type{<:AbstractConnection} = Connection)
+    f::File{<:Any} = File(path[2])
+    T::Type = typeof(f).parameters[1]
+    FileRoute{Connection, T}(path[1], raw, f)
+end
+
+function route(paths::Pair{String, String} ...)
+    directories = filter(p -> isdir(p), paths)
+
+    [route(path)]
+end
+
+function route!(c::AbstractConnection, f::FileRoute{<:AbstractConnection, <:Any})
+    if f.raw
+        write!(c, f.file)
+    else
+        write!(c, )
+    end
+end
+
+write!(c::AbstractConnection, f::File{<:Any}) = begin
+
+end
+
+# interpolation
 string(f::Components.File{:html}) = begin
     rawfile = read(path(f), String)    
 end
 
-function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
-
+string(f::Components.File{:md}) = begin
+    rawfile = read(path(f), String)    
 end
+
 #==
 """
 **Extensions**
@@ -174,11 +145,7 @@ show_log(1, "hello!", levels, "toolips> ", now()
 """
 function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
     prefix::String, time::Any)
-    print(Crayon(foreground = :light_gray, bold = true), "[")
-    print(levels[:time_crayon], string(time))
-    print(Crayon(foreground = :light_gray, bold = true), "]: ")
-    print(levels[:message_crayon], prefix)
-    print(levels[level], message, "\n", Crayon(foreground = :blue))
+
 end
 
 """
@@ -209,62 +176,8 @@ Recursively appends filenames for a directory AND all subsequent directories.
 x::Vector{String} = route_from_dir("mypath")
 ```
 """
-function route_from_dir(dir::String)
-    dirs::Vector{String} = readdir(dir)
-    routes::Vector{String} = []
-    [begin
-        if isfile("$dir/" * directory)
-            push!(routes, "$dir/$directory")
-        else
-            if ~(directory in routes)
-                newread::String = dir * "/$directory"
-                newrs::Vector{String} = route_from_dir(newread)
-                [push!(routes, r) for r in newrs]
-            end
-        end
-    end for directory in dirs]
-    routes::Vector{String}
-end
 
-module Files
-    import Toolips: on_start
-    function on_start(mod::Module, ext::Extension{Files})
-
-    end
-    function load!(ext::{Files}) end
-    export load!
-end
 
 """
-### Files <: ServerExtension
-- type::Symbol
-- directory::String
-- f::Function -
-Writes all files in directory to their own routes in the server.
-------------------
-##### field info
-- type::Symbol - The type of extension. There are three different selections
-you can choose from. **:connection :routing :func**. A :connection extension
-will be provided in Connection.extensions. A :routing function is passed a
-Dict of routes as an argument. The last is a function argument, which is just a
-specific function to run from the top-end to the server.
-- directory::String - The directory to route the files from.
-- f::Function - The function f() called with a Connection.
-------------------
-##### constructors
-Files(dir::String)
-"""
-mutable struct Files
-    type::Symbol
-    directory::String
-    f::Function
-    function Files(directory::String = "public")
-            l = length(directory) + 1
-            for path in route_from_dir(directory)
-                push!(r, Route(path[l:length(path)],
-                c::Connection -> write!(c, File(path))))
-            end
-        new(:routing, directory, f)
-    end
-end
+
 ==#

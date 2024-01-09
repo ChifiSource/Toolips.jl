@@ -25,10 +25,8 @@ pkg> add Toolips
 ```
 ###### map
 - [get started](#get-started)
-  - [add toolips](#add-toolips)
-    - [main builds](#main-builds)
-    - [development builds](#development-build)
-  - [servers](#basics)
+  - [overview](#overview)
+  - [servers](#servers)
     - [routing](#routing)
     - [extensions](#extensions)
   - [templating](#templating)
@@ -44,11 +42,35 @@ pkg> add Toolips
     - [guidelines]()
     - [building extensions]()
 ---
-
 #### get started
-##### add toolips
-###### main builds
-###### development builds
+`Toolips` is available in four different flavors:
+- Latest (main) -- The main working version of toolips.
+- LTS (#lts) -- Long term support.
+- stable (#stable) -- Faster, more frequent updates, stable -- but some new features are not fully implemented.
+- and Unstable (#Unstable) -- Latest updates, least stable.
+```julia
+using Pkg
+# Latest 
+Pkg.add("Toolips")
+Pkg.add("Toolips", rev = "lts")
+Pkg.add("Toolips", rev = "stable")
+Pkg.add("Toolips", rev = "Unstable")
+```
+Alternatively, you can add by version or last of version using an `x` revision.
+```julia
+using Pkg
+Pkg.add("Toolips", rev = "0.2.x")
+Pkg.add("Toolips", rev = "0.3.x")
+```
+##### overview
+The `Toolips` package offers high-level declarative templating syntax atop an extensible polymorphic server platform. With `Toolips`, a `Module` becomes a manageable routing process.
+
+All of these parts work together to create a high-level routing and templating syntax. To get started with `Toolips`, we can weither use `Toolips.new_app(name::String)` or we can simply create a `Module`.
+The `Toolips` package is comprised of three main parts:
+- [Toolips](https://github.com/ChifiSource/Toolips.jl/blob/0.3/src/Toolips.jl)
+    - [ServerCore](https://github.com/ChifiSource/Toolips.jl/blob/0.3/src/ServerCore.jl) -- Provides processes
+    - [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl)
+
 ##### servers
 ###### routing
 ###### extensions

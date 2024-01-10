@@ -1,20 +1,57 @@
+#==
+map
+- imports
+- `Components`
+- helpful `Module` introspection dispatches.
+- default projects
+==#
 """
-#### toolips - a manic web-development framework
-- 0.3 January
-- Created in February, 2022 by [chifi](https://github.com/orgs/ChifiSource)
+#### toolips 0.3 - a manic web-development framework
+- Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
 
-Toolips is an extensible and declarative web-development platform built 
-atop the Julian paradigm of multiple dispatch.
-```example
+Toolips is an **extensible** and **declarative** web-development for julia.
 
+```example
+module MyServer
+using Toolips
+using Toolips.Components
+# import 
+# create a logger
+logger = Logger()
+
+# quick extension
+
+const people = Extension{:people}
+
+# mount difrectory "MyServer/public" to "/public"
+public = route("/public" => "public")
+
+# create a route
+main = route("/") do c::Connection
+
+end
+
+# multiroute
+
+# export routes
+export public
+
+# export extensions
+
+# export server data
+export people
+end # module
 ```
+####### provides
+- `new_app(name**::String, )`
 """
 module Toolips
 using Crayons
 using Sockets
 using Sockets: TCPServer
 using ToolipsServables
+import ToolipsServables: write!
 using HTTP
 using Pkg
 using ParseNotEval
@@ -87,17 +124,34 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     write(io, 
     """module $name
     using Toolips
-
     # routes
-    main = route("/") do cm::ComponentModifier
+    main = route("/") do c::Connection
 
     end
 
-    # `export` puts data, extensions, and routes into your server.
+    otherpage = route("/page/path") do c::Connection
+
+    end
+
+    mobile = route("/") do c::Toolips.MobileConnection
+
+    end
+
+    post = route("/") do c::Toolips.PostConnection
+
+    end
+
+    # multiroute
+    home = route(main, mobile, post)
+
+    # server development assistant
+    toolipsapp = toolips_app
+    # data
+    name::String = ""
     # extensions
-    export main, Toolips.default_404, Toolips.toolips
-    # routes
-    export Toolips.Logger()
+    documentation = ToolipsDocumenter()
+    export home, otherpage, default_404
+    export documentation, data
     end # - module""")
     end
 end
@@ -108,11 +162,21 @@ new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Not
 ```
 ---
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
-from a `ServerTemplate`.
-#### example
-```
+from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
+templates are used as a base to start a server from, `WebServer` in this case just means TCPServer.
+##### example
+```example
 using Toolips
 Toolips.new_app("ToolipsApp")
+```
+```example
+using Toolips
+Toolips.new_app("ToolipsApp", Toolips.WebServer)
+```
+---
+- **see also:**
+```julia
+
 ```
 """
 function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
@@ -123,8 +187,9 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
         using Pkg; Pkg.activate(".")
         using Revise
         using Toolips
-
-        using $name; start!(name)
+        using $name
+        $(name)INFO = start!($name)
+        start!(Toolips, ) # dev helper
         """)
     end
 end

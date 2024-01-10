@@ -1,26 +1,68 @@
 mutable struct MobileConnection <: AbstractConnection
-
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
 end
 
 function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
-    false
+    get_client_system(c)[2]
 end
 
-abstract type ThreadedConnection <: AbstractConnection end
-
-function convert(c::Connection, routes::Routes, into::Type{ThreadedConnection})
-    false
+function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 
-abstract type Threader end
+abstract type AbstractProcess end
 
-default_404 = Toolips.route("404") do c::Toolips.Connection
-    write!(c, "404")
+mutable struct Process{T <: Any} <: AbstractProcess
+
 end
 
+
+mutable struct ProcessRoute{CT <: AbstractConnection, PT <: Process} <: AbstractRoute
+
+end
+
+thread(r::Pair{Number, AbstractRoute} ...) = begin
+    
+end
+
+
+abstract type ArgRoute{T} end
+# gets args, checks args 
+route(f::Function, r::Route{<:AbstractConnection}, s::Symbol ...) = begin
+
+end
+#==
+
+function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
+    met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
+    if isnothing(met)
+        default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
+        if ~(isnothing(default))
+            r.routes[default].page(c)
+        else
+            r.routes[1].page(c)
+        end
+    end
+    c.routes[met].page(c)
+end
+==#
+mutable struct ToolipsDocumenter <: AbstractExtension
+    
+end
 
 toolips_app = Toolips.route("/toolips") do c::Toolips.Connection
     write!(c, "new toolips app incoming ...")
+    write!(c, Toolips.get_args(c))
+end
+
+toolips_doc = Toolips.route("/toolips") do c::Toolips.Connection
+    write!(c, "documentation here")
+end
+
+default_404 = Toolips.route("404") do c::Toolips.Connection
+    write!(c, "404")
 end
 
 #==
@@ -92,6 +134,14 @@ mutable struct InterpolatedFileRoute{CT <: AbstractConnection, T <: Any} <: Abst
     end
 end
 
+function show!(c::Connection, plot::Any, mime::MIME{<:Any} = MIME"text/html"())
+    plot_div::Component{<:Any}
+    data::String = String(io.data)
+    data = replace(data,
+     """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n""" => "")
+    plot_div[:text] = data
+end
+
 function route()
 
 end
@@ -114,10 +164,6 @@ function route!(c::AbstractConnection, f::FileRoute{<:AbstractConnection, <:Any}
     else
         write!(c, )
     end
-end
-
-write!(c::AbstractConnection, f::File{<:Any}) = begin
-
 end
 
 # interpolation

@@ -1,24 +1,28 @@
 string(r::Vector{UInt8}) = String(UInt8.(r))
 
-mutable struct IP4
+
+abstract type Identifier end
+
+mutable struct IP4 <: Identifier
     ip::String
     port::Int64
 end
 
 (:)(ip::String, port::Int64) = IP4(ip, port)
 
-"""
-
-"""
-abstract type Modifier <: Servable end
-
+string(ip::IP4) = begin
+    if ip.port == 0
+        ip.ip
+    else
+        "$(ip.ip):$(ip.port)"
+    end
+end
 # connections
 """
 
 """
 abstract type AbstractConnection end
 
-abstract type AbstractClient end
 
 """
 #### abstract type AbstractRoute
@@ -29,8 +33,11 @@ dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
 - route!(c::AbstractConnection, **route::AbstractRoute**)
 """
 abstract type AbstractRoute end
+
 """
+```julia
 Routes{T} (Type Alias for Vector{T} where T <:AbstractRoute)
+```
 ---
 `Routes` are simple one-dimensional vectors of routes. Using multiple dispatch, these 
 vectors effectively become routers and can be extended using multiple dispatch. 
@@ -59,8 +66,6 @@ mutable struct SpoofConnection <: AbstractConnection
     stream::String
     SpoofConnection() = new("")::SpoofConnection
 end
-
-function write! end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
@@ -108,7 +113,7 @@ mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
     path::String
     routes::Vector{T}
     function MultiRoute{T}(path::String, routes::Vector{<:Any}) where {T <: AbstractRoute}
-
+        new{T}()
     end
     function MultiRoute(r::Route ...)
         new{Route}(r[1].path, [rout for rout in r])
@@ -119,7 +124,8 @@ end
 """
 function route end
 
-function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
+function convert(c::AbstractConnection, vec::Vector{<:AbstractRoute}, 
+    c2::Type{<:AbstractConnection})
     false
 end
 
@@ -127,7 +133,7 @@ route(f::Function, r::String) = begin
     Route(r, f)::Route{<:Any}
 end
 
-route(r::Route{<:Any}...) = MultiRoute(r ...)
+route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
 
 """
 """
@@ -136,9 +142,21 @@ route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 function route!(c::Connection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
     if target in tr
-        route!(c, tr[target])
+        selected::AbstractRoute = tr[target]
+        if typeof(selected) <: AbstractMultiRoute
+            multiroute!(c, tr, selected)
+        else
+            route!(c, selected)
+        end
+    elseif "404" in tr
+        selected = tr["404"]
+        if typeof(selected) <: AbstractMultiRoute
+            multiroute!(c, tr, selected)
+        else
+            route!(c, selected)
+        end
     else
-        throw("Route not found!")
+        route!(c, default_404)
     end
 end
 
@@ -151,8 +169,11 @@ function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
         else
             r.routes[1].page(c)
         end
+        return
     end
-    c.routes[met].page(c)
+    selected = r.routes[met]
+    c = convert!(c, vec, typeof(selected).parameters[1])
+    r.routes[met].page(c)
 end
 
 
@@ -160,16 +181,23 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
     rt = findfirst(r::AbstractRoute -> r.path == path, vec)
     if ~(isnothing(rt))
         selected::AbstractRoute = vec[rt]
-        if typeof(selected) <: AbstractMultiRoute
-            multiroute!(c, vec, r)
-        end
         vec[rt]::AbstractRoute
     end
 end
 
 # args
 function get_args(c::AbstractConnection)
-    HTTP.URIs.query_params(c.stream)
+    fullpath = string(split(c.stream.message.target, '?')[2])
+    [Symbol(p[1]) => string(p[2]) for p in split(fullpath)]
+    fullpath::String
+end
+
+function get_L(c::AbstractConnection)
+
+end
+
+function get_heading(c::AbstractConnection)
+
 end
 
 function get_ip(c::AbstractConnection)
@@ -223,7 +251,15 @@ where this module is loaded, served, and revised.
 """
 abstract type ServerTemplate end
 
+mutable struct Server
+    name::String
+    host::IP4
+    m::Module
+end
+
 abstract type WebServer <: ServerTemplate end
+
+const Servers = Vector{Pair{<:ServerTemplate, Module}}
 
 function kill!(ws::ServerTemplate)
     close(ws.server)
@@ -243,7 +279,7 @@ showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 
 abstract type StartMode end
 
-abstract type Async <: StartMode end
+struct Async <: StartMode end
 
 mutable struct ThreadedStartMode{N} <: StartMode 
     process_table::Dict{}
@@ -311,23 +347,19 @@ end
 
 function start! end
 
-function start!(f::Function, ip::IP4, server::Any)
-
+function start!(routefunc::Function, mode::StartMode, ip::IP4, server::Sockets.TCPServer)
+    @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
 end
 
 function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS);  from::Type{<:ServerTemplate} = WebServer, 
-    mode::SingleThreaded = S)
+    mode::StartMode = Async())
     IP = Sockets.InetAddr(parse(IPAddr, ip4.ip), ip4.port)
-    try
-        server::Sockets.TCPServer = Sockets.listen(IP)
-    catch
-
-    end
+    server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function = generate_router(mod, mode)
-    start!(routefunc, ip4::IP, )
-    @async HTTP.listen(routefunc, ip4.ip, ip4.port, server = server)
+    start!(routefunc, mode, ip4, server)
 end
+
 
 function respond!(c::AbstractConnection, code::Int64, body::String = "")
     write(c.stream, HTTP.Response(code, body = body))
@@ -341,11 +373,11 @@ function generate_router(mod::Module, mode::StartMode = Async)
         typeof(f) => f 
     end for x in server_ns]
     onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
-    loaded = (t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen)))
+    loaded = [t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen))]
     routes = mod[AbstractRoute]
     [on_start(ext, onlydata, routes) for ext in loaded]
-    allparams = (m.sig.parameters[3] for m in methods(route!, <:AbstractConnection, <:AbstractExtension!))
-    filter!(ext -> typeof(c))
+    allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
+    filter!(ext -> typeof(c) in allparams, loaded)
     mod.data, mod.routes = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns), routes
     # Routing func
     routeserver::Function = function serve(http::HTTP.Stream)

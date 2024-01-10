@@ -27,31 +27,6 @@ thread(r::Pair{Number, AbstractRoute} ...) = begin
     
 end
 
-
-abstract type ArgRoute{T} end
-# gets args, checks args 
-route(f::Function, r::Route{<:AbstractConnection}, s::Symbol ...) = begin
-
-end
-#==
-
-function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
-    met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
-    if isnothing(met)
-        default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
-        if ~(isnothing(default))
-            r.routes[default].page(c)
-        else
-            r.routes[1].page(c)
-        end
-    end
-    c.routes[met].page(c)
-end
-==#
-mutable struct ToolipsDocumenter <: AbstractExtension
-    
-end
-
 toolips_app = Toolips.route("/toolips") do c::Toolips.Connection
     write!(c, "new toolips app incoming ...")
     write!(c, Toolips.get_args(c))
@@ -103,7 +78,8 @@ end
 ==#
 
 mutable struct Logger <: AbstractExtension
-    function Logger()
+    function Logger(prefix::String, crayons::Pair{String, Crayon} ...;
+        write::Bool = false, print::Bool = false)
 
     end
 end
@@ -167,63 +143,10 @@ function route!(c::AbstractConnection, f::FileRoute{<:AbstractConnection, <:Any}
 end
 
 # interpolation
-string(f::Components.File{:html}) = begin
+interpolate!(f::Components.File{:html}, comps::AbstractComponent ...; data ...) = begin
     rawfile = read(path(f), String)    
 end
 
-string(f::Components.File{:md}) = begin
-    rawfile = read(path(f), String)    
+interpolate!(f::Components.File{:md}, comps::AbstractComponent ...; data ...) = begin
+    
 end
-
-#==
-"""
-**Extensions**
-### show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
-                prefix::String, time::Any)
-------------------
-Prints a log to the screen.
-#### example
-```
-show_log(1, "hello!", levels, "toolips> ", now()
-
-[2022:05:23:22:01] toolips> hello!
-```
-"""
-function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
-    prefix::String, time::Any)
-
-end
-
-"""
-**Extensions**
-### _log(http::HTTP.Stream, message::String) -> _
-------------------
-Binded call for the field log() inside of Logger(). This will log both to the
-    JavaScript/HTML console.
-------------------
-### example (Closure from Logger)
-```
-log(http::HTTP.Stream, message::String) = _log(http, message)
-```
-"""
-function _log(c::Connection, message::String)
-    write!(c, "<script>console.log('" * message * "');</script>")
-end
-
-
-"""
-**Extensions**
-### route_from_dir(dir::String) -> ::Vector{String}
-------------------
-Recursively appends filenames for a directory AND all subsequent directories.
-------------------
-### example
-```
-x::Vector{String} = route_from_dir("mypath")
-```
-"""
-
-
-"""
-
-==#

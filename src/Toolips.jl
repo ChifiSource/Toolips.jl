@@ -51,6 +51,7 @@ using Crayons
 using Sockets
 using Sockets: TCPServer
 using ToolipsServables
+using ParametricProcesses
 import ToolipsServables: write!
 using HTTP
 using Pkg

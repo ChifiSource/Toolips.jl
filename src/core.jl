@@ -187,9 +187,12 @@ end
 
 # args
 function get_args(c::AbstractConnection)
-    fullpath = string(split(c.stream.message.target, '?')[2])
-    [Symbol(p[1]) => string(p[2]) for p in split(fullpath)]
-    fullpath::String
+    fullpath = split(c.stream.message.target, '?')
+    if length(fullpath) > 2
+        fullpath = split(fullpath[2], "&")
+        return(Dict(Symbol(p[1]) => string(p[2]) for p in split(fullpath, "=")))::Dict{Symbol, String}
+    end
+    Dict{Symbol, String}()::Dict{Symbol, String}
 end
 
 function get_L(c::AbstractConnection)
@@ -277,18 +280,6 @@ end
 
 showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 
-abstract type StartMode end
-
-struct Async <: StartMode end
-
-mutable struct ThreadedStartMode{N} <: StartMode 
-    process_table::Dict{}
-end
-
-const SingleThreaded = ThreadedStartMode{1}
-
-const MultiThreaded{N} = ThreadedStartMode{N}
-
 function get_route(c::AbstractConnection)
     fullpath::String = c.stream.message.target
     fullpath = string(split(fullpath, '?')[1])
@@ -347,25 +338,26 @@ end
 
 function start! end
 
-function start!(routefunc::Function, mode::StartMode, ip::IP4, server::Sockets.TCPServer)
-    @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-end
-
 function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS);  from::Type{<:ServerTemplate} = WebServer, 
-    mode::StartMode = Async())
+    router_threads::Int64 = 1, threads::Int64 = Threads.nthreads())
     IP = Sockets.InetAddr(parse(IPAddr, ip4.ip), ip4.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function = generate_router(mod, mode)
-    start!(routefunc, mode, ip4, server)
+    routefunc::Function, pm::ProcessManager = generate_router(mod, router_threads)
+    if router_threads == 1
+        w = pm["$mod router"]
+        serve_router = @async HTTP.listen(routefunc, ip4.ip, ip4.port, server = server)
+        w.task = serve_router
+        w.active = true
+        return(pm)::ProcessManager
+    end
 end
-
 
 function respond!(c::AbstractConnection, code::Int64, body::String = "")
     write(c.stream, HTTP.Response(code, body = body))
 end
 
-function generate_router(mod::Module, mode::StartMode = Async)
+function generate_router(mod::Module, n_threads::Int64)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
     fieldgen = [begin
@@ -379,37 +371,26 @@ function generate_router(mod::Module, mode::StartMode = Async)
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(c) in allparams, loaded)
     mod.data, mod.routes = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns), routes
-    # Routing func
-    routeserver::Function = function serve(http::HTTP.Stream)
+    # process manager Routing func
+    if n_threads == 1
+        w = Worker{Async}("$mod router", rand(1000:3000))
+        pman = ProcessManager(w)
+        mod.processes = pman
+        routeserver::Function = function serve(http::HTTP.Stream)
+            c::AbstractConnection = Connection(http, mod.data, mod.routes)
+            [route!(c, ext) for ext in loaded]
+            route!(c, routes)::Any
+        end
+        return(routeserver, pman)
+    end
+    routeserver = function serve_multi(http::HTTP.Stream)
         c::AbstractConnection = Connection(http, mod.data, mod.routes)
         [route!(c, ext) for ext in loaded]
         route!(c, routes)::Any
     end
-    routeserver::Function
+    return(routeserver, pman)
 end
 
-function generate_router(mod::Module, mode::MultiThreaded{<:Any})
-    # Load Extensions, routes, and data.
-    server_ns::Vector{Symbol} = names(mod)
-    fieldgen = [begin
-        f = getfield(mod, x) 
-        typeof(f) => f 
-    end for x in server_ns]
-    onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
-    loaded = (t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen)))
-    routes = mod[AbstractRoute]
-    [on_start(ext, onlydata, routes) for ext in loaded]
-    allparams = (m.sig.parameters[3] for m in methods(route!, <:AbstractConnection, <:AbstractExtension!))
-    filter!(ext -> typeof(c))
-    mod.data, mod.routes = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns), routes
-    # Routing func
-    routeserver::Function = function serve(http::HTTP.Stream)
-        c::AbstractConnection = Connection(http, mod.data, mod.routes)
-        [route!(c, ext) for ext in loaded]
-        route!(c, routes)::Any
-    end
-    routeserver::Function
-end
 
 function in(t::String, v::Vector{<:AbstractRoute})
     found = findfirst(x -> x.path == t, v)

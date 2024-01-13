@@ -9,19 +9,17 @@
 
 </div>
 
-`toolips` is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
+`toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
 - **Declarative** and **composable** html *and* CSS templating syntax.
 - **Modular** servers -- toolips applications are **regular Julia Modules**.
 - **Versatilility** -- toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
 - **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target.
-- **Multi-threaded** -- *Declarative* [parametric process](https://github.com/ChifiSource/ParametricProcesses.jl) and thread management system.
-- **Integrated mobile support** -- *High-level* client system management.
+- **Multi-threaded** -- *Declarative* [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl) using a [Distributed]()-based worker management system.
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
-toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)
 ```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]
@@ -42,6 +40,7 @@ pkg> add Toolips
     - [guidelines]()
     - [building extensions]()
 ---
+- **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
 #### get started
 `Toolips` is available in four different flavors:
 - Latest (main) -- The main working version of toolips.

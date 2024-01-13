@@ -20,6 +20,7 @@
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
+toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)
 ```julia
 julia> # Press ] to enter your Pkg REPL
 julia> ]

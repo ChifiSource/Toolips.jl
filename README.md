@@ -17,6 +17,7 @@
 - **Versatilility** -- toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
 - **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target.
 - **Multi-threaded** -- *Declarative* [parametric process](https://github.com/ChifiSource/ParametricProcesses.jl) and thread management system.
+- **Integrated mobile support** -- *High-level* client system management.
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```

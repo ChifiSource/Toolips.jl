@@ -26,14 +26,10 @@ pkg> add Toolips
 ###### map
 - [get started](#get-started)
   - [overview](#overview)
-  - [servers](#servers)
-    - [routing](#routing)
-    - [extensions](#extensions)
-  - [templating](#templating)
-    - [components]()
-    - [style components]()
-    - [files]()
   - [quick start](#quick-start)
+    - [documentation](#documentation)
+    - [overview](#overview)
+  - [examples](#examples)
     - [API](#api-example)
     - [Online form](#form-example)
     - [Blog](#blog-example)
@@ -62,25 +58,17 @@ using Pkg
 Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```
-##### overview
-The `Toolips` package offers high-level declarative templating syntax atop an extensible polymorphic server platform. With `Toolips`, a `Module` becomes a manageable routing process.
-
-All of these parts work together to create a high-level routing and templating syntax. To get started with `Toolips`, we can weither use `Toolips.new_app(name::String)` or we can simply create a `Module`.
-The `Toolips` package is comprised of three main parts:
-- [Toolips](https://github.com/ChifiSource/Toolips.jl/blob/0.3/src/Toolips.jl)
-    - [ServerCore](https://github.com/ChifiSource/Toolips.jl/blob/0.3/src/ServerCore.jl) -- Provides processes
-    - [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl)
-
-##### servers
-###### routing
-###### extensions
-##### templating
-###### components
-###### style components
-###### files
 ##### quick start
-###### api example
-###### form example
+Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
+```julia
+```
+##### overview
+
+
+    
+
+
+#### examples
 ###### blog example
 ###### animated splash
 #### contributing

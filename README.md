@@ -11,10 +11,12 @@
 
 `toolips` is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
 - **HTTPS capable** Can be deployed with SSL.
-- **Extensible** everything!
-- **Declarative** html *and* CSS templating syntax.
-- **Modular** servers. Toolips applications are **regular Julia Modules**.
-- **Versatilility**. toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
+- **Extensible** server platform.
+- **Declarative** and **composable** html *and* CSS templating syntax.
+- **Modular** servers -- toolips applications are **regular Julia Modules**.
+- **Versatilility** -- toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
+- **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target.
+- **Multi-threaded** -- *Declarative* [parametric process](https://github.com/ChifiSource/ParametricProcesses.jl) and thread management system.
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```

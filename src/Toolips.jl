@@ -99,8 +99,8 @@ include("extensions.jl")
 
 function toolips_header(c::Connection)
     bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
-    "padding" => 8px, "transition" => .6s, "margin" => 5px, "text-decoration" => "none")
-    bttnsty:"hover":["border-color" => "orange", "border-radius" => 2px]
+    "padding" => 8px, "transition" => .6s, "margin" => 5px, "text-decoration" => "none", "cursor" => "pointer")
+    bttnsty:"hover":["border-color" => "orange", "border-radius" => 2px, "transform" => scale(1.1)]
     write!(c, bttnsty)
     if ~("/toolips03.png" in c.routes)
         dir = @__DIR__
@@ -128,12 +128,19 @@ default_landing = Toolips.route("/") do c::Connection
     href = "/toolips")
     style!(tlappbttn, "border-bottom" => "3px solid #8c7cc4", "color" => "#8c7cc4", "opacity" => 0percent, "transition" => 2s, 
     "transform" => translateX(30percent))
-    docsbttn = a("docs_bttn", text = "documentation", onclick = "/docs", class = "menbut", href = "/docs")
+    docsbttn = a("docs_bttn", text = "documentation", class = "menbut")
+    bod = body("mainbod")
+    style!(bod, "transition" => 1s)
+    on(docsbttn, "click") do cl
+        style!(cl, "mainbod", "opacity" => 0percent, "translateY" => -20percent)
+        next!(cl, bod) do cl2
+            redirect!(cl2, "/docs")
+        end
+    end
     style!(docsbttn, "border-width" => 2px, "border-bottom" => "3px solid #6c7cac", "background" => "transparent", "color" => "#6c7cac", 
     "opacity" => 0percent, "transition" => 2s, "transform" => translateX(30percent))
     push!(landerdiv, tlheader, its_up, welcometo, tltext, br(),
     tlappbttn, docsbttn)
-    bod = body("mainbod")
     loadscript = on("load") do cl
         style!(cl, tlheader, "opacity" => 100perc, "transform" => translateY(0perc))
         style!(cl, welcometo, "opacity" => 100perc, "transition" => 500ms)
@@ -153,24 +160,32 @@ function general_styles()
     menu = Style("div.menu", "display" => "inline-block", "width" => 18perc, "left" => 0px, 
     "height" => 100percent, "overflow-x" => "hidden", "overflow-y" => "scroll", "top" => 0perc,
     "background-color" => "#8c7cc4", "position" => "absolute", "transition" => 650ms)
-    menuitem = Style("div.menuitem", "padding" => 4px, "background-color" => "#885baf", "color" => "white")
-    menucontainer = Style("div.menucontainer", "padding" => 4px, "background-color" => "#715db6")
+    menuitem = Style("div.menuitem", "padding" => 4px, "background-color" => "#885baf", "color" => "white", 
+    "transition" => 500ms, "cursor" => "pointer")
+    menuitem:"hover":["transform" => "scale(1.02)", "border-left" => "3px solid white"]
+    menucontainer = Style("div.menucontainer", "padding" => 3perc, "background-color" => "#715db6")
     pstyle = Style("p", "color" => "white", "font-size" => 13pt)
-    hstyle = Style("h1", "color" => "lightgray", "font-size" => 22pt)
-    h2style = Style("h2", "color" => "white", "font-size" => 20pt)
-    h3style = Style("h3", "color" => "orange", "font-size" => 18pt)
+    hstyle = Style("h1", "color" => "white", "font-size" => 22pt)
+    h2style = Style("h2", "color" => "lightgray", "font-size" => 20pt)
+    h3style = Style("h3", "color" => "#FF781F", "font-size" => 18pt)
     h4style = Style("h4", "color" => "white", "font-size" => 15pt)
-    h5style = Style("h5", "color" => "red", "font-size" => 15pt)
-    h6style = Style("h6", "color" => "lightblue", "font-size" => 14pt)
+    h5style = Style("h5", "color" => "#301934", "font-size" => 18pt)
+    h6style = Style("h6", "color" => "lightblue", "font-size" => 18pt)
+    astyle = Style("a", "background-color" => "#574a82", "color" => "white",
+    "font-size" => 13pt, "font-weight" => "bold", "font-decoration" => "none", "border-radius" => 2px,
+    "padding" => 6px, "transition" => 600ms)
+    menlabel = Style("a.menulabel", "color" => "white", "font-weight" => "bold", "font-size" => 17px, 
+    "background" => "transparent")
+    astyle:"hover":["transform" => scale(1.5perc), "color" => "#FF781F"]
     scrollbars = Style("::-webkit-scrollbar", "width" => 14px)
     scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
-    scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#797ef6",
+    scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#715db6",
     "border-radius" => "5px")
     codestyle = Style("code", "color" => "#d8e8ef", "background-color" => "#0b0930", "font-size" => 11pt, 
     "padding" => 3px, "border-radius" => 1px)
     h6style = Style("pre", "background-color" => "#0b0930", "padding" => 10px, "border-radius" => 3px)
     [menu, menuitem, menucontainer, pstyle, hstyle, h2style, h3style, h4style, h5style, h6style, 
-    codestyle, scrollbars, scrtrack, scrthumb]
+    codestyle, scrollbars, scrtrack, scrthumb, astyle, menlabel]
 end
 
 toolips_app = Toolips.route("/toolips") do c::Connection
@@ -186,18 +201,24 @@ function mod_docmenu(mod::Module)
         opt
     end for val in names(mod)]
     mainframe = div("doc$mod", class = "menucontainer")
-    moddoc = a("label$mod", text = string(mod))
-    style!(moddoc, "color" => "white", "font-weight" => "bold", "font-size" => 17px)
+    moddoc = a("label$mod", text = string(mod), class = "menulabel")
     set_children!(mainframe, vcat(moddoc, options))
     mainframe::Component{:div}
+end
+
+docmods = (Toolips, ToolipsServables)
+
+function doctmd()
+
 end
 
 toolips_doc = Toolips.route("/docs") do c::Connection
     write!(c, general_styles())
     args = get_args(c)
+    mds = Dict(Symbol(m) => m for m in docmods)
     mainbod = body("docbody")
     style!(mainbod, "overflow-x" => "hidden", "overflow-y" => "hidden")
-    docmenus = [mod_docmenu(mod) for mod in (Toolips, Components)]
+    docmenus = [mod_docmenu(mod) for mod in docmods]
     menu = div("menu", class = "menu", children = docmenus)
     content = div("content")
     style!(content, "background-color" => "#8c7cc4", "display" => "inline-block", 
@@ -208,14 +229,23 @@ toolips_doc = Toolips.route("/docs") do c::Connection
     if :get in keys(args)
         style!(content, "width" => 70perc)
         modf = split(args[:get], ".")
-        if modf[1] == "Toolips"
-            reqdoc = getfield(Toolips, Symbol(modf[2]))
-            md = string(eval(Meta.parse("@doc($reqdoc)")))
-            push!(content, tmd("$(modf[2])", md))
+        selectedmod = Symbol(modf[1])
+        @info selectedmod
+        if selectedmod in keys(mds)
+            @info "in keys"
+     #       try
+                reqdoc = getfield(mds[selectedmod], Symbol(modf[2]))
+                md = mds[selectedmod].eval(Meta.parse("@doc($reqdoc)"))
+                push!(content, tmd("$(modf[2])", string(md)))
+ #           catch
+  #              @info "catch hit"
+   #             # specific docs not found
+    #        end
         else
-            reqdoc = getfield(Components, Symbol(modf[2]))
+            # docs mod not found
         end
     else
+        # no documentation selected
         style!(menu, "opacity" => 0percent, "width" => 0percent)
         style!(content, "opacity" => 0percent, "width" => 0perc)
         scr = on("load") do cl::ClientModifier
@@ -225,6 +255,15 @@ toolips_doc = Toolips.route("/docs") do c::Connection
             end
         end
         write!(c, scr)
+        md_message = """# toolips docs
+        welcome to the `Toolips` in-module documentation browser! **helpful links**:
+        - [toolips on github]()
+        - [issues]()
+        - [examples]()"""
+        if "/toolips" in c.routes
+            md_message = md_message * "\n- [your in-module server manager](/toolips)"
+        end
+        push!(content, tmd("maingreet", md_message))
     end
 
     write!(c, mainbod)

@@ -1,5 +1,19 @@
+#==
+map
+- identifiers
+- get/post requests
+- abstract routes
+- connections
+- routes
+- route! (router / route to)
+- extensions
+- server templates
+- exceptions
+- CLI
+- `start!`
+- router generator
+==#
 string(r::Vector{UInt8}) = String(UInt8.(r))
-
 
 abstract type Identifier end
 
@@ -17,6 +31,39 @@ string(ip::IP4) = begin
         "$(ip.ip):$(ip.port)"
     end
 end
+
+"""
+**Core**
+### get(url::String) -> ::String
+------------------
+Quick binding for an HTTP GET request.
+#### example
+```
+body = get("/")
+    "hi"
+```
+"""
+function get(url::String)
+    r = HTTP.request("GET", url)
+    string(r.body)::String
+end
+
+"""
+**Core**
+### post(url::String, body::String) -> ::String
+------------------
+Quick binding for an HTTP POST request.
+#### example
+```
+response = post("/")
+    "my response"
+```
+"""
+function post(url::String, body::String)
+    r = HTTP.request("POST", url, body = body)
+    string(r.body)::String
+end
+
 # connections
 """
 
@@ -33,6 +80,18 @@ dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
 - route!(c::AbstractConnection, **route::AbstractRoute**)
 """
 abstract type AbstractRoute end
+
+function in(t::String, v::Vector{<:AbstractRoute})
+    found = findfirst(x -> x.path == t, v)
+    if ~(isnothing(found))
+        return(true)::Bool
+    end
+    false::Bool
+end
+
+string(c::Vector{<:AbstractRoute}) = join([begin
+    r.path * "\n" 
+end for r in c])
 
 """
 ```julia
@@ -54,7 +113,7 @@ const Routes{T} = Vector{T} where T <: AbstractRoute
 
 """
 mutable struct Connection <: AbstractConnection
-    stream::HTTP.Stream
+    stream::Any
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
 end
@@ -66,13 +125,96 @@ mutable struct SpoofConnection <: AbstractConnection
     stream::String
     SpoofConnection() = new("")::SpoofConnection
 end
+write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream, join([string(args) for args in args]))
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
-write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream, join([string(args) for args in args]))
+# args
+function get_args(c::AbstractConnection)
+    fullpath = split(c.stream.message.target, '?')
+    if length(fullpath) > 1
+        fullpath = split(fullpath[2], "&")
+        return(Dict(begin 
+            p = split(p, "=")
+            Symbol(p[1]) => string(p[2]) 
+        end for p in fullpath))::Dict{Symbol, String}
+    end
+    Dict{Symbol, String}()::Dict{Symbol, String}
+end
 
-function show(io::IO, r::AbstractRoute)
-    println(r.path)
+function get_L(c::AbstractConnection)
+
+end
+
+function get_heading(c::AbstractConnection)
+
+end
+
+function get_ip(c::AbstractConnection)
+    str = c.stream.message["User-Agent"]
+    spl = split(str, "/")
+    ipstr = ""
+    [begin
+        if contains(sub, ".")
+            if length(findall(".", sub)) > 1
+                ipstr = split(sub, " ")[1]
+            end
+        end
+    end for sub in spl]
+    return(ipstr)
+end
+
+
+get_post(c::AbstractConnection) = string(read(c.stream))
+
+function download!(c::AbstractConnection, uri::String)
+    write(c.stream, HTTP.Response(200, body = read(uri, String)))
+end
+
+function proxy_pass!(c::AbstractConnection, url::String)
+    HTTP.get(url, response_stream = c.stream, status_exception = false)
+end
+
+startread!(c::AbstractConnection) = startread(c.stream)
+
+function get_route(c::AbstractConnection)
+    fullpath::String = c.stream.message.target
+    fullpath = string(split(fullpath, '?')[1])
+    fullpath
+end
+
+function get_method(c::AbstractConnection)
+    string(c.stream.message["Method"])::String
+end
+
+function get_host(c::AbstractConnection)
+    string(c.stream.message["Host"])::String
+end
+
+function get_parent(c::AbstractConnection)
+    string(c.stream.message.parent)
+end
+
+function get_client_system(c::AbstractConnection)
+    uri = c.stream.message["User-Agent"]
+    mobile = false
+    system = "Linux"
+    if contains(uri, "Windows")
+        system = "Windows"
+    elseif contains(uri, "OSX")
+        system = "OSX"
+    elseif contains(uri, "Android")
+        system = "Android"
+        mobile = true
+    elseif contains(uri, "IOS")
+        system = "IOS"
+        mobile = true
+    end
+    system, mobile
+end
+
+function respond!(c::AbstractConnection, code::Int64, body::String = "")
+    write(c.stream, HTTP.Response(code, body = body))
 end
 
 """
@@ -105,6 +247,10 @@ mutable struct Route{T <: AbstractConnection} <: AbstractRoute
         end
         new{rtype}(path, f)
     end
+end
+
+function show(io::IO, r::AbstractRoute)
+    println(r.path)
 end
 
 abstract type AbstractMultiRoute <: AbstractRoute end
@@ -185,51 +331,6 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
     end
 end
 
-# args
-function get_args(c::AbstractConnection)
-    fullpath = split(c.stream.message.target, '?')
-    if length(fullpath) > 2
-        fullpath = split(fullpath[2], "&")
-        return(Dict(Symbol(p[1]) => string(p[2]) for p in split(fullpath, "=")))::Dict{Symbol, String}
-    end
-    Dict{Symbol, String}()::Dict{Symbol, String}
-end
-
-function get_L(c::AbstractConnection)
-
-end
-
-function get_heading(c::AbstractConnection)
-
-end
-
-function get_ip(c::AbstractConnection)
-    str = c.stream.message["User-Agent"]
-    spl = split(str, "/")
-    ipstr = ""
-    [begin
-        if contains(sub, ".")
-            if length(findall(".", sub)) > 1
-                ipstr = split(sub, " ")[1]
-            end
-        end
-    end for sub in spl]
-    return(ipstr)
-end
-
-
-get_post(c::AbstractConnection) = string(read(c.stream))
-
-function download!(c::AbstractConnection, uri::String)
-    write(c.stream, HTTP.Response(200, body = read(uri, String)))
-end
-
-function proxy_pass!(c::AbstractConnection, url::String)
-    HTTP.get(url, response_stream = c.stream, status_exception = false)
-end
-
-startread!(c::AbstractConnection) = startread(c.stream)
-
 # extensions
 abstract type AbstractExtension end
 abstract type Extension{T <: Any} <: AbstractExtension end
@@ -280,42 +381,6 @@ end
 
 showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
 
-function get_route(c::AbstractConnection)
-    fullpath::String = c.stream.message.target
-    fullpath = string(split(fullpath, '?')[1])
-    fullpath
-end
-
-function get_method(c::AbstractConnection)
-    string(c.stream.message["Method"])::String
-end
-
-function get_host(c::AbstractConnection)
-    string(c.stream.message["Host"])::String
-end
-
-function get_parent(c::AbstractConnection)
-    string(c.stream.message.parent)
-end
-
-function get_client_system(c::AbstractConnection)
-    uri = c.stream.message["User-Agent"]
-    mobile = false
-    system = "Linux"
-    if contains(uri, "Windows")
-        system = "Windows"
-    elseif contains(uri, "OSX")
-        system = "OSX"
-    elseif contains(uri, "Android")
-        system = "Android"
-        mobile = true
-    elseif contains(uri, "IOS")
-        system = "IOS"
-        mobile = true
-    end
-    system, mobile
-end
-
 function ip4_cli(ARGS)
     IP = "127.0.0.1"
     PORT = 8000
@@ -338,23 +403,19 @@ end
 
 function start! end
 
-function start!(mod::Module = server_cli(Main.ARGS), ip4::IP4 = ip4_cli(Main.ARGS);  from::Type{<:ServerTemplate} = WebServer, 
-    router_threads::Int64 = 1, threads::Int64 = Threads.nthreads())
-    IP = Sockets.InetAddr(parse(IPAddr, ip4.ip), ip4.port)
+function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate} = WebServer; ip::IP4 = ip4_cli(Main.ARGS), 
+    router_threads::Int64 = 1, threads::Int64 = 1)
+    IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, router_threads)
     if router_threads == 1
         w = pm["$mod router"]
-        serve_router = @async HTTP.listen(routefunc, ip4.ip, ip4.port, server = server)
+        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
         w.task = serve_router
         w.active = true
         return(pm)::ProcessManager
     end
-end
-
-function respond!(c::AbstractConnection, code::Int64, body::String = "")
-    write(c.stream, HTTP.Response(code, body = body))
 end
 
 function generate_router(mod::Module, n_threads::Int64)
@@ -366,86 +427,44 @@ function generate_router(mod::Module, n_threads::Int64)
     end for x in server_ns]
     onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
     loaded = [t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen))]
+    logger_check = findfirst(t -> typeof(t) == Logger, loaded)
+    if isnothing(logger_check)
+        push!(loaded, Logger())
+    end
     routes = mod[AbstractRoute]
-    [on_start(ext, onlydata, routes) for ext in loaded]
+    if typeof(routes) <: Vector{Route{<:Any}}
+        routes = Vector{AbstractRoute}(routes)
+    end
+    data = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns)
+    [on_start(ext, data, routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
-    filter!(ext -> typeof(c) in allparams, loaded)
-    mod.data, mod.routes = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns), routes
-    # process manager Routing func
+    filter!(ext -> typeof(ext) in allparams, loaded)
+    # process manager Routing func (async)
     if n_threads == 1
         w = Worker{Async}("$mod router", rand(1000:3000))
         pman = ProcessManager(w)
-        mod.processes = pman
-        routeserver::Function = function serve(http::HTTP.Stream)
-            c::AbstractConnection = Connection(http, mod.data, mod.routes)
+        push!(data, :procs => pman)
+        mod.procman = pman
+        c::AbstractConnection = Connection(nothing, data, routes)
+        routeserver(http::HTTP.Stream) = begin
+            c.stream = http
             [route!(c, ext) for ext in loaded]
-            route!(c, routes)::Any
+            route!(c, c.routes)::Any
+            c.stream = nothing
         end
         return(routeserver, pman)
     end
+    # process manager Routing func (multi-thread)
+    pman = processes(n_threads)
+    mod.processes = pman
     routeserver = function serve_multi(http::HTTP.Stream)
-        c::AbstractConnection = Connection(http, mod.data, mod.routes)
-        [route!(c, ext) for ext in loaded]
-        route!(c, routes)::Any
+        c = Connection(http, data, routes)
+        jobs = vcat([new_job(route!, c, ext) for ext in loaded])
+        distribute!(pman, workerids, jobs ...)
+        assign_open!(pman, workerids, route!, c, routes)
     end
     return(routeserver, pman)
 end
 
-
-function in(t::String, v::Vector{<:AbstractRoute})
-    found = findfirst(x -> x.path == t, v)
-    if ~(isnothing(found))
-        return(true)::Bool
-    end
-    false::Bool
-end
-
-function show(io::IO, ts::ServerTemplate)
-    status::String = string(ts.server.status)
-    print("""$(typeof(ts))
-        hosted at: http://$(ts.host):$(ts.port)
-        status: $status
-        routes
-        $(string(ts.routes))
-        """)
-end
-
-string(c::Vector{<:AbstractRoute}) = join([begin
-    r.path * "\n" 
-end for r in c])
-
 display(ts::ServerTemplate) = show(ts)
-#==
-Requests
-==#
-"""
-**Core**
-### get(url::String) -> ::String
-------------------
-Quick binding for an HTTP GET request.
-#### example
-```
-body = get("/")
-    "hi"
-```
-"""
-function get(url::String)
-    r = HTTP.request("GET", url)
-    string(r.body)
-end
 
-"""
-**Core**
-### post(url::String, body::String) -> ::String
-------------------
-Quick binding for an HTTP POST request.
-#### example
-```
-response = post("/")
-    "my response"
-```
-"""
-function post(url::String, body::String)
-    r = HTTP.request("POST", url, body = body)
-    string(r.body)
-end

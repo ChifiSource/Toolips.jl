@@ -9,12 +9,14 @@
 
 </div>
 
-`toolips` is a **fast**, **asynchronous**, **low-memory**, **full-stack**, and **reactive** web-development framework **always** written in **pure** Julia. Here is Toolips.jl in a nutshell:
+`toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
 - **HTTPS capable** Can be deployed with SSL.
-- **Extensible** everything!
-- **Declarative** html *and* CSS templating syntax.
-- **Modular** servers. Toolips applications are **regular Julia Modules**.
-- **Versatilility**. toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
+- **Extensible** server platform.
+- **Declarative** and **composable** html *and* CSS templating syntax.
+- **Modular** servers -- toolips applications are **regular Julia Modules**.
+- **Versatilility** -- toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
+- **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target.
+- **Multi-threaded** -- *Declarative* [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl) using a [Distributed]()-based worker management system.
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -25,17 +27,11 @@ pkg> add Toolips
 ```
 ###### map
 - [get started](#get-started)
-  - [add toolips](#add-toolips)
-    - [main builds](#main-builds)
-    - [development builds](#development-build)
-  - [servers](#basics)
-    - [routing](#routing)
-    - [extensions](#extensions)
-  - [templating](#templating)
-    - [components]()
-    - [style components]()
-    - [files]()
+  - [overview](#overview)
   - [quick start](#quick-start)
+    - [documentation](#documentation)
+    - [overview](#overview)
+  - [examples](#examples)
     - [API](#api-example)
     - [Online form](#form-example)
     - [Blog](#blog-example)
@@ -44,22 +40,58 @@ pkg> add Toolips
     - [guidelines]()
     - [building extensions]()
 ---
+- **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
+#### get started
+`Toolips` is available in four different flavors:
+- Latest (main) -- The main working version of toolips.
+- LTS (#lts) -- Long term support.
+- stable (#stable) -- Faster, more frequent updates, stable -- but some new features are not fully implemented.
+- and Unstable (#Unstable) -- Latest updates, least stable.
+```julia
+using Pkg
+# Latest 
+Pkg.add("Toolips")
+Pkg.add("Toolips", rev = "lts")
+Pkg.add("Toolips", rev = "stable")
+Pkg.add("Toolips", rev = "Unstable")
+```
+Alternatively, you can add by version or last of version using an `x` revision.
+```julia
+using Pkg
+Pkg.add("Toolips", rev = "0.2.x")
+Pkg.add("Toolips", rev = "0.3.x")
+```
+##### quick start
+Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
+```julia
+using Toolips
+Toolips.new_app("ToolipsApp")
+```
+We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes `WebServer` and `ThreadedWebServer{N}`. The `WebServer` project is designed to give a moderate understanding of using `Toolips` in a single-threaded context, the `ThreadedWebServer` project is designed to familiarize you will utilizing threads in `Toolips` (as well as explain more about the [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl) distributed computing platform.
+```julia
 
-## get started
-### add toolips
-###### main builds
-###### development builds
-### servers
-###### routing
-###### extensions
-### templating
-###### components
-###### style components
-###### files
-## quick start
-##### api example
-##### form example
-##### blog example
-##### animated splash
-### contributing
-##### guidelines
+```
+###### documentation
+`Toolips` documentation is built into the `Toolips` `Module` itself. We can **export** the route `Toolips.toolips_doc` to load the `Toolips` documentation into our server, which we may then visit at `/doc` or use `start!(Toolips)` to view it.
+```julia
+using Toolips
+start!(Toolips)
+```
+The `Toolips` server will load 4 routes -- `default_404`, `toolips_app`, `toolips_doc`, and `default_landing`. We may *also* provide these as exports to our own server in order to load those routes.
+```julia
+module MyServer
+home = route("/") do c::Connection
+    write!(c, "hello world!")
+end
+```
+###### overview
+
+
+    
+
+
+#### examples
+###### blog example
+###### animated splash
+#### contributing
+###### guidelines

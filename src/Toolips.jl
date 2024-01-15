@@ -1,21 +1,66 @@
+#==
+map
+- imports
+- `Components`
+- helpful `Module` introspection dispatches.
+- includes/exports
+- default pages
+- project generation
+==#
+
 """
-#### toolips - a manic web-development framework
-- 0.3 January
-- Created in February, 2022 by [chifi](https://github.com/orgs/ChifiSource)
+#### toolips 0.3 - a manic web-development framework
+- Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
 
-Toolips is an extensible and declarative web-development platform built 
-atop the Julian paradigm of multiple dispatch.
-```example
+Toolips is an **extensible** and **declarative** web-development for julia.
 
+```example
+module MyServer
+using Toolips
+using Toolips.Components
+# import 
+# create a logger
+logger = Logger()
+
+# quick extension
+
+const people = Extension{:people}
+
+# mount difrectory "MyServer/public" to "/public"
+public = route("/public" => "public")
+
+# create a route
+main = route("/") do c::Connection
+
+end
+
+# multiroute
+
+# export routes
+export public
+
+# export extensions
+
+# export server data
+export people
+end # module
 ```
+####### provides
+- `new_app(name**::String, )`
 """
 module Toolips
 using Crayons
 using Sockets
+using Sockets: TCPServer
 using ToolipsServables
+using ParametricProcesses
+@everywhere using Toolips
+import ToolipsServables: write!
+import ToolipsServables: style!, set_children!
 using HTTP
 using Pkg
+using Markdown
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
@@ -47,10 +92,189 @@ function getindex(mod::Module, T::Function, args::Type ...)
 end
 
 include("core.jl")
+export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
-# Core
-export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!
-export get, post, proxy_pass!, get_route, getargs, get_host, get_parent
+
+function toolips_header(c::Connection)
+    bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
+    "padding" => 8px, "transition" => .6s, "margin" => 5px, "text-decoration" => "none", "cursor" => "pointer")
+    bttnsty:"hover":["border-color" => "orange", "border-radius" => 2px, "transform" => scale(1.1)]
+    write!(c, bttnsty)
+    if ~("/toolips03.png" in c.routes)
+        dir = @__DIR__
+        mount_r = mount("/toolips03.png" => dir * "/toolips03.png")
+        push!(c.routes, mount_r)
+    end
+    tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
+    style!(tltop, "margin-top" => 10per, "transition" => 900ms)
+    write!(c, DOCTYPE(), bttnsty)
+    tltop
+end
+
+default_landing = Toolips.route("/") do c::Connection
+    landerdiv = div("mainlander", align = "center")
+    tlheader = toolips_header(c)
+    style!(tlheader, "opacity" => 0perc, "transform" => translateY(20perc))
+    its_up = h2("itsup", text = "it's up!")
+    style!(its_up, "font-weight" => "bold", "font-color" => "darkgray", 
+    "opacity" => 0perc, "transition" => 1.5s)
+    welcometo = a("welcometo", text = "welcome to ")
+    tltext = a("too", text = "toolips!")
+    style!(welcometo, "font-size" => 12pt, "opacity" => 0per)
+    style!(tltext, "font-size" => 14pt, "font-weight" => "bold", "color" => "#6c7cac", "opacity" => 0per)
+    tlappbttn = a("tlapp_bttn", text = "toolips app introspector", onclick = "/toolips", class = "menbut",
+    href = "/toolips")
+    style!(tlappbttn, "border-bottom" => "3px solid #8c7cc4", "color" => "#8c7cc4", "opacity" => 0percent, "transition" => 2s, 
+    "transform" => translateX(30percent))
+    docsbttn = a("docs_bttn", text = "documentation", class = "menbut")
+    bod = body("mainbod")
+    style!(bod, "transition" => 1s)
+    on(docsbttn, "click") do cl
+        style!(cl, "mainbod", "opacity" => 0percent, "translateY" => -20percent)
+        next!(cl, bod) do cl2
+            redirect!(cl2, "/docs")
+        end
+    end
+    style!(docsbttn, "border-width" => 2px, "border-bottom" => "3px solid #6c7cac", "background" => "transparent", "color" => "#6c7cac", 
+    "opacity" => 0percent, "transition" => 2s, "transform" => translateX(30percent))
+    push!(landerdiv, tlheader, its_up, welcometo, tltext, br(),
+    tlappbttn, docsbttn)
+    loadscript = on("load") do cl
+        style!(cl, tlheader, "opacity" => 100perc, "transform" => translateY(0perc))
+        style!(cl, welcometo, "opacity" => 100perc, "transition" => 500ms)
+        style!(cl, its_up, "opacity" => 100perc, "transform" => translateX(0percent))
+        style!(cl, tltext, "opacity" => 100perc, "transition" => 500ms)
+        next!(cl, tlheader) do cl2
+            style!(cl2, tlappbttn, "opacity" => 100percent, "transform" => translateX(0perc))
+            style!(cl2, docsbttn, "opacity" => 100percent, "transform" => translateX(0perc))
+        end
+    end
+    push!(bod, loadscript)
+    push!(bod, landerdiv)
+    write!(c, bod)
+end
+
+function general_styles()
+    menu = Style("div.menu", "display" => "inline-block", "width" => 18perc, "left" => 0px, 
+    "height" => 100percent, "overflow-x" => "hidden", "overflow-y" => "scroll", "top" => 0perc,
+    "background-color" => "#8c7cc4", "position" => "absolute", "transition" => 650ms)
+    menuitem = Style("div.menuitem", "padding" => 4px, "background-color" => "#885baf", "color" => "white", 
+    "transition" => 500ms, "cursor" => "pointer")
+    menuitem:"hover":["transform" => "scale(1.02)", "border-left" => "3px solid white"]
+    menucontainer = Style("div.menucontainer", "padding" => 3perc, "background-color" => "#715db6")
+    pstyle = Style("p", "color" => "white", "font-size" => 13pt)
+    hstyle = Style("h1", "color" => "white", "font-size" => 22pt)
+    h2style = Style("h2", "color" => "lightgray", "font-size" => 20pt)
+    h3style = Style("h3", "color" => "#FF781F", "font-size" => 18pt)
+    h4style = Style("h4", "color" => "white", "font-size" => 15pt)
+    h5style = Style("h5", "color" => "#301934", "font-size" => 18pt)
+    h6style = Style("h6", "color" => "lightblue", "font-size" => 18pt)
+    astyle = Style("a", "background-color" => "#574a82", "color" => "white",
+    "font-size" => 13pt, "font-weight" => "bold", "font-decoration" => "none", "border-radius" => 2px,
+    "padding" => 6px, "transition" => 600ms)
+    menlabel = Style("a.menulabel", "color" => "white", "font-weight" => "bold", "font-size" => 17px, 
+    "background" => "transparent")
+    astyle:"hover":["transform" => scale(1.5perc), "color" => "#FF781F"]
+    scrollbars = Style("::-webkit-scrollbar", "width" => 14px)
+    scrtrack = Style("::-webkit-scrollbar-track", "background" => "transparent")
+    scrthumb = Style("::-webkit-scrollbar-thumb", "background" => "#715db6",
+    "border-radius" => "5px")
+    codestyle = Style("code", "color" => "#d8e8ef", "background-color" => "#0b0930", "font-size" => 11pt, 
+    "padding" => 3px, "border-radius" => 1px)
+    h6style = Style("pre", "background-color" => "#0b0930", "padding" => 10px, "border-radius" => 3px)
+    [menu, menuitem, menucontainer, pstyle, hstyle, h2style, h3style, h4style, h5style, h6style, 
+    codestyle, scrollbars, scrtrack, scrthumb, astyle, menlabel]
+end
+
+toolips_app = Toolips.route("/toolips") do c::Connection
+    write!(c, "route manager here")
+end
+
+function mod_docmenu(mod::Module)
+    options = [begin
+        opt = div("doc$mod$val", class = "menuitem", text = "$val")
+        on(opt, "click") do cl::ClientModifier
+            redirect!(cl, "/docs?get=$mod.$val")
+        end
+        opt
+    end for val in names(mod)]
+    mainframe = div("doc$mod", class = "menucontainer")
+    moddoc = a("label$mod", text = string(mod), class = "menulabel")
+    set_children!(mainframe, vcat(moddoc, options))
+    mainframe::Component{:div}
+end
+
+docmods = (Toolips, ToolipsServables)
+
+function doctmd()
+
+end
+
+toolips_doc = Toolips.route("/docs") do c::Connection
+    write!(c, general_styles())
+    args = get_args(c)
+    mds = Dict(Symbol(m) => m for m in docmods)
+    mainbod = body("docbody")
+    style!(mainbod, "overflow-x" => "hidden", "overflow-y" => "hidden")
+    docmenus = [mod_docmenu(mod) for mod in docmods]
+    menu = div("menu", class = "menu", children = docmenus)
+    content = div("content")
+    style!(content, "background-color" => "#8c7cc4", "display" => "inline-block", 
+    "position" => "absolute", "left" => 18perc, "height" => 90percent, "top" => 0perc, 
+    "padding" => 6perc, "padding-top" => 2perc, "overflow-x" => "wrap", "overflow-y" => "scroll", 
+    "transition" => 700ms)
+    push!(mainbod, menu, content)
+    if :get in keys(args)
+        style!(content, "width" => 70perc)
+        modf = split(args[:get], ".")
+        selectedmod = Symbol(modf[1])
+        @info selectedmod
+        if selectedmod in keys(mds)
+            @info "in keys"
+     #       try
+                reqdoc = getfield(mds[selectedmod], Symbol(modf[2]))
+                md = mds[selectedmod].eval(Meta.parse("@doc($reqdoc)"))
+                push!(content, tmd("$(modf[2])", string(md)))
+ #           catch
+  #              @info "catch hit"
+   #             # specific docs not found
+    #        end
+        else
+            # docs mod not found
+        end
+    else
+        # no documentation selected
+        style!(menu, "opacity" => 0percent, "width" => 0percent)
+        style!(content, "opacity" => 0percent, "width" => 0perc)
+        scr = on("load") do cl::ClientModifier
+            style!(cl, menu, "opacity" => 100perc, "width" => 18perc)
+            next!(cl, menu) do cl2
+                style!(cl2, content, "opacity" => 100perc, "width" => 70perc)
+            end
+        end
+        write!(c, scr)
+        md_message = """# toolips docs
+        welcome to the `Toolips` in-module documentation browser! **helpful links**:
+        - [toolips on github]()
+        - [issues]()
+        - [examples]()"""
+        if "/toolips" in c.routes
+            md_message = md_message * "\n- [your in-module server manager](/toolips)"
+        end
+        push!(content, tmd("maingreet", md_message))
+    end
+
+    write!(c, mainbod)
+    
+end
+
+default_404 = Toolips.route("404") do c::Connection
+    write!(c, toolips_header(c))
+end
+
+export default_landing, toolips_app, toolips_doc, default_404
+
 #==
 Project API
 ==#
@@ -87,17 +311,38 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     write(io, 
     """module $name
     using Toolips
+    # extensions
+    logger = Toolips.Logger()
 
     # routes
-    main = route("/") do cm::ComponentModifier
+    clients_served = 0
+    main = route("/") do c::Connection
+        clients_served += 1
+        log(logger, "served client #\$(clients_served)")
+        route!(c, "/page/path")
+    end
+
+    mobile = route("/") do c::Toolips.MobileConnection
 
     end
 
-    # `export` puts data, extensions, and routes into your server.
-    # extensions
-    export main, Toolips.default_404, Toolips.toolips
-    # routes
-    export Toolips.Logger()
+    otherpage = route("/page/path") do c::Connection
+        greeter = h2("maingreeting", text = "hello!")
+        curr_client = h3("clientn", text = "you are client number ...")
+        num = a("num", text = string(clients_served))
+    end
+
+    # multiroute
+    home = route(main, mobile)
+
+    # docs & api manager (/doc && /toolips)
+    api_man = toolips_app
+    docs = toolips_doc
+
+
+    export home, otherpage, default_404
+    export api_man, docs
+    export logger
     end # - module""")
     end
 end
@@ -108,11 +353,21 @@ new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Not
 ```
 ---
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
-from a `ServerTemplate`.
-#### example
-```
+from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
+templates are used as a base to start a server from, `WebServer` in this case just means TCPServer.
+##### example
+```example
 using Toolips
 Toolips.new_app("ToolipsApp")
+```
+```example
+using Toolips
+Toolips.new_app("ToolipsApp", Toolips.WebServer)
+```
+---
+- **see also:**
+```julia
+
 ```
 """
 function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
@@ -123,8 +378,8 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
         using Pkg; Pkg.activate(".")
         using Revise
         using Toolips
-
-        using $name; start!(name)
+        using $name
+        toolips_process = start!($name)
         """)
     end
 end

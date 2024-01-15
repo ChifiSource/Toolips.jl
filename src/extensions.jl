@@ -1,209 +1,99 @@
+#==
+map
+- additional connections
+- logger
+- files
+- component interpolation
+- Modifier/ClientModifier
+- TransitionStack
+==#
 mutable struct MobileConnection <: AbstractConnection
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+end
+
+function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
+    get_client_system(c)[2]
+end
+
+function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection
 
 end
 
-function convert(c::Connection, into::Type{MobileConnection})
-    false
+mutable struct ThreadedConnection{N} <: AbstractConnection
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+    assigned::Vector{Int64}
 end
 
-abstract type ThreadedRoute <: AbstractRoute end
-
-
-route(r::Pair{<:Number, Route} ...; workers::Int64 = 2) = begin
-
-end
-#==
-"""
-"""
-route!(c::AbstractConnection, r::AbstractMultiRoute) = begin
-    mainroute = nothing
-    ts = [begin 
-        if typeof(rout) != Route{Connection} && typeof(rout) != Route 
-            typeof(rout).parameters[1]
-            if typeof(convert) <: AbstractConnection
-     #           findfirst(s -> )
-                return(r.routes)
-            end
-        else
-            mainroute = rout
-        end
-    for rout in r]
-end
-==#
-toolips_app = route("/") do c::Connection
-    write!(c, "new toolips app incoming ...")
+function convert(c::Connection, routes::Routes, into::Type{ThreadedConnection})
+    true
 end
 
-default_404 = route("404") do c::Connection
-    write!(c, "404")
-end
-#==
-"""
-##### field info
-- type::Symbol - The type of server extension -- in this case, Connection.
-- out::String - Logfile output directory.
-- log(level::Int64, message::String) - Logs the message at the provided level.
-- log(message::String) - Logs the message at level 1.
-- log(c::Connection, message::String) - Logs to level one and to JavaScript
-console.
-- levels::Dict - A {Any, Crayon} dict that contains all of the crayons for the
-logger. Also contains two special crayons under the keys :time_crayon and
-:message_crayon
-- prefix::String - The prefix to write before the message.
-- timeformat::String - A string representing DT format, must be able to be
-passed through the datetime_str macro from Dates.
-- writeat::Int64 - The log level to write to out at.
-------------------
-##### constructors
-Logger(levels::Dict{level_count::Int64 => crayon::Crayons.Crayon};
-                    out::String = pwd() * "logs/log.txt")
-Logger(; out::String = pwd() * "/logs/log.txt")
-"""
-mutable struct Logger
-    type::Symbol
-    out::String
-    levels::Dict
-    log::Function
-    prefix::String
-    timeformat::String
-    writeat::Int64
-    function Logger(levels::Dict{Any, Crayon} = Dict(
-    1 => Crayon(foreground = :light_cyan),
-    2 => Crayon(foreground = :light_yellow),
-    3 => Crayon(foreground = :yellow, bold = true),
-    4 => Crayon(foreground = :red, bold = true),
-    :time_crayon => Crayon(foreground = :magenta, bold = true),
-     :message_crayon => Crayon(foreground  = :light_blue, bold = true)
-    );
-    out::String = pwd() * "/logs/log.txt", prefix::String = "🌷 toolips> ",
-                    timeformat::String = "YYYY:mm:dd:HH:MM", writeat::Int64 = 2)
-
-        log(level::Int64, message::String) = _log(level, message, levels, out,
-                                                prefix, timeformat, writeat)
-        log(message::String) = _log(1, message, levels, out, prefix, timeformat,
-        writeat)
-        log(c::Connection, message::String) = _log(c, message)
-        # These bindings are left open-ended for extending via
-                                            # import Toolips._log
-        log(level::Int64, message::Any) = _log(level, a, levels, out, prefix,
-                                            timeformat)
-        new(:connection, out::String, levels::Dict, log::Function,
-                    prefix::String, timeformat::String, writeat::Int64)::Logger
+function convert!(c::Connection, routes::Routes, into::Type{ThreadedConnection})
+    if length(into.parameters) < 1
+        throw("a ThreadedConnection requires a type parameter.")
     end
+    r = c.routes[get_target(c)]
+    assigned_workers = 
+    ThreadedConnection(c.stream, c.data, c.routes, assigned)
 end
-
-"""
-**Extensions**
-### _log(level::Int64, message::String, levels::Dict, out::String) -> _
-------------------
-Binded call for the field log() inside of Logger(). See ?(Logger) for more
-    details on the field log. All arguments are fields of that type. Return is a
-    printout into the REPL as well as an append to the log file, provided by the
-    out URI.
-------------------
-### example (Closure from Logger)
-```
-log(level::Int64, message::String) = _log(level, message, levels, out)
-log(message::String) = _log(1, message, levels, out)
-```
-"""
-function _log(level::Int64, message::String, levels::Dict, out::String,
-    prefix::String, timeformat::String, writeat::Int64)
-    time = Dates.format(now(), Dates.DateFormat("$timeformat"))
-    if writeat > 0 && level >= writeat
-        if isfile(out)
-            open(out, "a") do o
-                write(o, "[" * string(time) * "]: $message\n")
-                touch(out)
-                write(o, "[" * string(time) * "]: $message\n")
-            end
-            show_log(level, message, levels,
-            prefix, time)
-        else
-            show_log(1, "$out not in current working directory.", levels,
-            prefix, time)
-            show_log(1, message, levels,
-            prefix, time)
-        end
-    else
-        show_log(level, message, levels,
-        prefix, time)
-    end
-end
-==#
 
 mutable struct Logger <: AbstractExtension
+    crayons::Vector{Crayon}
+    prefix::String
+    write::Bool
+    writeat::Int64
+    prefix_crayon::Crayon
+    function Logger(prefix::String = "🌷 toolips> ", crayons::Crayon ...; dir::String = "logs.txt",
+        write::Bool = false, writeat::Int64 = 3, prefix_crayon = Crayon(foreground  = :blue, bold = true))
+        if write && ~(isfile(dir))
+            try
+                touch(dir)
+            catch
+                throw("Logger tried to make log file \"$dir\", but could not.")
+            end
+        end
+        if length(crayons) < 1
+            crayons = [Crayon(foreground  = :light_blue, bold = true)]
+        end
+        new([crayon for crayon in crayons], prefix, write, writeat, prefix_crayon)
+    end
+end
+
+function on_start(ext::Logger, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    println("hello world")
+end
+
+function log(l::Logger, message::String, at::Int64 = 1)
 
 end
 
-function route!(c::AbstractConnection, e::Logger)
-    println("hello")
+log!(c::AbstractConnection, message::String, at::Int64 = 1) = log!(c[:logger], message, at)
+
+mutable struct AbstractFileRoute <: AbstractRoute end
+
+function show!(c::Connection, plot::Any, mime::MIME{<:Any} = MIME"text/html"())
+    plot_div::Component{<:Any}
+    data::String = String(io.data)
+    data = replace(data,
+     """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n""" => "")
+    plot_div[:text] = data
 end
 
-on_start(mod::Module, ext::Logger) = begin
-    println("HELLO")
+function mount(fpair::Pair{String, String})
+    fpath = fpair[2]
+    target = fpair[1]
+    if ~(isdir(fpath))
+        return(route(c::Connection -> write!(c, File(fpath)), target))::Route{Connection}
+    end
+    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]
 end
 
-# html interpolation
-string(f::Components.File{:html}) = begin
-    rawfile = read(path(f), String)    
-end
-
-function write!(c::AbstractConnection, f::File{:html}, args::AbstractComponent ...; keyargs ...)
-
-end
-#==
-"""
-**Extensions**
-### show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
-                prefix::String, time::Any)
-------------------
-Prints a log to the screen.
-#### example
-```
-show_log(1, "hello!", levels, "toolips> ", now()
-
-[2022:05:23:22:01] toolips> hello!
-```
-"""
-function show_log(level::Int64, message::String, levels::Dict{Any, Crayon},
-    prefix::String, time::Any)
-    print(Crayon(foreground = :light_gray, bold = true), "[")
-    print(levels[:time_crayon], string(time))
-    print(Crayon(foreground = :light_gray, bold = true), "]: ")
-    print(levels[:message_crayon], prefix)
-    print(levels[level], message, "\n", Crayon(foreground = :blue))
-end
-
-"""
-**Extensions**
-### _log(http::HTTP.Stream, message::String) -> _
-------------------
-Binded call for the field log() inside of Logger(). This will log both to the
-    JavaScript/HTML console.
-------------------
-### example (Closure from Logger)
-```
-log(http::HTTP.Stream, message::String) = _log(http, message)
-```
-"""
-function _log(c::Connection, message::String)
-    write!(c, "<script>console.log('" * message * "');</script>")
-end
-
-
-"""
-**Extensions**
-### route_from_dir(dir::String) -> ::Vector{String}
-------------------
-Recursively appends filenames for a directory AND all subsequent directories.
-------------------
-### example
-```
-x::Vector{String} = route_from_dir("mypath")
-```
-"""
-function route_from_dir(dir::String)
+function route_from_dir(path::String)
     dirs::Vector{String} = readdir(dir)
     routes::Vector{String} = []
     [begin
@@ -220,45 +110,220 @@ function route_from_dir(dir::String)
     routes::Vector{String}
 end
 
-module Files
-    import Toolips: on_start
-    function on_start(mod::Module, ext::Extension{Files})
-
-    end
-    function load!(ext::{Files}) end
-    export load!
+function tmd(name::String = "markdown", s::String = "", p::Pair{String, <:Any} ...;
+    args ...)
+     mddiv::Component{:div} = div(name, p ..., args ...)
+    md = Markdown.parse(replace(s, "<" => "", ">" => "", "\"" => ""))
+    htm::String = html(md)
+    mddiv[:text] = htm
+    mddiv::Component{:div}
 end
 
 """
-### Files <: ServerExtension
-- type::Symbol
-- directory::String
-- f::Function -
-Writes all files in directory to their own routes in the server.
-------------------
-##### field info
-- type::Symbol - The type of extension. There are three different selections
-you can choose from. **:connection :routing :func**. A :connection extension
-will be provided in Connection.extensions. A :routing function is passed a
-Dict of routes as an argument. The last is a function argument, which is just a
-specific function to run from the top-end to the server.
-- directory::String - The directory to route the files from.
-- f::Function - The function f() called with a Connection.
-------------------
-##### constructors
-Files(dir::String)
+
 """
-mutable struct Files
-    type::Symbol
-    directory::String
-    f::Function
-    function Files(directory::String = "public")
-            l = length(directory) + 1
-            for path in route_from_dir(directory)
-                push!(r, Route(path[l:length(path)],
-                c::Connection -> write!(c, File(path))))
-            end
-        new(:routing, directory, f)
+abstract type Modifier <: Servable end
+abstract type AbstractComponentModifier <: Modifier end
+
+setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
+    if typeof(s) <: AbstractComponent
+        s = s.name
+    end
+    key, val = p[1], p[2]
+    push!(cm.changes,
+    "document.getElementById('$s').setAttribute('$key','$val');")
+end
+
+
+function set_textdiv_caret!(cm::AbstractComponentModifier,
+    txtd::Component{:div},
+    char::Int64)
+    push!(cm.changes, "setCurrentCursorPosition$(txtd.name)($char);")
+end
+
+function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})
+    firstname = p[1]
+    secondname = p[2]
+    if firstname <: AbstractComponent
+        firstname = firstname.name
+    end
+    if secondname <: AbstractComponent
+        secondname = secondname.name
+    end
+    push!(cm.changes, "
+    document.getElementById('$firstname').appendChild(
+    document.getElementById('$secondname')
+  );
+  ")
+end
+
+function remove!(cm::AbstractComponentModifier, s::Any)
+    if s <: AbstractComponent
+        s = s.name
+    end
+    push!(cm.changes, "document.getElementById('$s').remove();")
+end
+
+function set_text!(c::Modifier, s::Any, txt::String)
+    if s <: AbstractComponent
+        s = s.name
+    end
+    txt = replace(txt, "`" => "\\`")
+    txt = replace(txt, "\"" => "\\\"")
+    txt = replace(txt, "''" => "\\'")
+    push!(c.changes, "document.getElementById('$s').innerHTML = `$txt`;")
+end
+
+function set_children!(cm::AbstractComponentModifier, s::Any, v::Vector{Servable})
+    if typeof(s) <: AbstractComponent
+        s = s.name
+    end
+    set_text!(cm, s, join([string(serv) for serv in v]))
+end
+
+function append!(cm::AbstractComponentModifier, name::Any, child::Servable)
+    if typeof(name) <: AbstractComponent
+       name = name.name
+    end
+    txt = replace(string(child), "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
+    push!(cm.changes, "document.getElementById('$name').appendChild(document.createRange().createContextualFragment(`$txt`));")
+end
+
+function insert!(cm::AbstractComponentModifier, name::String, i::Int64, child::Servable)
+    spoofconn = Toolips.SpoofConnection()
+    write!(spoofconn, child)
+    txt = replace(spoofconn.http.text, "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
+    push!(cm.changes, "document.getElementById('$name').insertBefore(document.createRange().createContextualFragment(`$txt`), document.getElementById('$name').children[$(i - 1)]);")
+end
+
+function sleep!(cm::AbstractComponentModifier, time::Int64)
+    push!(cm.changes, "await new Promise(r => setTimeout(r, $time));")
+end
+
+function style!(cc::Modifier, name::Any,  sname::Style)
+    sname = sname.name
+    if typeof(name) <: AbstractComponent
+        name = name.name
+    end
+    push!(cc.changes, "document.getElementById('$name').className = '$sname';")
+end
+
+function style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, String} ...)
+    if typeof(name) <: AbstractComponent
+        name = name.name
+    end
+    push!(cm.changes,
+        join(("document.getElementById('$name').style['$(p[1])'] = '$(p[2])';" for p in sty)))
+end
+
+function set_style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, String} ...)
+    sstring = join(["$(p[1]):$(p[2])" for p in sty], ";")
+    if typeof(name) <: AbstractComponent
+        name = name.name
+    end
+    push!(cm.changes, "document.getElementById('$name').style = '$sstring'")
+end
+
+write!(c::Connection, ac::AbstractComponentModifier) = write!(c, join(ac.changes))
+
+abstract type AbstractClientModifier <: AbstractComponentModifier end
+
+function gen_ref(n::Int64 = 16)
+    sampler = "iokrtshgjiosjbisjgiretwshgjbrthrthjtyjtykjkbnvjasdpxijvjr"
+    samps = [rand(1:length(sampler)) for i in 1:n]
+    join([sampler[samp] for samp in samps])
+end
+
+
+mutable struct ClientModifier <: AbstractClientModifier
+    name::String
+    changes::Vector{String}
+    ClientModifier(name::String = gen_ref()) = begin
+        new(name, Vector{String}())::ClientModifier
     end
 end
-==#
+
+setindex!(cm::AbstractClientModifier, t::Tuple{String, String, String}) = begin
+    push!(cm.changes, "")
+end
+
+write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
+
+function funccl(cm::ClientModifier = ClientModifier(), name::String = cm.name)
+    """function $(name)(event){$(join(cm.changes))}"""
+end
+
+alert!(cm::AbstractComponentModifier, s::AbstractString) = push!(cm.changes,
+        "alert('$s');")
+
+function focus!(cm::AbstractComponentModifier, name::String)
+    push!(cm.changes, "document.getElementById('$name').focus();")
+end
+
+function blur!(cm::AbstractComponentModifier, name::String)
+    push!(cm.changes, "document.getElementById('$name').blur();")
+end
+
+function redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0)
+    push!(cm.changes, """setTimeout(
+    function () {window.location.href = "$url";}, $delay);""")
+end
+
+function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
+    if typeof(comp) <: AbstractComponent
+        comp = comp.name
+    end
+    newcl = ClientModifier()
+    f(newcl)
+    fcl = funccl(newcl)
+    push!(cl.changes,
+    "document.getElementById('$comp').addEventListener('transitionend', $fcl);")
+end
+
+function update!(cm::AbstractComponentModifier, ppane::AbstractComponent, plot::Any)
+    io::IOBuffer = IOBuffer();
+    show(io, "text/html", plot)
+    data::String = String(io.data)
+    data = replace(data,
+     """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n""" => "")
+    set_text!(cm, ppane.name, data)
+end
+
+function update_base64!(cm::AbstractComponentModifier, name::String, raw::Any,
+    filetype::String = "png")
+    io = IOBuffer();
+    b64 = ToolipsServables.Base64.Base64EncodePipe(io)
+    show(b64, "image/$filetype", raw)
+    close(b64)
+    mysrc = String(io.data)
+    cm[name] = "src" => "data:image/$filetype;base64," * mysrc
+end
+
+transitions!(cm::AbstractComponentModifier, comp::Any, p::Pair{String, Tuple} ...) = begin
+    if comp <: AbstractComponent
+        comp = comp.name
+    end
+    style!(cm, comp, "transition" => p[1][1], p[1][2] ...)
+    if length(p) < 2
+        return
+    end
+    [begin
+        next!(cm, comp) do cl::ClientModifier
+            style!(cm, comp, "transition" => trans_sty[1], trans_sty[2] ...)
+        end
+    end for trans_sty in p[2:length(p)]]
+    return
+end
+
+function on(f::Function, component::Component{<:Any}, event::String)
+    cl = ClientModifier("$(component.name)$(event)")
+    f(cl)
+    component["on$event"] = "$(cl.name)(event);"
+    push!(component[:extras], script(cl.name, text = funccl(cl)))
+end
+
+function on(f::Function, event::String)
+    cl = ClientModifier(); f(cl)
+    scrpt = """addEventListener("$event", $(funccl(cl)));"""
+    script("doc$event", text = scrpt)
+end

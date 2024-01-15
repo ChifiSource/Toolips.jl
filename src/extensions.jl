@@ -7,7 +7,6 @@ map
 - Modifier/ClientModifier
 - TransitionStack
 ==#
-
 mutable struct MobileConnection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
@@ -20,6 +19,7 @@ end
 
 function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
+
 end
 
 mutable struct ThreadedConnection{N} <: AbstractConnection

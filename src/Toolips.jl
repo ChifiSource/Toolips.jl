@@ -96,7 +96,6 @@ export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!,
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
 
-
 function toolips_header(c::Connection)
     bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
     "padding" => 8px, "transition" => .6s, "margin" => 5px, "text-decoration" => "none", "cursor" => "pointer")

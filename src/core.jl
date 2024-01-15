@@ -260,6 +260,7 @@ mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
     routes::Vector{T}
     function MultiRoute{T}(path::String, routes::Vector{<:Any}) where {T <: AbstractRoute}
         new{T}()
+
     end
     function MultiRoute(r::Route ...)
         new{Route}(r[1].path, [rout for rout in r])
@@ -270,8 +271,11 @@ end
 """
 function route end
 
+
 function convert(c::AbstractConnection, vec::Vector{<:AbstractRoute}, 
     c2::Type{<:AbstractConnection})
+=======
+function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
     false
 end
 
@@ -280,10 +284,16 @@ route(f::Function, r::String) = begin
 end
 
 route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
+=======
+route(r::Route ...) = begin
+    
+end
+
 
 """
 """
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
+
 
 function route!(c::Connection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
@@ -308,6 +318,17 @@ end
 
 function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
     met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
+function route!(c::Connection, tr::Vector{AbstractRoute})
+    target::String = get_target(c)
+    if target in tr
+        route!(c, vec[target])
+    else
+        throw("Route not found!")
+    end
+end
+
+function route!(c::AbstractConnection, r::AbstractMultiRoute)
+    met = findfirst(r -> convert(c, typeof(r).parameters[1]), r.routes)
     if isnothing(met)
         default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
         if ~(isnothing(default))
@@ -320,6 +341,8 @@ function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
     selected = r.routes[met]
     c = convert!(c, vec, typeof(selected).parameters[1])
     r.routes[met].page(c)
+    end
+    c.routes[met].page(c)
 end
 
 

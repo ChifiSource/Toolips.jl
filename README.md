@@ -27,18 +27,13 @@ pkg> add Toolips
 ```
 ###### map
 - [get started](#get-started)
-  - [overview](#overview)
   - [quick start](#quick-start)
     - [documentation](#documentation)
     - [overview](#overview)
-  - [examples](#examples)
-    - [API](#api-example)
-    - [Online form](#form-example)
-    - [Blog](#blog-example)
-    - [Animated splash](#animated-example)
+    - [examples](#examples)
   - [contributing]()
     - [guidelines]()
-    - [building extensions]()
+    - [contributing guidelines]()
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
 #### get started
@@ -85,6 +80,10 @@ home = route("/") do c::Connection
 end
 ```
 ###### overview
+###### examples
+
+### contributing
+###### contributing guidelines
 
 
     

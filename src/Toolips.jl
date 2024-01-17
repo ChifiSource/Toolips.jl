@@ -55,7 +55,6 @@ using Sockets
 using Sockets: TCPServer
 using ToolipsServables
 using ParametricProcesses
-@everywhere using Toolips
 import ToolipsServables: write!
 import ToolipsServables: style!, set_children!
 using HTTP
@@ -64,7 +63,7 @@ using Markdown
 using ParseNotEval
 using Dates
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, read
+import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
 
 const Components = ToolipsServables
 
@@ -95,6 +94,7 @@ include("core.jl")
 export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
+
 
 function toolips_header(c::Connection)
     bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
@@ -187,13 +187,46 @@ function general_styles()
     codestyle, scrollbars, scrtrack, scrthumb, astyle, menlabel]
 end
 
+function build_servermenu(mod::Module)
+    allfields = [getfield(mod, name) for name in names(mod)]
+    routes = filter(a -> typeof(a) <: AbstractRoute, allfields)
+end
+
 toolips_app = Toolips.route("/toolips") do c::Connection
-    write!(c, "route manager here")
+    write!(c, general_styles())
+    mainbod = body("main", align = "center")
+    menu = div("menu", align = "center")
+    style!(menu, "background-color" => "#715db6", "padding" => 7px, "width" => 16percent, 
+    "border-radius" => 2px)
+    style!(mainbod, "transition" => 800ms, "overflow" => "hidden")
+    args = get_args(c)
+    if :server in keys(args)
+
+    else
+        scr = on("load") do cl::ClientModifier
+            style!(cl, mainbod, "background-color" => "#4f2e6b")
+        end
+        write!(c, scr)
+    end
+    # build menu
+    procman = c[:procs]
+    menitems = [begin 
+        if contains(w.name, "router")
+            servname = split(w.name, " ")[1]
+           div(string(servname), text = "server $servname", class = "menuitem") 
+        else
+            div(gen_ref(), text = w.name, class = "menuitem") 
+        end
+    end for w in procman.workers]
+    set_children!(menu, menitems)
+    push!(mainbod, menu)
+    write!(c, mainbod)
 end
 
 function mod_docmenu(mod::Module)
     options = [begin
-        opt = div("doc$mod$val", class = "menuitem", text = "$val")
+        safename = replace(string(val), "!" => "")
+        opt = div("doc$mod$safename", class = "menuitem", text = "$val")
         on(opt, "click") do cl::ClientModifier
             redirect!(cl, "/docs?get=$mod.$val")
         end
@@ -205,10 +238,27 @@ function mod_docmenu(mod::Module)
     mainframe::Component{:div}
 end
 
-docmods = (Toolips, ToolipsServables)
+docmods = [Toolips, ToolipsServables]
 
-function doctmd()
-
+function make_searchbar(text::String)
+    scontainer = div("searchcontainer")
+    style!(scontainer, "background" => "transparent", 
+    "position" => "absolute", "left" => 18perc, "top" => 0perc, "width" => 70perc, "z-index" => "10")
+    sbar = a("searchbar", text = "enter search ...", contenteditable = true)
+    barstyle = ("padding" => 5px, "border-radius" => 1px, "background-color" => "#0b0930", "color" => "white", 
+    "font-weight" => "bold", "font-size" => 15pt)
+    style!(sbar, "width" => 40percent, barstyle ...)
+    sbutton = button("sbutton", text = "search")
+    style!(sbutton, barstyle ...)
+    on(sbar, "click") do cl
+        set_text!(cl, sbar, "")
+    end
+    on(sbutton, "click") do cl
+        proptext = get_text(cl, "searchbar")
+        redirect_args!(cl, "/docs", :search => proptext)
+    end
+    push!(scontainer, sbar, sbutton)
+    scontainer
 end
 
 toolips_doc = Toolips.route("/docs") do c::Connection
@@ -218,6 +268,8 @@ toolips_doc = Toolips.route("/docs") do c::Connection
     mainbod = body("docbody")
     style!(mainbod, "overflow-x" => "hidden", "overflow-y" => "hidden")
     docmenus = [mod_docmenu(mod) for mod in docmods]
+    searchbar = make_searchbar("")
+    push!(mainbod, searchbar)
     menu = div("menu", class = "menu", children = docmenus)
     content = div("content")
     style!(content, "background-color" => "#8c7cc4", "display" => "inline-block", 
@@ -229,28 +281,50 @@ toolips_doc = Toolips.route("/docs") do c::Connection
         style!(content, "width" => 70perc)
         modf = split(args[:get], ".")
         selectedmod = Symbol(modf[1])
-        @info selectedmod
         if selectedmod in keys(mds)
-            @info "in keys"
-     #       try
+            try
                 reqdoc = getfield(mds[selectedmod], Symbol(modf[2]))
                 md = mds[selectedmod].eval(Meta.parse("@doc($reqdoc)"))
                 push!(content, tmd("$(modf[2])", string(md)))
- #           catch
-  #              @info "catch hit"
-   #             # specific docs not found
-    #        end
+            catch
+                @info "catch hit"
+               #  specific docs not found
+               write!(c, modf[2])
+               return
+            end
         else
             # docs mod not found
         end
+    elseif :search in keys(args)
+        requested = args[:search]
+        allnames = vcat([["$(mod).$(name)" for name in names(mod)] for mod in docmods] ...)
+        results = findall(x::String -> contains(x, requested), allnames)
+        style!(content, "width" => 70perc)
+        resultheading = h1("results", text = "search results")
+        items = [begin
+            val = allnames[val]
+            safename = replace(string(val), "!" => "", "." => "")
+            opt = div("doc$safename", class = "menuitem", text = "$val")
+            on(opt, "click") do cl::ClientModifier
+                redirect!(cl, "/docs?get=$(val)")
+            end
+            opt
+        end for val in results]
+        push!(content, resultheading, items ...)
+        
     else
         # no documentation selected
+        style!(searchbar, "opacity" => 0percent, "transform" => translateY(-10perc), 
+        "transition" => 2s)
         style!(menu, "opacity" => 0percent, "width" => 0percent)
         style!(content, "opacity" => 0percent, "width" => 0perc)
         scr = on("load") do cl::ClientModifier
             style!(cl, menu, "opacity" => 100perc, "width" => 18perc)
             next!(cl, menu) do cl2
                 style!(cl2, content, "opacity" => 100perc, "width" => 70perc)
+                next!(cl2, content) do cl3
+                    style!(cl3, searchbar, "transform" => translateY(0perc), "opacity" => 100percent)
+                end
             end
         end
         write!(c, scr)
@@ -264,9 +338,7 @@ toolips_doc = Toolips.route("/docs") do c::Connection
         end
         push!(content, tmd("maingreet", md_message))
     end
-
     write!(c, mainbod)
-    
 end
 
 default_404 = Toolips.route("404") do c::Connection

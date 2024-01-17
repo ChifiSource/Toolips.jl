@@ -7,6 +7,7 @@ map
 - Modifier/ClientModifier
 - TransitionStack
 ==#
+
 mutable struct MobileConnection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
@@ -19,7 +20,6 @@ end
 
 function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
-
 end
 
 mutable struct ThreadedConnection{N} <: AbstractConnection
@@ -158,15 +158,19 @@ function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})
 end
 
 function remove!(cm::AbstractComponentModifier, s::Any)
-    if s <: AbstractComponent
+    if typeof(s) <: AbstractComponent
         s = s.name
     end
     push!(cm.changes, "document.getElementById('$s').remove();")
 end
 
-function set_text!(c::Modifier, s::Any, txt::String)
-    if s <: AbstractComponent
+function set_text!(c::Modifier, s::Any, txt::Any)
+    if typeof(s) <: AbstractComponent
         s = s.name
+    end
+    if typeof(txt) <: AbstractComponent
+        push!(c.changes, "document.getElementById('$s').innerHTML = $(txt.name);")
+       return 
     end
     txt = replace(txt, "`" => "\\`")
     txt = replace(txt, "\"" => "\\\"")
@@ -230,8 +234,8 @@ abstract type AbstractClientModifier <: AbstractComponentModifier end
 
 function gen_ref(n::Int64 = 16)
     sampler = "iokrtshgjiosjbisjgiretwshgjbrthrthjtyjtykjkbnvjasdpxijvjr"
-    samps = [rand(1:length(sampler)) for i in 1:n]
-    join([sampler[samp] for samp in samps])
+    samps = (rand(1:length(sampler)) for i in 1:n)
+    join(sampler[samp] for samp in samps)
 end
 
 
@@ -243,8 +247,12 @@ mutable struct ClientModifier <: AbstractClientModifier
     end
 end
 
-setindex!(cm::AbstractClientModifier, t::Tuple{String, String, String}) = begin
-    push!(cm.changes, "")
+function get_text(cl::AbstractClientModifier, name::String)
+    Component{:property}("document.getElementById('$name').textContent")
+end
+
+setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
+    push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
 end
 
 write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
@@ -267,6 +275,13 @@ end
 function redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0)
     push!(cm.changes, """setTimeout(
     function () {window.location.href = "$url";}, $delay);""")
+end
+
+function redirect_args!(cm::AbstractClientModifier, url::AbstractString, with::Pair{Symbol, Component{:property}} ...; 
+    delay::Int64 = 0)
+    args = join(("'$(w[1])=' + $(w[2].name)" for w in with), " + ")
+    push!(cm.changes, """setTimeout(
+    function () {window.location.href = "$url" + "?" + $args;}, $delay);""")
 end
 
 function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
@@ -326,4 +341,15 @@ function on(f::Function, event::String)
     cl = ClientModifier(); f(cl)
     scrpt = """addEventListener("$event", $(funccl(cl)));"""
     script("doc$event", text = scrpt)
+end
+
+function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down)
+    eventstr::String = join(" event.$(event)Key && " for event in eventkeys)
+    cl = ClientModifier()
+    f(cl)
+    script(cl.name, text = """addEventListener('key$on', function(event) {
+            if ($eventstr event.key == "$(key)") {
+            $(join(cl.changes))
+            }
+            });""")
 end

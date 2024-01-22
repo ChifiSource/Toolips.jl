@@ -67,7 +67,7 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
 
 const Components = ToolipsServables
 
-export Components
+export Components, distribute!, assign!
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
 end
@@ -88,6 +88,24 @@ function getindex(mod::Module, T::Function, args::Type ...)
 
     end for m in ms]
     [arguments]
+end
+
+function show(io::IO, pm::ProcessManager)
+    headers = ["pid", "process type", "name", "active"]
+    
+    # Generate a Markdown table header
+    md = """
+    $(join(headers, "|"))
+    $(join(fill("----", length(headers)), "|"))
+    """
+    
+    # Generate Markdown table rows
+    for worker in pm.workers
+        row = [string(worker.pid), string(typeof(worker).parameters[1]), worker.name, string(worker.active)]
+        md *= join(row, "|") * "\n"
+    end
+    
+    display(Markdown.parse(md))
 end
 
 include("core.jl")
@@ -387,9 +405,9 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     logger = Toolips.Logger()
 
     # routes
-    clients_served = 0
+    clients = 0
     main = route("/") do c::Connection
-        clients_served += 1
+        c[:clients] += 1
         log(logger, "served client #\$(clients_served)")
         route!(c, "/page/path")
     end
@@ -412,7 +430,7 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     docs = toolips_doc
 
 
-    export home, otherpage, default_404
+    export home, otherpage, default_404, clients
     export api_man, docs
     export logger
     end # - module""")

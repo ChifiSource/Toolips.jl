@@ -22,24 +22,24 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 
-mutable struct ThreadedConnection{N} <: AbstractConnection
+mutable struct WorkerConnection{N} <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
     assigned::Vector{Int64}
 end
 
-function convert(c::Connection, routes::Routes, into::Type{ThreadedConnection})
+function convert(c::Connection, routes::Routes, into::Type{WorkerConnection})
     true
 end
 
-function convert!(c::Connection, routes::Routes, into::Type{ThreadedConnection})
+function convert!(c::Connection, routes::Routes, into::Type{WorkerConnection})
     if length(into.parameters) < 1
-        throw("a ThreadedConnection requires a type parameter.")
+        throw("a WorkerConnection requires a type parameter.")
     end
     r = c.routes[get_target(c)]
-    assigned_workers = 
-    ThreadedConnection(c.stream, c.data, c.routes, assigned)
+ #   assigned_workers = 
+    WorkerConnection(c.stream, c.data, c.routes, assigned)
 end
 
 mutable struct Logger <: AbstractExtension

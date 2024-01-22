@@ -98,6 +98,12 @@ getindex(c::AbstractConnection, symb::Symbol) = c.data[symb]
 getindex(c::AbstractConnection, symb::String) = c.routes[symb]
 
 
+setindex!(c::AbstractConnection, a::Any, symb::Symbol) = c.data[symb] = a
+
+setindex!(c::AbstractConnection, f::Function, symb::String) = begin
+    push!(c.routes, route(f, symb))
+end
+
 """
 ```julia
 Routes{T} (Type Alias for Vector{T} where T <:AbstractRoute)
@@ -421,6 +427,8 @@ function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate
         w.active = true
         return(pm)::ProcessManager
     end
+    add_workers!(pm, threads - router_threads)
+    pm::ProcessManager
 end
 
 function generate_router(mod::Module, n_threads::Int64)
@@ -460,13 +468,15 @@ function generate_router(mod::Module, n_threads::Int64)
         return(routeserver, pman)
     end
     # process manager Routing func (multi-thread)
-    pman = processes(n_threads)
-    mod.processes = pman
+    pman = processes(n_threads, Threaded, ("$mod router ($e)" for e in 1:n_threads) ...)
+    mod.procman = pman
+    workerids = worker_pids(pman)
     routeserver = function serve_multi(http::HTTP.Stream)
         c = Connection(http, data, routes)
         jobs = vcat([new_job(route!, c, ext) for ext in loaded])
         distribute!(pman, workerids, jobs ...)
-        assign_open!(pman, workerids, route!, c, routes)
+        mainjob = job(route!, c, routes)
+        distribute!(pman, workerids, mainjob)
     end
     return(routeserver, pman)
 end

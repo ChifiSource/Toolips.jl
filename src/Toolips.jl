@@ -67,7 +67,7 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
 
 const Components = ToolipsServables
 
-export Components, distribute!, assign!
+export Components, distribute!, assign!, new_job, everywhere
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
 end

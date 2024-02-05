@@ -23,14 +23,24 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
 end
 
 mutable struct WorkerConnection{N} <: AbstractConnection
-    stream::HTTP.Stream
+    stream::IOBuffer
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
-    assigned::Vector{Int64}
+    pid::Int64
+    pman::ProcessManager
+    WorkerConnection{N}(data::Dict{Symbol, Any}, routes::Vector{AbstractRoute})
+end
+
+function distribute!()
+    
+end
+
+function assign!()
+
 end
 
 function convert(c::Connection, routes::Routes, into::Type{WorkerConnection})
-    true
+    false
 end
 
 function convert!(c::Connection, routes::Routes, into::Type{WorkerConnection})

@@ -415,19 +415,18 @@ end
 function start! end
 
 function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate} = WebServer; ip::IP4 = ip4_cli(Main.ARGS), 
-    router_threads::Int64 = 1, threads::Int64 = 1)
+    router_threads::Int64 = 1, threads::Int64 = router_threads)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, router_threads)
-    if router_threads == 1
-        w = pm["$mod router"]
-        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-        w.task = serve_router
-        w.active = true
-        return(pm)::ProcessManager
+    w = pm["$mod router"]
+    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    w.task = serve_router
+    w.active = true
+    if threads - router_threads > 0
+        add_workers!(pm, threads - router_threads)
     end
-    add_workers!(pm, threads - router_threads)
     pm::ProcessManager
 end
 
@@ -468,15 +467,21 @@ function generate_router(mod::Module, n_threads::Int64)
         return(routeserver, pman)
     end
     # process manager Routing func (multi-thread)
+    w = Worker{Async}("$mod router", rand(1000:3000))
     pman = processes(n_threads, Threaded, ("$mod router ($e)" for e in 1:n_threads) ...)
-    mod.procman = pman
     workerids = worker_pids(pman)
+    push!(pman.workers, w)
+    mod.procman = pman
+    c = Connection(nothing, data, routes)
     routeserver = function serve_multi(http::HTTP.Stream)
-        c = Connection(http, data, routes)
-        jobs = vcat([new_job(route!, c, ext) for ext in loaded])
+        mainjob = new_job(invokelatest, route!, c, routes)
+        jobs = vcat([new_job(invokelatest, route!, c, ext) for ext in loaded])
+        c.stream = http
         distribute!(pman, workerids, jobs ...)
-        mainjob = job(route!, c, routes)
-        distribute!(pman, workerids, mainjob)
+        n = rand(2:n_threads)
+        assign!(pman, n, mainjob)
+        waitfor(pman, n)
+        c.stream = nothing
     end
     return(routeserver, pman)
 end

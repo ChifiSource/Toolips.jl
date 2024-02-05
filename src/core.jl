@@ -93,6 +93,17 @@ string(c::Vector{<:AbstractRoute}) = join([begin
     r.path * "\n" 
 end for r in c])
 
+getindex(c::AbstractConnection, symb::Symbol) = c.data[symb]
+
+getindex(c::AbstractConnection, symb::String) = c.routes[symb]
+
+
+setindex!(c::AbstractConnection, a::Any, symb::Symbol) = c.data[symb] = a
+
+setindex!(c::AbstractConnection, f::Function, symb::String) = begin
+    push!(c.routes, route(f, symb))
+end
+
 """
 ```julia
 Routes{T} (Type Alias for Vector{T} where T <:AbstractRoute)
@@ -260,7 +271,6 @@ mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
     routes::Vector{T}
     function MultiRoute{T}(path::String, routes::Vector{<:Any}) where {T <: AbstractRoute}
         new{T}()
-
     end
     function MultiRoute(r::Route ...)
         new{Route}(r[1].path, [rout for rout in r])
@@ -271,11 +281,8 @@ end
 """
 function route end
 
-
 function convert(c::AbstractConnection, vec::Vector{<:AbstractRoute}, 
     c2::Type{<:AbstractConnection})
-=======
-function convert(c::AbstractConnection, c2::Type{<:AbstractConnection})
     false
 end
 
@@ -284,16 +291,10 @@ route(f::Function, r::String) = begin
 end
 
 route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
-=======
-route(r::Route ...) = begin
-    
-end
-
 
 """
 """
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
-
 
 function route!(c::Connection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
@@ -318,17 +319,6 @@ end
 
 function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
     met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
-function route!(c::Connection, tr::Vector{AbstractRoute})
-    target::String = get_target(c)
-    if target in tr
-        route!(c, vec[target])
-    else
-        throw("Route not found!")
-    end
-end
-
-function route!(c::AbstractConnection, r::AbstractMultiRoute)
-    met = findfirst(r -> convert(c, typeof(r).parameters[1]), r.routes)
     if isnothing(met)
         default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
         if ~(isnothing(default))
@@ -341,8 +331,6 @@ function route!(c::AbstractConnection, r::AbstractMultiRoute)
     selected = r.routes[met]
     c = convert!(c, vec, typeof(selected).parameters[1])
     r.routes[met].page(c)
-    end
-    c.routes[met].page(c)
 end
 
 
@@ -427,18 +415,19 @@ end
 function start! end
 
 function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate} = WebServer; ip::IP4 = ip4_cli(Main.ARGS), 
-    router_threads::Int64 = 1, threads::Int64 = 1)
+    router_threads::Int64 = 1, threads::Int64 = router_threads)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, router_threads)
-    if router_threads == 1
-        w = pm["$mod router"]
-        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-        w.task = serve_router
-        w.active = true
-        return(pm)::ProcessManager
+    w = pm["$mod router"]
+    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    w.task = serve_router
+    w.active = true
+    if threads - router_threads > 0
+        add_workers!(pm, threads - router_threads)
     end
+    pm::ProcessManager
 end
 
 function generate_router(mod::Module, n_threads::Int64)
@@ -478,13 +467,21 @@ function generate_router(mod::Module, n_threads::Int64)
         return(routeserver, pman)
     end
     # process manager Routing func (multi-thread)
-    pman = processes(n_threads)
-    mod.processes = pman
+    w = Worker{Async}("$mod router", rand(1000:3000))
+    pman = processes(n_threads, Threaded, ("$mod router ($e)" for e in 1:n_threads) ...)
+    workerids = worker_pids(pman)
+    push!(pman.workers, w)
+    mod.procman = pman
+    c = Connection(nothing, data, routes)
     routeserver = function serve_multi(http::HTTP.Stream)
-        c = Connection(http, data, routes)
-        jobs = vcat([new_job(route!, c, ext) for ext in loaded])
+        mainjob = new_job(invokelatest, route!, c, routes)
+        jobs = vcat([new_job(invokelatest, route!, c, ext) for ext in loaded])
+        c.stream = http
         distribute!(pman, workerids, jobs ...)
-        assign_open!(pman, workerids, route!, c, routes)
+        n = rand(2:n_threads)
+        assign!(pman, n, mainjob)
+        waitfor(pman, n)
+        c.stream = nothing
     end
     return(routeserver, pman)
 end

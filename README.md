@@ -27,18 +27,13 @@ pkg> add Toolips
 ```
 ###### map
 - [get started](#get-started)
-  - [overview](#overview)
+  - [documentation](#documentation)
   - [quick start](#quick-start)
-    - [documentation](#documentation)
-    - [overview](#overview)
+    - [projects and routes](#projects-and-routes)
+    - [responses](#responses)
   - [examples](#examples)
-    - [API](#api-example)
-    - [Online form](#form-example)
-    - [Blog](#blog-example)
-    - [Animated splash](#animated-example)
-  - [contributing]()
-    - [guidelines]()
-    - [building extensions]()
+- [issues](#issues)
+  - [contributing guidelines](#contributing-guidelines)
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
 #### get started
@@ -61,16 +56,6 @@ using Pkg
 Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```
-##### quick start
-Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
-```julia
-using Toolips
-Toolips.new_app("ToolipsApp")
-```
-We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes `WebServer` and `ThreadedWebServer{N}`. The `WebServer` project is designed to give a moderate understanding of using `Toolips` in a single-threaded context, the `ThreadedWebServer` project is designed to familiarize you will utilizing threads in `Toolips` (as well as explain more about the [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl) distributed computing platform.
-```julia
-
-```
 ###### documentation
 `Toolips` documentation is built into the `Toolips` `Module` itself. We can **export** the route `Toolips.toolips_doc` to load the `Toolips` documentation into our server, which we may then visit at `/doc` or use `start!(Toolips)` to view it.
 ```julia
@@ -84,7 +69,20 @@ home = route("/") do c::Connection
     write!(c, "hello world!")
 end
 ```
-###### overview
+##### quick start
+Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
+```julia
+using Toolips
+Toolips.new_app("ToolipsApp")
+```
+We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes `WebServer` and `ThreadedWebServer{N}`. The `WebServer` project is designed to give a moderate understanding of using `Toolips` in a single-threaded context, the `ThreadedWebServer` project is designed to familiarize you will utilizing threads in `Toolips` (as well as explain more about the [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl) distributed computing platform.
+```julia
+
+```
+#### examples
+
+### contributing
+###### contributing guidelines
 
 
     

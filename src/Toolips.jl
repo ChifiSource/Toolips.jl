@@ -55,6 +55,7 @@ using Sockets
 using Sockets: TCPServer
 using ToolipsServables
 using ParametricProcesses
+import ParametricProcesses: distribute!, assign!, waitfor
 import ToolipsServables: write!
 import ToolipsServables: style!, set_children!
 using HTTP
@@ -109,7 +110,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer
+export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
 
@@ -403,26 +404,29 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     using Toolips
     # extensions
     logger = Toolips.Logger()
-
-    # routes
+    # data
     clients = 0
+    # routes
+    otherpage = route("/page/path") do c::Connection
+        greeter = h2("maingreeting", text = "hello!")
+        curr_client = h3("clientn", text = "you are client number ...")
+        num = a("num", text = string(c[:clients]))
+        maindiv = div("maindiv")
+        push!(maindiv, greeter, curr_client, num)
+        write!(c, DOCTYPE(), greeter, curr_client, num)
+    end
+    
     main = route("/") do c::Connection
         c[:clients] += 1
-        log(logger, "served client #\$(clients_served)")
-        route!(c, "/page/path")
+        log(logger, "served client #\$(clients)")
+        route!(c, otherpage)
     end
 
     mobile = route("/") do c::Toolips.MobileConnection
 
     end
 
-    otherpage = route("/page/path") do c::Connection
-        greeter = h2("maingreeting", text = "hello!")
-        curr_client = h3("clientn", text = "you are client number ...")
-        num = a("num", text = string(clients_served))
-    end
-
-    # multiroute
+    # multiroute (will call `mobile` if it is a `MobileConnection`)
     home = route(main, mobile)
 
     # docs & api manager (/doc && /toolips)

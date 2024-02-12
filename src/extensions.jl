@@ -22,17 +22,15 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 
-mutable struct WorkerConnection{N} <: AbstractConnection
-    stream::IOBuffer
+mutable struct WorkerConnection <: AbstractConnection
+    stream::Any
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
-    pid::Int64
-    pman::ProcessManager
-    WorkerConnection{N}(data::Dict{Symbol, Any}, routes::Vector{AbstractRoute})
+    pm::ProcessManager
 end
 
 function distribute!()
-    
+
 end
 
 function assign!()
@@ -74,15 +72,9 @@ mutable struct Logger <: AbstractExtension
     end
 end
 
-function on_start(ext::Logger, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
-    println("hello world")
-end
-
 function log(l::Logger, message::String, at::Int64 = 1)
-
+    
 end
-
-log!(c::AbstractConnection, message::String, at::Int64 = 1) = log!(c[:logger], message, at)
 
 mutable struct AbstractFileRoute <: AbstractRoute end
 

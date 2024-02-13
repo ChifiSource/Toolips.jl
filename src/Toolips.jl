@@ -55,7 +55,7 @@ using Sockets
 using Sockets: TCPServer
 using ToolipsServables
 using ParametricProcesses
-import ParametricProcesses: distribute!, assign!, waitfor
+import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!
 import ToolipsServables: write!
 import ToolipsServables: style!, set_children!
 using HTTP
@@ -68,7 +68,7 @@ import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
 
 const Components = ToolipsServables
 
-export Components, distribute!, assign!, new_job, everywhere
+export Components, distribute!, assign!, new_job, @everywhere, distribute_open!, waitfor, assign_open!
 function getindex(mod::Module, field::Symbol)
     getfield(mod, field)
 end

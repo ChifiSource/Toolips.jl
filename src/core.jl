@@ -142,8 +142,13 @@ write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args
 
 distribute!(con::AbstractConnection, a ...) = distribute!(con.data[:procs], a ...)
 
-assign!(con::AbstractConnection, a ...) = distribute!(con.data[:procs], a ...)
+assign!(con::AbstractConnection, a ...) = assign!(con.data[:procs], a ...)
 
+waitfor(con::AbstractConnection, a ...) = waitfor(con.data[:procs], a ...)
+
+assign_open!(con::AbstractConnection, a ...) = assign_open!(con.data[:procs], a ...)
+
+distribute_open!(con::AbstractConnection, a ...) = distribute_open!(con.data[:procs], a ...)
 # args
 function get_args(c::AbstractConnection)
     fullpath = split(c.stream.message.target, '?')
@@ -155,10 +160,6 @@ function get_args(c::AbstractConnection)
         end for p in fullpath))::Dict{Symbol, String}
     end
     Dict{Symbol, String}()::Dict{Symbol, String}
-end
-
-function get_L(c::AbstractConnection)
-
 end
 
 function get_heading(c::AbstractConnection)
@@ -460,12 +461,10 @@ function generate_router(mod::Module)
     pman::ProcessManager = ProcessManager(w)
     push!(data, :procs => pman)
     mod.procman = pman
-    c::AbstractConnection = Connection(nothing, data, routes)
     routeserver(http::HTTP.Stream) = begin
-        c.stream = http
+        c::AbstractConnection = Connection(http, data, routes)
         [route!(c, ext) for ext in loaded]
         route!(c, c.routes)::Any
-        c.stream = nothing
     end
     return(routeserver, pman)
 end

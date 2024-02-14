@@ -12,10 +12,10 @@
 `toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
-- **Declarative** and **composable** html *and* CSS templating syntax.
+- **Declarative** and **composable** html, Javascript, *and* CSS templating syntax.
 - **Modular** servers -- toolips applications are **regular Julia Modules**.
-- **Versatilility** -- toolips can be used for all scenarios, from full-stack web-development to APIs -- all facilitated through multiple dispatch.
-- **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target.
+- **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to APIs and *even* UDP -- all facilitated through multiple dispatch and Julia's extensible `Method` platform.
+- **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target, using *multiple dispatch* to divert different types of connections to different functions.
 - **Multi-threaded** -- *Declarative* [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl) using a [Distributed]()-based worker management system.
 ```julia
 using Pkg; Pkg.add("Toolips")
@@ -57,39 +57,39 @@ Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```
 ###### documentation
-`Toolips` documentation is built into the `Toolips` `Module` itself. We can **export** the route `Toolips.toolips_doc` to load the `Toolips` documentation into our server, which we may then visit at `/doc` or use `start!(Toolips)` to view it.
+`Toolips` documentation is built into the `Toolips` `Module` itself, which is itself a `Toolips` server we can start.
 ```julia
 using Toolips
 start!(Toolips)
 ```
-The `Toolips` server will load 4 routes -- `default_404`, `toolips_app`, `toolips_doc`, and `default_landing`. We may *also* provide these as exports to our own server in order to load those routes.
+The `Toolips` server will load 4 routes -- `default_404`, `toolips_app`, `toolips_doc`, and `default_landing`. All of these routes may also be provided as exports for your own server.
 ```julia
 module MyServer
 home = route("/") do c::Connection
     write!(c, "hello world!")
 end
+export toolips_app, toolips_doc, default_404
 ```
+- `toolips_app` is an in-`Module` route-manager for `Toolips` servers.
+- `toolips_doc` is a documentation browser for `Toolips` and other packages.
+- `default_landing` is a simple landing page, which provides links to `toolips_doc` and `toolips_app` -- primarily designed for when `Toolips` is started directly with `start!`.
+- `default_404` is a 404 page that can be used in your apps.
 ##### quick start
 Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
 ```julia
 using Toolips
 Toolips.new_app("ToolipsApp")
 ```
-We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes `WebServer` and `ThreadedWebServer{N}`. The `WebServer` project is designed to give a moderate understanding of using `Toolips` in a single-threaded context, the `ThreadedWebServer` project is designed to familiarize you will utilizing threads in `Toolips` (as well as explain more about the [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl) distributed computing platform.
+We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes only the `WebServer`, which is also the default.
 ```julia
-
+Toolips.new_app("Example", Toolips.WebServer)
+```
+This is primarily used for extensions, for example; [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl):
+```julia
+using ToolipsUDP
+ToolipsUDP.new_app("Example", ToolipsUDP.UDPServer)
 ```
 #### examples
 
 ### contributing
 ###### contributing guidelines
-
-
-    
-
-
-#### examples
-###### blog example
-###### animated splash
-#### contributing
-###### guidelines

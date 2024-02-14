@@ -140,6 +140,15 @@ write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
+distribute!(con::AbstractConnection, a ...) = distribute!(con.data[:procs], a ...)
+
+assign!(con::AbstractConnection, a ...) = assign!(con.data[:procs], a ...)
+
+waitfor(con::AbstractConnection, a ...) = waitfor(con.data[:procs], a ...)
+
+assign_open!(con::AbstractConnection, a ...) = assign_open!(con.data[:procs], a ...)
+
+distribute_open!(con::AbstractConnection, a ...) = distribute_open!(con.data[:procs], a ...)
 # args
 function get_args(c::AbstractConnection)
     fullpath = split(c.stream.message.target, '?')
@@ -151,10 +160,6 @@ function get_args(c::AbstractConnection)
         end for p in fullpath))::Dict{Symbol, String}
     end
     Dict{Symbol, String}()::Dict{Symbol, String}
-end
-
-function get_L(c::AbstractConnection)
-
 end
 
 function get_heading(c::AbstractConnection)
@@ -415,22 +420,22 @@ end
 function start! end
 
 function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate} = WebServer; ip::IP4 = ip4_cli(Main.ARGS), 
-    router_threads::Int64 = 1, threads::Int64 = router_threads)
+    threads::Int64 = 1)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod, router_threads)
+    routefunc::Function, pm::ProcessManager = generate_router(mod)
     w = pm["$mod router"]
     serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true
-    if threads - router_threads > 0
-        add_workers!(pm, threads - router_threads)
+    if threads > 1
+        add_workers!(pm, threads)
     end
     pm::ProcessManager
 end
 
-function generate_router(mod::Module, n_threads::Int64)
+function generate_router(mod::Module)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
     fieldgen = [begin
@@ -452,36 +457,14 @@ function generate_router(mod::Module, n_threads::Int64)
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(ext) in allparams, loaded)
     # process manager Routing func (async)
-    if n_threads == 1
-        w = Worker{Async}("$mod router", rand(1000:3000))
-        pman = ProcessManager(w)
-        push!(data, :procs => pman)
-        mod.procman = pman
-        c::AbstractConnection = Connection(nothing, data, routes)
-        routeserver(http::HTTP.Stream) = begin
-            c.stream = http
-            [route!(c, ext) for ext in loaded]
-            route!(c, c.routes)::Any
-            c.stream = nothing
-        end
-        return(routeserver, pman)
-    end
-    # process manager Routing func (multi-thread)
-    w = Worker{Async}("$mod router", rand(1000:3000))
-    pman = processes(n_threads, Threaded, ("$mod router ($e)" for e in 1:n_threads) ...)
-    workerids = worker_pids(pman)
-    push!(pman.workers, w)
+    w::Worker{Async} = Worker{Async}("$mod router", rand(1000:3000))
+    pman::ProcessManager = ProcessManager(w)
+    push!(data, :procs => pman)
     mod.procman = pman
-    c = Connection(nothing, data, routes)
-    routeserver = function serve_multi(http::HTTP.Stream)
-        mainjob = new_job(invokelatest, route!, c, routes)
-        jobs = vcat([new_job(invokelatest, route!, c, ext) for ext in loaded])
-        c.stream = http
-        distribute!(pman, workerids, jobs ...)
-        n = rand(2:n_threads)
-        assign!(pman, n, mainjob)
-        waitfor(pman, n)
-        c.stream = nothing
+    routeserver(http::HTTP.Stream) = begin
+        c::AbstractConnection = Connection(http, data, routes)
+        [route!(c, ext) for ext in loaded]
+        route!(c, c.routes)::Any
     end
     return(routeserver, pman)
 end

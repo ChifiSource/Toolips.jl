@@ -110,10 +110,11 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
+export IP4, Extension, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
-
+export on, bind, ClientModifier, move!, remove!, set_text!, set_children!, append!, insert!, sleep!, set_style!, focus!, blur!, alert!
+export redirect!, next!, update!, update_base64!
 
 function toolips_header(c::Connection)
     bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
@@ -121,7 +122,7 @@ function toolips_header(c::Connection)
     bttnsty:"hover":["border-color" => "orange", "border-radius" => 2px, "transform" => scale(1.1)]
     write!(c, bttnsty)
     if ~("/toolips03.png" in c.routes)
-        dir = @__DIR__
+        dir = @__DIR__ 
         mount_r = mount("/toolips03.png" => dir * "/toolips03.png")
         push!(c.routes, mount_r)
     end
@@ -362,6 +363,7 @@ end
 
 default_404 = Toolips.route("404") do c::Connection
     write!(c, toolips_header(c))
+    write!(c, h6("404-header", text = "404 -- not found"))
 end
 
 export default_landing, toolips_app, toolips_doc, default_404

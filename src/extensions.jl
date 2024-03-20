@@ -90,7 +90,10 @@ function mount(fpair::Pair{String, String})
     fpath = fpair[2]
     target = fpair[1]
     if ~(isdir(fpath))
-        return(route(c::Connection -> write!(c, File(fpath)), target))::Route{Connection}
+        return(route(c::Connection -> begin
+            @info "hello?"
+            write!(c, File(fpath))
+        end, target))::Route{Connection}
     end
     [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]
 end
@@ -136,7 +139,6 @@ setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
     "document.getElementById('$s').setAttribute('$key','$val');")
 end
 
-
 function set_textdiv_caret!(cm::AbstractComponentModifier,
     txtd::Component{:div},
     char::Int64)
@@ -153,9 +155,7 @@ function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})
         secondname = secondname.name
     end
     push!(cm.changes, "
-    document.getElementById('$firstname').appendChild(
-    document.getElementById('$secondname')
-  );
+    document.getElementById('$firstname').appendChild(document.getElementById('$secondname'));
   ")
 end
 
@@ -250,7 +250,7 @@ mutable struct ClientModifier <: AbstractClientModifier
 end
 
 function get_text(cl::AbstractClientModifier, name::String)
-    Component{:property}("document.getElementById('$name').textContent")
+    Component{:property}("document.getElementById('$name').textContent;")
 end
 
 setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
@@ -277,13 +277,6 @@ end
 function redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0)
     push!(cm.changes, """setTimeout(
     function () {window.location.href = "$url";}, $delay);""")
-end
-
-function redirect_args!(cm::AbstractClientModifier, url::AbstractString, with::Pair{Symbol, Component{:property}} ...; 
-    delay::Int64 = 0)
-    args = join(("'$(w[1])=' + $(w[2].name)" for w in with), " + ")
-    push!(cm.changes, """setTimeout(
-    function () {window.location.href = "$url" + "?" + $args;}, $delay);""")
 end
 
 function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
@@ -314,22 +307,6 @@ function update_base64!(cm::AbstractComponentModifier, name::String, raw::Any,
     close(b64)
     mysrc = String(io.data)
     cm[name] = "src" => "data:image/$filetype;base64," * mysrc
-end
-
-transitions!(cm::AbstractComponentModifier, comp::Any, p::Pair{String, Tuple} ...) = begin
-    if comp <: AbstractComponent
-        comp = comp.name
-    end
-    style!(cm, comp, "transition" => p[1][1], p[1][2] ...)
-    if length(p) < 2
-        return
-    end
-    [begin
-        next!(cm, comp) do cl::ClientModifier
-            style!(cm, comp, "transition" => trans_sty[1], trans_sty[2] ...)
-        end
-    end for trans_sty in p[2:length(p)]]
-    return
 end
 
 function on(f::Function, component::Component{<:Any}, event::String)

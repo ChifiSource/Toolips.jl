@@ -448,12 +448,12 @@ function generate_router(mod::Module)
     if isnothing(logger_check)
         push!(loaded, Logger())
     end
-    routes = mod[AbstractRoute]
-    if typeof(routes) <: Vector{Route{<:Any}}
-        routes = Vector{AbstractRoute}(routes)
+    mod.routes = mod[AbstractRoute]
+    if typeof(mod.routes) <: Vector{Route{<:Any}}
+        mod.routes = Vector{AbstractRoute}(mod.routes)
     end
-    data = Dict{Symbol, Any}(Symbol(n) => getfield(mod, n) for n in server_ns)
-    [on_start(ext, data, routes) for ext in loaded]
+    data = Dict{Symbol, Any}()
+    [on_start(ext, data, mod.routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(ext) in allparams, loaded)
     # process manager Routing func (async)
@@ -462,9 +462,10 @@ function generate_router(mod::Module)
     push!(data, :procs => pman)
     mod.procman = pman
     routeserver(http::HTTP.Stream) = begin
-        c::AbstractConnection = Connection(http, data, routes)
+        c::AbstractConnection = Connection(http, data, mod.routes)
         [route!(c, ext) for ext in loaded]
         route!(c, c.routes)::Any
+        mod.routes = c.routes
     end
     return(routeserver, pman)
 end

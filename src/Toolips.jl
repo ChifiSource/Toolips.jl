@@ -28,22 +28,19 @@ logger = Logger()
 const people = Extension{:people}
 
 # mount difrectory "MyServer/public" to "/public"
-public = route("/public" => "public")
+public = mount("/public" => "public")
 
 # create a route
 main = route("/") do c::Connection
 
 end
 
-# multiroute
-
 # export routes
 export public
+export main
 
 # export extensions
-
-# export server data
-export people
+export logger
 end # module
 ```
 ####### provides
@@ -83,37 +80,25 @@ function getindex(mod::Module, T::Type)
     res::Vector{<:T}
 end
 
-function getindex(mod::Module, T::Function, args::Type ...)
-    ms = methods()
-    arguments = [begin
-
-    end for m in ms]
-    [arguments]
-end
-
 function show(io::IO, pm::ProcessManager)
-    headers = ["pid", "process type", "name", "active"]
-    
-    # Generate a Markdown table header
+    headers::Vector{String} = ["pid", "process type", "name", "active"]
     md = """
     $(join(headers, "|"))
     $(join(fill("----", length(headers)), "|"))
     """
-    
-    # Generate Markdown table rows
     for worker in pm.workers
         row = [string(worker.pid), string(typeof(worker).parameters[1]), worker.name, string(worker.active)]
         md *= join(row, "|") * "\n"
     end
-    
     display(Markdown.parse(md))
 end
 
 include("core.jl")
-export IP4, Extension, route, Connection, WebServer, log!, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
+export IP4, Extension, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
 include("extensions.jl")
-
+export on, bind, ClientModifier, move!, remove!, set_text!, set_children!, append!, insert!, sleep!, set_style!, focus!, blur!, alert!
+export redirect!, next!, update!, update_base64!
 
 function toolips_header(c::Connection)
     bttnsty = style("a.menbut", "border" => "2px solid gray", "background" => "transparent", "font-weight" => "bold", 
@@ -121,7 +106,7 @@ function toolips_header(c::Connection)
     bttnsty:"hover":["border-color" => "orange", "border-radius" => 2px, "transform" => scale(1.1)]
     write!(c, bttnsty)
     if ~("/toolips03.png" in c.routes)
-        dir = @__DIR__
+        dir = @__DIR__ 
         mount_r = mount("/toolips03.png" => dir * "/toolips03.png")
         push!(c.routes, mount_r)
     end
@@ -211,6 +196,24 @@ function build_servermenu(mod::Module)
     routes = filter(a -> typeof(a) <: AbstractRoute, allfields)
 end
 
+"""
+### toolips_app (Route{Connection})
+`toolips_app` is an API manager for all active `Toolips` servers, ideal for 
+    use during development (not production). 
+    The route will be available at `/toolips` on your server.
+```julia
+module MyServer
+using Toolips
+
+export toolips_app
+end
+
+start!(MyServer)
+
+# or
+start!(Toolips, ip = "127.0.0.1":8001)
+```
+"""
 toolips_app = Toolips.route("/toolips") do c::Connection
     write!(c, general_styles())
     mainbod = body("main", align = "center")
@@ -280,6 +283,27 @@ function make_searchbar(text::String)
     scontainer
 end
 
+"""
+### toolips_doc (Route{Connection})
+`toolips_doc` is a documentation generator built into the `Toolips` 
+web-framework. In order to use this route, simply `export` it in your 
+server or call `start!(Toolips)` to use the entire `Toolips` development 
+server system. The route will be available at `/doc` on your website!
+This includes a simple API manager/status tracker, as well as 
+a documentation page (and a home page, which links to the two.)
+```julia
+module MyServer
+using Toolips
+
+export toolips_doc
+end
+
+start!(MyServer)
+
+# or
+start!(Toolips, ip = "127.0.0.1":8001)
+```
+"""
 toolips_doc = Toolips.route("/docs") do c::Connection
     write!(c, general_styles())
     args = get_args(c)
@@ -362,6 +386,7 @@ end
 
 default_404 = Toolips.route("404") do c::Connection
     write!(c, toolips_header(c))
+    write!(c, h6("404-header", text = "404 -- not found"))
 end
 
 export default_landing, toolips_app, toolips_doc, default_404
@@ -370,19 +395,18 @@ export default_landing, toolips_app, toolips_doc, default_404
 Project API
 ==#
 """
-**Internals**
-### create_serverdeps(name::String, exts::Vector{String} = ["Logger"], inc::String = "") -> _
-------------------
-Creates the essential portions of the webapp file structure, where name is the
-project's name and inc is any extensions or strings to incorporate at the top
-of the file. Exts is a list of Server extensions.
-#### example
+```julia
+create_serverdeps(name::String) -> _
 ```
+---
+Creates a `Toolips` app template with a corresponding `Project.toml` environment and `dev.jl` 
+file to quickly get started.
+#### example
+```example
 create_serverdeps("ToolipsApp")
 ```
 """
-function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
-    inc::String = "")
+function create_serverdeps(name::String)
     extstr::String = "Vector{ServerExtension}([" * join(["$e(), " for e in exts]) * "])"
     Pkg.generate(name)
     Pkg.activate(name)
@@ -390,11 +414,6 @@ function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
     Pkg.add("Revise")
     dir = pwd() * "/"
     src::String = dir * name * "/src"
-    if "Logger" in exts
-        logs::String = dir * name * "/logs"
-        mkdir(logs)
-        touch(logs * "/log.txt")
-    end
     touch(name * "/dev.jl")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
@@ -448,7 +467,7 @@ new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Not
 ---
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
 from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
-templates are used as a base to start a server from, `WebServer` in this case just means TCPServer.
+templates are used as a base to start a server from default files.
 ##### example
 ```example
 using Toolips
@@ -459,10 +478,7 @@ using Toolips
 Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
 ---
-- **see also:**
-```julia
-
-```
+- **see also:** `Toolips`, `route`, `start!`, `Connection`
 """
 function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     create_serverdeps(name)
@@ -478,4 +494,4 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     end
 end
 
-end
+end # Toolips c:

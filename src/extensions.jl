@@ -64,7 +64,6 @@ function mount(fpair::Pair{String, String})
     target::String = fpair[1]
     if ~(isdir(fpath))
         return(route(c::Connection -> begin
-            @info "hello?"
             write!(c, File(fpath))
         end, target))::Route{Connection}
     end

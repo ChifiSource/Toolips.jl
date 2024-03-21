@@ -330,7 +330,6 @@ toolips_doc = Toolips.route("/docs") do c::Connection
                 md = mds[selectedmod].eval(Meta.parse("@doc($reqdoc)"))
                 push!(content, tmd("$(modf[2])", string(md)))
             catch
-                @info "catch hit"
                #  specific docs not found
                write!(c, modf[2])
                return

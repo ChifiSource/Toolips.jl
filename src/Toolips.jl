@@ -52,7 +52,7 @@ using Sockets
 using Sockets: TCPServer
 using ToolipsServables
 using ParametricProcesses
-import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!
+import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 import ToolipsServables: write!
 import ToolipsServables: style!, set_children!
 using HTTP
@@ -330,7 +330,6 @@ toolips_doc = Toolips.route("/docs") do c::Connection
                 md = mds[selectedmod].eval(Meta.parse("@doc($reqdoc)"))
                 push!(content, tmd("$(modf[2])", string(md)))
             catch
-                @info "catch hit"
                #  specific docs not found
                write!(c, modf[2])
                return

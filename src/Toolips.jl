@@ -13,7 +13,9 @@ map
 - Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
 
-Toolips is an **extensible** and **declarative** web-development for julia.
+Toolips is an **extensible** and **declarative** web-development framework for the julia programming language. 
+The intention with this framework is to *fill most web-development needs well.* While there are lighter options for 
+APIs and heavier options for web-apps, `Toolips` presents a plethora of capabilities for both of these contexts -- as well as many more!
 
 ```example
 module MyServer
@@ -27,7 +29,7 @@ logger = Logger()
 
 const people = Extension{:people}
 
-# mount difrectory "MyServer/public" to "/public"
+# mount directory "MyServer/public" to "/public"
 public = mount("/public" => "public")
 
 # create a route
@@ -51,15 +53,12 @@ using Crayons
 using Sockets
 using Sockets: TCPServer
 using ToolipsServables
+import ToolipsServables: style!, set_children!, write!
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
-import ToolipsServables: write!
-import ToolipsServables: style!, set_children!
 using HTTP
 using Pkg
 using Markdown
-using ParseNotEval
-using Dates
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
 
@@ -265,11 +264,11 @@ docmods = [Toolips, ToolipsServables]
 function make_searchbar(text::String)
     scontainer = div("searchcontainer")
     style!(scontainer, "background" => "transparent", 
-    "position" => "absolute", "left" => 18perc, "top" => 0perc, "width" => 70perc, "z-index" => "10")
+    "left" => 18perc, "width" => 92perc, "z-index" => "10", "display" => "flex")
     sbar = a("searchbar", text = "enter search ...", contenteditable = true)
     barstyle = ("padding" => 5px, "border-radius" => 1px, "background-color" => "#0b0930", "color" => "white", 
     "font-weight" => "bold", "font-size" => 15pt)
-    style!(sbar, "width" => 40percent, barstyle ...)
+    style!(sbar, "width" => 40percent, "width" => 85perc, "min-width" => 85perc, barstyle ...)
     sbutton = button("sbutton", text = "search")
     style!(sbutton, barstyle ...)
     on(sbar, "click") do cl
@@ -310,9 +309,8 @@ toolips_doc = Toolips.route("/docs") do c::Connection
     mds = Dict(Symbol(m) => m for m in docmods)
     mainbod = body("docbody")
     style!(mainbod, "overflow-x" => "hidden", "overflow-y" => "hidden")
-    docmenus = [mod_docmenu(mod) for mod in docmods]
     searchbar = make_searchbar("")
-    push!(mainbod, searchbar)
+    docmenus = vcat(searchbar, [mod_docmenu(mod) for mod in docmods])
     menu = div("menu", class = "menu", children = docmenus)
     content = div("content")
     style!(content, "background-color" => "#8c7cc4", "display" => "inline-block", 
@@ -422,8 +420,7 @@ function create_serverdeps(name::String)
     using Toolips
     # extensions
     logger = Toolips.Logger()
-    # data
-    clients = 0
+
     # routes
     otherpage = route("/page/path") do c::Connection
         greeter = h2("maingreeting", text = "hello!")
@@ -435,6 +432,9 @@ function create_serverdeps(name::String)
     end
     
     main = route("/") do c::Connection
+        if ~(:clients in c.data)
+            c[:clients] = 0
+        end
         c[:clients] += 1
         log(logger, "served client #\$(clients)")
         route!(c, otherpage)
@@ -452,7 +452,7 @@ function create_serverdeps(name::String)
     docs = toolips_doc
 
 
-    export home, otherpage, default_404, clients
+    export home, otherpage, default_404
     export api_man, docs
     export logger
     end # - module""")

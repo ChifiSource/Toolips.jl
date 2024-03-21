@@ -8,17 +8,61 @@ map
 - Modifier/ClientModifier
 ==#
 
-function tmd(name::String = "markdown", s::String = "", p::Pair{String, <:Any} ...;
+"""
+```julia
+tmd(name::String, md::String = "", args::Pair{String, <:Any} ...; args ...) -> ::Component{:div}
+```
+Creates a `Component` directly from a raw markdown String. The `Component's` children will be 
+the markdown provided rendered to HTML.
+---
+```example
+mymd = "# hello\\n **this** is markdown"
+
+comp = tmd("mygreeting", mymd)
+```
+"""
+function tmd(name::String, s::String = "", p::Pair{String, <:Any} ...;
     args ...)
-     mddiv::Component{:div} = div(name, p ..., args ...)
     md = Markdown.parse(replace(s, "<" => "", ">" => "", "\"" => ""))
     htm::String = html(md)
-    mddiv[:text] = htm
-    mddiv::Component{:div}
+    div(name, text = htm, p ...; args ...)::Component{:div}
 end
 
+"""
+```julia
+MobileConnection <: AbstractConnection
+```
+- stream**::HTTP.Stream**
+- data**::Dict{Symbol, Any}**
+- ret**::Any**
 
+A `MobileConnection` is used with multi-route, and will be created when an incoming `Connection` is mobile. 
+This is done by simply annotating your `Function`'s `Connection` argument when calling `route`. To create one 
+page for both of these routes, we then use `route` to combine them.
+```julia
+module ExampleServer
+using Toolips
+main = route("/") do c::Connection
+    write!(c, "this is a desktop.")
+end
 
+mobile = route("/") do c::Toolips.MobileConnection
+    write!(c, "this is mobile")
+end
+
+# multiroute (will call `mobile` if it is a `MobileConnection`)
+home = route(main, mobile)
+
+# then we simply export the multi-route
+export home
+end
+using Toolips; Toolips.start!(ExampleServer)
+```
+- See also: `route`, `Connection`, `route!`, `Components`, `convert`, `convert!`
+```julia
+
+```
+"""
 mutable struct MobileConnection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
@@ -59,15 +103,26 @@ function log(l::Logger, message::String, at::Int64 = 1)
     
 end
 
+mutable struct DirectoryMultiRoute <: AbstractMultiRoute
+    path::String
+    pages::Vector{Route{Connection}}
+    DirectoryMultiRoute(path::String, pages::AbstractVector) = new(path, Vector{Route{Connection}}(pages))
+end
+
 function mount(fpair::Pair{String, String})
     fpath::String = fpair[2]
     target::String = fpair[1]
     if ~(isdir(fpath))
         return(route(c::Connection -> begin
             write!(c, File(fpath))
-        end, target))::Route{Connection}
+        end, target))::AbstractRoute
     end
-    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
+    rs::Vector{<:AbstractRoute} = [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]
+    DirectoryMultiRoute(fpath, rs)
+end
+
+function multiroute!(c::AbstractConnection, vec::Routes, r::DirectoryMultiRoute)
+    route!(c, r.pages)
 end
 
 function route_from_dir(path::String)

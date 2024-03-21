@@ -16,9 +16,40 @@ map
 ==#
 string(r::Vector{UInt8}) = String(UInt8.(r))
 
+"""
+```julia
+abstract type Identifier
+```
+An `Identifier` is a structure that represents a client, a client's data, 
+or the server itself.
+- All servables have a `name`.
+- All servables are dispatched to `string`.
+- `Servables` (?Servables) can be indexed using a `String` corresponding to `name`.
+---
+- See also: `IP4`, `start!`, `Toolips`
+"""
 abstract type Identifier end
 
-mutable struct IP4 <: Identifier
+"""
+```julia
+struct IP4 <: Identifier
+```
+- `ip`**::String**
+- `port`**::Int64**
+
+An `IPv4` is the " fourth" iteration of the internet protocol, which assigns 
+IP addresses to computers via an Internet Service Provider (ISP) and DHCP (a router server.) 
+`Toolips` IPs are written just how they are seen other than the address being a `String`.
+
+```example
+host = "127.0.0.1":8000
+```
+```julia
+IP4(ip::String, port::Int64)
+```
+- See also: `templating`, `StyleComponent`, `AbstractComponent`, `elements`, `arguments`
+"""
+struct IP4 <: Identifier
     ip::String
     port::Int64
 end

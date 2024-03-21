@@ -259,7 +259,13 @@ function mod_docmenu(mod::Module)
     mainframe::Component{:div}
 end
 
-docmods = [Toolips, ToolipsServables]
+"""
+#### docmods
+'docmods' is used by `/doc` (the toolips_doc default route) 
+to load modules. Pushing to this `Vector` will add Modules to the 
+`Toolips` autodocumentation page.
+"""
+const docmods = [Toolips, ToolipsServables]
 
 function make_searchbar(text::String)
     scontainer = div("searchcontainer")
@@ -448,12 +454,12 @@ function create_serverdeps(name::String)
     home = route(main, mobile)
 
     # docs & api manager (/doc && /toolips)
-    api_man = toolips_app
+    api_manager = toolips_app
     docs = toolips_doc
 
 
     export home, otherpage, default_404
-    export api_man, docs
+    export api_manager, docs
     export logger
     end # - module""")
     end

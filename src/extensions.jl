@@ -28,6 +28,11 @@ function tmd(name::String, s::String = "", p::Pair{String, <:Any} ...;
     div(name, text = htm, p ...; args ...)::Component{:div}
 end
 
+#==
+TODO InterpolatedFile here :)
+deprecate ToolipsInterpolator
+==#
+
 """
 ```julia
 MobileConnection <: AbstractConnection
@@ -59,8 +64,11 @@ end
 using Toolips; Toolips.start!(ExampleServer)
 ```
 - See also: `route`, `Connection`, `route!`, `Components`, `convert`, `convert!`
-```julia
 
+It is unlikely you will use this constructor unless you are calling 
+`convert!`/`convert` in your own `route!` design.
+```julia
+MobileConnection(stream::HTTP.Stream, data::Dict{Symbol, Any}, routes::Vector{AbstractRoute})
 ```
 """
 mutable struct MobileConnection <: AbstractConnection
@@ -77,6 +85,39 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 
+"""
+```julia
+Logger <: Toolips.AbstractExtension
+```
+- `crayons`**::Vector{Crayon}**
+- `prefix`**::String**
+- `write`**::Bool**
+- `writeat`**::Int64**
+- `prefix_crayon`**::Crayon**
+
+
+```julia
+Logger(prefix::String = "🌷 toolips> ", crayons::Crayon ...; dir::String = "logs.txt", write::Bool = false, 
+writeat::Int64, prefix_crayon::Crayon = Crayon(foreground  = :blue, bold = true))
+```
+###### example
+```example
+module ExampleServer
+using Toolips
+crays = (Toolips.Crayon(foreground = :red), Toolips.Crayon(foreground = :black, background = :white, bold = true))
+log = Toolips.Logger("yourserver>", crays ...)
+
+# use logger
+route("/") do c::Connection
+    log(c, "hello world!", 1)
+end
+# load to server
+export log
+end
+using Toolips; Toolips.start!(ExampleServer)
+```
+- See also: `route`, `Connection`, `Extension`
+"""
 mutable struct Logger <: AbstractExtension
     crayons::Vector{Crayon}
     prefix::String
@@ -100,9 +141,41 @@ mutable struct Logger <: AbstractExtension
 end
 
 function log(l::Logger, message::String, at::Int64 = 1)
-    
+    cray = l.crayons[at]
+    println(l.prefix_crayon, prefix, cray, message)
 end
 
+log(c::Connection, args ...) = log(c[:Logger], args ...)
+
+"""
+```julia
+DirectoryMultiRoute <: Toolips.AbstractRoute
+```
+- path::String
+- pages::Vector{Route{Conenction}}
+
+A `DirectoryMultiRoute` creates a file directory
+```julia
+
+```
+###### example
+```example
+module ExampleServer
+using Toolips
+crays = (Toolips.Crayon(foreground = :red), Toolips.Crayon(foreground = :black, background = :white, bold = true))
+log = Toolips.Logger("yourserver>", crays ...)
+
+# use logger
+route("/") do c::Connection
+    log(c, "hello world!", 1)
+end
+# load to server
+export log
+end
+using Toolips; Toolips.start!(ExampleServer)
+```
+- See also: `route`, `Connection`, `Extension`
+"""
 mutable struct DirectoryMultiRoute <: AbstractMultiRoute
     path::String
     pages::Vector{Route{Connection}}

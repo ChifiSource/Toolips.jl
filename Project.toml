@@ -1,4 +1,17 @@
-name = "ToolipsServables"
-uuid = "bf3a9e68-ca66-4981-8178-9d71c4f8abaa"
-authors = ["emmac <emmacboudreau@gmail.com>"]
-version = "0.1.0"
+name = "Toolips"
+uuid = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"
+authors = ["emmac "]
+version = "0.3.0"
+
+[deps]
+Crayons = "a8cc5b0e-0ffa-5ad4-8c14-923d3ee1735f"
+HTTP = "cd3eb016-35fb-5094-929b-558a96fad6f3"
+Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+ParametricProcesses = "9ce9415f-ecd2-4b63-a3f6-984ce63e76ce"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
+Sockets = "6462fe0b-24de-5631-8697-dd941f90decc"
+
+[compat]
+Crayons = "4.1.1"
+HTTP = "1.5"
+julia = "1.5"

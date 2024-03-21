@@ -1,12 +1,23 @@
 #==
 map
+- additional components
+- file interpolation
 - additional connections
 - logger
 - files
-- component interpolation
 - Modifier/ClientModifier
-- TransitionStack
 ==#
+
+function tmd(name::String = "markdown", s::String = "", p::Pair{String, <:Any} ...;
+    args ...)
+     mddiv::Component{:div} = div(name, p ..., args ...)
+    md = Markdown.parse(replace(s, "<" => "", ">" => "", "\"" => ""))
+    htm::String = html(md)
+    mddiv[:text] = htm
+    mddiv::Component{:div}
+end
+
+
 
 mutable struct MobileConnection <: AbstractConnection
     stream::HTTP.Stream
@@ -20,34 +31,6 @@ end
 
 function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
-end
-
-mutable struct WorkerConnection <: AbstractConnection
-    stream::Any
-    data::Dict{Symbol, Any}
-    routes::Vector{AbstractRoute}
-    pm::ProcessManager
-end
-
-function distribute!()
-
-end
-
-function assign!()
-
-end
-
-function convert(c::Connection, routes::Routes, into::Type{WorkerConnection})
-    false
-end
-
-function convert!(c::Connection, routes::Routes, into::Type{WorkerConnection})
-    if length(into.parameters) < 1
-        throw("a WorkerConnection requires a type parameter.")
-    end
-    r = c.routes[get_target(c)]
- #   assigned_workers = 
-    WorkerConnection(c.stream, c.data, c.routes, assigned)
 end
 
 mutable struct Logger <: AbstractExtension
@@ -76,26 +59,16 @@ function log(l::Logger, message::String, at::Int64 = 1)
     
 end
 
-mutable struct AbstractFileRoute <: AbstractRoute end
-
-function show!(c::Connection, plot::Any, mime::MIME{<:Any} = MIME"text/html"())
-    plot_div::Component{<:Any}
-    data::String = String(io.data)
-    data = replace(data,
-     """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n""" => "")
-    plot_div[:text] = data
-end
-
 function mount(fpair::Pair{String, String})
-    fpath = fpair[2]
-    target = fpair[1]
+    fpath::String = fpair[2]
+    target::String = fpair[1]
     if ~(isdir(fpath))
         return(route(c::Connection -> begin
             @info "hello?"
             write!(c, File(fpath))
         end, target))::Route{Connection}
     end
-    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]
+    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
 end
 
 function route_from_dir(path::String)
@@ -113,15 +86,6 @@ function route_from_dir(path::String)
         end
     end for directory in dirs]
     routes::Vector{String}
-end
-
-function tmd(name::String = "markdown", s::String = "", p::Pair{String, <:Any} ...;
-    args ...)
-     mddiv::Component{:div} = div(name, p ..., args ...)
-    md = Markdown.parse(replace(s, "<" => "", ">" => "", "\"" => ""))
-    htm::String = html(md)
-    mddiv[:text] = htm
-    mddiv::Component{:div}
 end
 
 """
@@ -234,13 +198,6 @@ write!(c::Connection, ac::AbstractComponentModifier) = write!(c, join(ac.changes
 
 abstract type AbstractClientModifier <: AbstractComponentModifier end
 
-function gen_ref(n::Int64 = 16)
-    sampler = "iokrtshgjiosjbisjgiretwshgjbrthrthjtyjtykjkbnvjasdpxijvjr"
-    samps = (rand(1:length(sampler)) for i in 1:n)
-    join(sampler[samp] for samp in samps)
-end
-
-
 mutable struct ClientModifier <: AbstractClientModifier
     name::String
     changes::Vector{String}
@@ -277,6 +234,13 @@ end
 function redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0)
     push!(cm.changes, """setTimeout(
     function () {window.location.href = "$url";}, $delay);""")
+end
+
+function redirect_args!(cm::AbstractClientModifier, url::AbstractString, with::Pair{Symbol, Component{:property}} ...; 
+    delay::Int64 = 0)
+    args = join(("'$(w[1])=' + $(w[2].name)" for w in with), " + ")
+    push!(cm.changes, """setTimeout(
+    function () {window.location.href = "$url" + "?" + $args;}, $delay);""")
 end
 
 function next!(f::Function, cl::AbstractComponentModifier, comp::Any)

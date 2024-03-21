@@ -52,7 +52,7 @@ using Sockets
 using Sockets: TCPServer
 using ToolipsServables
 using ParametricProcesses
-import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!
+import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 import ToolipsServables: write!
 import ToolipsServables: style!, set_children!
 using HTTP

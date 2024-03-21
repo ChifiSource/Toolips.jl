@@ -4,6 +4,7 @@ map
 - get/post requests
 - abstract routes
 - connections
+- parallel computing
 - routes
 - route! (router / route to)
 - extensions
@@ -11,7 +12,7 @@ map
 - exceptions
 - CLI
 - `start!`
-- router generator
+- router
 ==#
 string(r::Vector{UInt8}) = String(UInt8.(r))
 
@@ -20,6 +21,12 @@ abstract type Identifier end
 mutable struct IP4 <: Identifier
     ip::String
     port::Int64
+end
+
+function gen_ref(n::Int64 = 16)
+    sampler::String = "iokrtshgjiosjbisjgiretwshgjbrthrthjtyjtykjkbnvjasdpxijvjr"
+    samps = (rand(1:length(sampler)) for i in 1:n)
+    join(sampler[samp] for samp in samps)
 end
 
 (:)(ip::String, port::Int64) = IP4(ip, port)
@@ -70,7 +77,6 @@ end
 """
 abstract type AbstractConnection end
 
-
 """
 #### abstract type AbstractRoute
 Abstract Routes are what connect incoming connections to functions. A route must be 
@@ -120,6 +126,18 @@ to `route!(c::AbstractConnection, r::Routes{T <: Any})` will create a new router
 """
 const Routes{T} = Vector{T} where T <: AbstractRoute
 
+distribute!(c::AbstractConnection, args ...; keyargs ...) = distribute!(c[:procs], args ...; keyargs ...)
+
+assign!(c::AbstractConnection, args ...; keyargs ...) = assign!(c[:procs], args ...; keyargs ...)
+
+assign_open!(c::AbstractConnection, args ...; keyargs ...) = assign!(c[:procs], args ...; keyargs ...)
+
+distribute_open!(c::AbstractConnection, args ...; keyargs ...) = distribute_open!(c[:procs], args ...; keyargs ...)
+
+waitfor(c::AbstractConnection, args ...; keyargs ...) = waitfor(c[:procs], args ...; keyargs ...)
+
+put!(c::AbstractConnection, args ...; keyargs ...) = distribute!(c[:procs], args ...; keyargs ...)
+
 """
 
 """
@@ -140,15 +158,6 @@ write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
-distribute!(con::AbstractConnection, a ...) = distribute!(con.data[:procs], a ...)
-
-assign!(con::AbstractConnection, a ...) = assign!(con.data[:procs], a ...)
-
-waitfor(con::AbstractConnection, a ...) = waitfor(con.data[:procs], a ...)
-
-assign_open!(con::AbstractConnection, a ...) = assign_open!(con.data[:procs], a ...)
-
-distribute_open!(con::AbstractConnection, a ...) = distribute_open!(con.data[:procs], a ...)
 # args
 function get_args(c::AbstractConnection)
     fullpath = split(c.stream.message.target, '?')
@@ -179,7 +188,6 @@ function get_ip(c::AbstractConnection)
     end for sub in spl]
     return(ipstr)
 end
-
 
 get_post(c::AbstractConnection) = string(read(c.stream))
 
@@ -338,7 +346,6 @@ function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
     r.routes[met].page(c)
 end
 
-
 function getindex(vec::Vector{<:AbstractRoute}, path::String)
     rt = findfirst(r::AbstractRoute -> r.path == path, vec)
     if ~(isnothing(rt))
@@ -357,25 +364,10 @@ end
 function on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
 end
 
-
 """
-### abstract type ServerTemplate
-ServerTemplates are returned whenever the ServerTemplate.start() field is
-called. If you are running your server as a module, it should be noted that
-commonly a global start() method is used and returns this server, and dev is
-where this module is loaded, served, and revised.
-##### Consistencies
-- routes::Vector{AbstractRoute} - The server's routes.
-- extensions::Vector{Route} - The server's currently loaded extensions.
-- server::Any - The server, whatever type it may be...
+
 """
 abstract type ServerTemplate end
-
-mutable struct Server
-    name::String
-    host::IP4
-    m::Module
-end
 
 abstract type WebServer <: ServerTemplate end
 

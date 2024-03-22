@@ -490,12 +490,21 @@ function generate_router(mod::Module, ip::IP4)
     w::Worker{Async} = Worker{Async}("$mod router", rand(1000:3000))
     pman::ProcessManager = ProcessManager(w)
     push!(data, :procs => pman)
-    mod.procman = pman
+    garbage::Int64 = 0
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
         [route!(c, ext) for ext in loaded]
         route!(c, c.routes)::Any
         mod.routes = c.routes
+        garbage += 1
+        if garbage == 7
+            GC.gc()
+        elseif garbage == 15
+            GC.gc()
+        elseif garbage == 20
+            GC.gc(true)
+            garbage = 0
+        end
     end
     return(routeserver, pman)
 end

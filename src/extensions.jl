@@ -145,8 +145,55 @@ function log(l::Logger, message::String, at::Int64 = 1)
     println(l.prefix_crayon, l.prefix, cray, message)
 end
 
+"""
+```julia
+log(c::Connection, message::String, at::Int64 = 1) -> ::Nothing
+```
+---
+`log` will print the message with your `Logger` using the crayon `at`. `Logger` 
+will give a lot more information on this.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    log(logger, "hello server!")
+    write!(c, "hello client!")
+end
+
+export home, logger
+end
+```
+"""
 log(c::Connection, args ...) = log(c[:Logger], args ...)
 
+"""
+```julia
+mount(fpair::Pair{String, String}) -> ::Route{Connection}/::Vector{Route{Connection}}
+```
+---
+`mount` will create a route that serves a file or a all files in a directory. 
+The first part of `fpair` is the target route path, e.g. `/` would be home. If 
+the provided path is as directory, the Function will return a `Vector{AbstractRoute}`. For 
+a single file, this will be a route.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+filemount::Route{Connection} = mount("/" => "templates/home.html")
+
+dirmount::Vector{<:AbstractRoute} = mount("/files" => "public")
+
+export home, logger
+end
+```
+"""
 function mount(fpair::Pair{String, String})
     fpath::String = fpair[2]
     target::String = fpair[1]
@@ -176,9 +223,39 @@ function route_from_dir(path::String)
 end
 
 """
-
+```julia
+abstract type Modifier <: Servable
+```
+A `Modifier` is a type used to create handler callbacks for front-end development. 
+These are typically passed as an argument to a function to make some type of changes.
+---
+- See also: `AbstractComponentModifier`, `ClientModifier`, `Component`, `on`, `bind`
 """
 abstract type Modifier <: Servable end
+
+"""
+```julia
+abstract type AbstractComponentModifier <: Modifier
+```
+An `AbstractComponentModifier` is a `Modifier` for components. `Toolips` 
+features the `ClientModifier`. This is a limited `ComponentModifier` that 
+can be used to execute some commands on the client-side. The shortcoming is that 
+we never call the server, so nothing can be done in Julia.
+```julia
+route("/") do c::Connection
+    comp = button("testbutton", text = "press me")
+    on(comp, "click") do cl::ClientModifier
+        alert!(cl, "you pressed me!")
+    end
+    bod = body("mainbody")
+    push!(bod, comp)
+    write!(c, bod)
+end
+```
+For server-side responses, add `ToolipsSession` and use the `ComponentModifier`.
+---
+- See also: `ClientModifier`, `Modifier`, Component`, `on`, `bind`
+"""
 abstract type AbstractComponentModifier <: Modifier end
 
 setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
@@ -188,6 +265,54 @@ setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
     key, val = p[1], p[2]
     push!(cm.changes,
     "document.getElementById('$s').setAttribute('$key','$val');")
+end
+
+abstract type AbstractClientModifier <: AbstractComponentModifier end
+
+mutable struct ClientModifier <: AbstractClientModifier
+    name::String
+    changes::Vector{String}
+    ClientModifier(name::String = gen_ref()) = begin
+        new(name, Vector{String}())::ClientModifier
+    end
+end
+
+function get_text(cl::AbstractClientModifier, name::String)
+    Component{:property}("document.getElementById('$name').textContent;")
+end
+
+setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
+    push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
+end
+
+write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
+
+function funccl(cm::ClientModifier = ClientModifier(), name::String = cm.name)
+    """function $(name)(event){$(join(cm.changes))}"""
+end
+
+function on(f::Function, component::Component{<:Any}, event::String)
+    cl = ClientModifier("$(component.name)$(event)")
+    f(cl)
+    component["on$event"] = "$(cl.name)(event);"
+    push!(component[:extras], script(cl.name, text = funccl(cl)))
+end
+
+function on(f::Function, event::String)
+    cl = ClientModifier(); f(cl)
+    scrpt = """addEventListener("$event", $(funccl(cl)));"""
+    script("doc$event", text = scrpt)
+end
+
+function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down)
+    eventstr::String = join(" event.$(event)Key && " for event in eventkeys)
+    cl = ClientModifier()
+    f(cl)
+    script(cl.name, text = """addEventListener('key$on', function(event) {
+            if ($eventstr event.key == "$(key)") {
+            $(join(cl.changes))
+            }
+            });""")
 end
 
 function set_textdiv_caret!(cm::AbstractComponentModifier,
@@ -283,30 +408,6 @@ end
 
 write!(c::Connection, ac::AbstractComponentModifier) = write!(c, join(ac.changes))
 
-abstract type AbstractClientModifier <: AbstractComponentModifier end
-
-mutable struct ClientModifier <: AbstractClientModifier
-    name::String
-    changes::Vector{String}
-    ClientModifier(name::String = gen_ref()) = begin
-        new(name, Vector{String}())::ClientModifier
-    end
-end
-
-function get_text(cl::AbstractClientModifier, name::String)
-    Component{:property}("document.getElementById('$name').textContent;")
-end
-
-setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
-    push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
-end
-
-write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
-
-function funccl(cm::ClientModifier = ClientModifier(), name::String = cm.name)
-    """function $(name)(event){$(join(cm.changes))}"""
-end
-
 alert!(cm::AbstractComponentModifier, s::AbstractString) = push!(cm.changes,
         "alert('$s');")
 
@@ -358,28 +459,4 @@ function update_base64!(cm::AbstractComponentModifier, name::String, raw::Any,
     close(b64)
     mysrc = String(io.data)
     cm[name] = "src" => "data:image/$filetype;base64," * mysrc
-end
-
-function on(f::Function, component::Component{<:Any}, event::String)
-    cl = ClientModifier("$(component.name)$(event)")
-    f(cl)
-    component["on$event"] = "$(cl.name)(event);"
-    push!(component[:extras], script(cl.name, text = funccl(cl)))
-end
-
-function on(f::Function, event::String)
-    cl = ClientModifier(); f(cl)
-    scrpt = """addEventListener("$event", $(funccl(cl)));"""
-    script("doc$event", text = scrpt)
-end
-
-function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down)
-    eventstr::String = join(" event.$(event)Key && " for event in eventkeys)
-    cl = ClientModifier()
-    f(cl)
-    script(cl.name, text = """addEventListener('key$on', function(event) {
-            if ($eventstr event.key == "$(key)") {
-            $(join(cl.changes))
-            }
-            });""")
 end

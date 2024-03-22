@@ -447,7 +447,7 @@ function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod)
+    routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
     w = pm["$mod router"]
     serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
     w.task = serve_router
@@ -458,23 +458,30 @@ function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate
     pm::ProcessManager
 end
 
-function generate_router(mod::Module)
+function generate_router(mod::Module, ip::IP4)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
-    fieldgen = [begin
-        f = getfield(mod, x) 
-        typeof(f) => f 
-    end for x in server_ns]
-    onlydata = filter(t -> ~(t[1] <: AbstractExtension || t[1] == Function || t[1] <: AbstractRoute), values(fieldgen))
-    loaded = [t[2] for t in filter(t -> t[1] <: AbstractExtension, values(fieldgen))]
+    mod.routes = []
+    loaded = []
+    for name in server_ns
+        f = getfield(mod, name)
+        T = typeof(f)
+        if T <: AbstractExtension
+            push!(loaded, f)
+        elseif T <: AbstractRoute
+            push!(mod.routes, f)
+        elseif T <: AbstractVector{<:AbstractRoute}
+            mod.routes = vcat(mod.routes, f)
+        end
+    end
+    
+    mod.routes = Vector{AbstractRoute}([mod.routes ...])
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
         push!(loaded, Logger())
+        logger_check = length(loaded)
     end
-    mod.routes = mod[AbstractRoute]
-    if typeof(mod.routes) <: Vector{Route{<:Any}}
-        mod.routes = Vector{AbstractRoute}(mod.routes)
-    end
+    log(loaded[logger_check], "server listening at http://$(string(ip))")
     data = Dict{Symbol, Any}()
     [on_start(ext, data, mod.routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))

@@ -142,45 +142,10 @@ end
 
 function log(l::Logger, message::String, at::Int64 = 1)
     cray = l.crayons[at]
-    println(l.prefix_crayon, prefix, cray, message)
+    println(l.prefix_crayon, l.prefix, cray, message)
 end
 
 log(c::Connection, args ...) = log(c[:Logger], args ...)
-
-"""
-```julia
-DirectoryMultiRoute <: Toolips.AbstractRoute
-```
-- path::String
-- pages::Vector{Route{Conenction}}
-
-A `DirectoryMultiRoute` creates a file directory
-```julia
-
-```
-###### example
-```example
-module ExampleServer
-using Toolips
-crays = (Toolips.Crayon(foreground = :red), Toolips.Crayon(foreground = :black, background = :white, bold = true))
-log = Toolips.Logger("yourserver>", crays ...)
-
-# use logger
-route("/") do c::Connection
-    log(c, "hello world!", 1)
-end
-# load to server
-export log
-end
-using Toolips; Toolips.start!(ExampleServer)
-```
-- See also: `route`, `Connection`, `Extension`
-"""
-mutable struct DirectoryMultiRoute <: AbstractMultiRoute
-    path::String
-    pages::Vector{Route{Connection}}
-    DirectoryMultiRoute(path::String, pages::AbstractVector) = new(path, Vector{Route{Connection}}(pages))
-end
 
 function mount(fpair::Pair{String, String})
     fpath::String = fpair[2]
@@ -190,12 +155,7 @@ function mount(fpair::Pair{String, String})
             write!(c, File(fpath))
         end, target))::AbstractRoute
     end
-    rs::Vector{<:AbstractRoute} = [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]
-    DirectoryMultiRoute(fpath, rs)
-end
-
-function multiroute!(c::AbstractConnection, vec::Routes, r::DirectoryMultiRoute)
-    route!(c, r.pages)
+    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
 end
 
 function route_from_dir(path::String)

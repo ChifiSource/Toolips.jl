@@ -160,7 +160,7 @@ using Toolips
 logger = Toolips.Logger()
 
 home = route("/") do c::Connection
-    log(logger, "hello server!")
+    log(c, "hello server!")
     write!(c, "hello client!")
 end
 
@@ -190,7 +190,7 @@ filemount::Route{Connection} = mount("/" => "templates/home.html")
 
 dirmount::Vector{<:AbstractRoute} = mount("/files" => "public")
 
-export home, logger
+export filemount, dirmount, logger
 end
 ```
 """
@@ -267,8 +267,52 @@ setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
     "document.getElementById('$s').setAttribute('$key','$val');")
 end
 
-abstract type AbstractClientModifier <: AbstractComponentModifier end
+abstract type AbstractClientModifier <: Modifier end
 
+"""
+```julia
+ClientModifier <: AbstractClientModifier
+```
+- name**::String**
+- changes**::Vector{String}**
+
+A `ClientModifier` helps to template functions on the client-side. These are 
+ran without the use of the server. Base `Toolips` does not include server-handled callbacks. 
+The downside to client-side callbacks is that they are limited in what they can do. 
+We cannot retrieve data from or use julia for this response. All of the code server-side 
+    will be ran on the initial response with this type. `ToolipsSession` provides the `ComponentModifier`, 
+    which will provide a lot more capabilities as far as this goes.
+    
+- See also: `keyframes`, `style!`, `style`, `StyleComponent`, `templating`
+```julia
+ClientModifier(name::String = gen_ref())
+```
+---
+An `AbstractComponentModifier` will typically be used with `on`. For a client-side `on` 
+event, simply call `on` on a `Component` with the event selected:
+```example
+module NewServer
+using Toolips
+using Toolips.Components
+route("/") do c::Connection
+    butt = button("mainbutton", text = "click me")
+    style!(butt, "padding" => 10px, "background-color" => "darkred", 
+    "color" => "white")
+    on(butt, "click") do cl::ClientModifier
+        style!(cl, butt, "transform" => translateX(20percent))
+    end
+    write!(c, butt)
+end
+```
+Adding `ToolipsSession` will allow us to add server-side callbacks by 
+adding `Connection` to our `on` call will create a server-side callback, 
+which allows us to read back `Component` properties
+```julia
+on(c, butt, "click") do cm::ComponentModifier
+    sample::String = cm[butt]["text"]
+end
+```
+"""
 mutable struct ClientModifier <: AbstractClientModifier
     name::String
     changes::Vector{String}
@@ -277,32 +321,104 @@ mutable struct ClientModifier <: AbstractClientModifier
     end
 end
 
-function get_text(cl::AbstractClientModifier, name::String)
-    Component{:property}("document.getElementById('$name').textContent;")
-end
-
 setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
     push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
 end
 
 write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
 
+"""
+```julia
+funccl(cm::ClientModifier, name::String = cm.name) -> ::String
+```
+---
+Converts a `ClientModifier` to a JavaScript `Function`.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    log(c, "hello server!")
+    write!(c, "hello client!")
+end
+
+export home, logger
+end
+```
+"""
 function funccl(cm::ClientModifier = ClientModifier(), name::String = cm.name)
     """function $(name)(event){$(join(cm.changes))}"""
 end
 
+"""
+```julia
+on(f::Function, ...) -> ::Nothing/::Component{:script}
+```
+---
+`on` is used to register events to components or directly to pages using 
+Javascript's EventListeners. `on` will generally be passed a `Component` and 
+an event.
+```julia
+on(f::Function, component::Component{<:Any}, event::String) -> ::Nothing
+on(f::Function, event::String) -> ::Component{:script}
+```
+- See also: `ClientModifier`, `move!`, `remove!`, `append!`, `set_children!`
+#### example
+```example
+module MyServer
+using Toolips
+using Toolips.Components
+
+home = route("/") do c::Connection
+
+end
+
+export home, logger
+end
+```
+"""
+function on end
+
 function on(f::Function, component::Component{<:Any}, event::String)
-    cl = ClientModifier("$(component.name)$(event)")
+    cl::ClientModifier = ClientModifier("$(component.name)$(event)")
     f(cl)
     component["on$event"] = "$(cl.name)(event);"
     push!(component[:extras], script(cl.name, text = funccl(cl)))
+    nothing::Nothing
 end
 
 function on(f::Function, event::String)
     cl = ClientModifier(); f(cl)
     scrpt = """addEventListener("$event", $(funccl(cl)));"""
-    script("doc$event", text = scrpt)
+    script("doc$event", text = scrpt)::Component{:script}
 end
+
+"""
+```julia
+bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down) -> ::Component{:script}
+```
+---
+`bind` is used to bind inputs other than clicks and drags to a `Component` or `Connection`.
+This `bind!` simply generates a `Component{:script}` that will bind keyboard events.
+- See also: `ClientModifier`, `on`, `set_text!`, `set_children!`
+#### example
+```example
+module MyServer
+using Toolips
+using Toolips.Components
+
+home = route("/") do c::Connection
+
+end
+
+export home, logger
+end
+```
+"""
+function bind end
 
 function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down)
     eventstr::String = join(" event.$(event)Key && " for event in eventkeys)

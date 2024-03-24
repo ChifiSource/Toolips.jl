@@ -321,6 +321,10 @@ mutable struct ClientModifier <: AbstractClientModifier
     end
 end
 
+function get_text(cl::AbstractClientModifier, name::String)
+    Component{:property}("document.getElementById('$name').textContent;")
+end
+
 setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
     push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
 end
@@ -373,10 +377,15 @@ using Toolips
 using Toolips.Components
 
 home = route("/") do c::Connection
-
+    mybutton = div("mainbut", text = "click this button")
+    style!(mybutton, "border-radius" => 5px)
+    on(mybutton, "click") do cl::ClientModifier
+        alert!(cl, "hello world!")
+    end
+    write!(c, mybutton)
 end
 
-export home, logger
+export home
 end
 ```
 """
@@ -403,7 +412,7 @@ bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :down) -> ::C
 ---
 `bind` is used to bind inputs other than clicks and drags to a `Component` or `Connection`.
 This `bind!` simply generates a `Component{:script}` that will bind keyboard events.
-- See also: `ClientModifier`, `on`, `set_text!`, `set_children!`
+- See also: `ClientModifier`, `on`, `set_text!`, `set_children!`, `alert!`
 #### example
 ```example
 module MyServer
@@ -411,10 +420,12 @@ using Toolips
 using Toolips.Components
 
 home = route("/") do c::Connection
-
+    scr = bind("Z", :ctrl) do cl::ClientModifier
+        alert!(cl, "undo")
+    end
 end
 
-export home, logger
+export home
 end
 ```
 """
@@ -429,12 +440,6 @@ function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :dow
             $(join(cl.changes))
             }
             });""")
-end
-
-function set_textdiv_caret!(cm::AbstractComponentModifier,
-    txtd::Component{:div},
-    char::Int64)
-    push!(cm.changes, "setCurrentCursorPosition$(txtd.name)($char);")
 end
 
 function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})

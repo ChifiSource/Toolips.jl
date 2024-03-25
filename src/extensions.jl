@@ -688,38 +688,112 @@ end
 """
 function sleep!(cm::AbstractComponentModifier, time::Any)
     push!(cm.changes, "await new Promise(r => setTimeout(r, $time));")
+    nothing::Nothing
 end
 
-function style!(cc::Modifier, name::Any,  sname::Style)
-    sname = sname.name
-    if typeof(name) <: AbstractComponent
-        name = name.name
+"""
+```julia
+style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, <:Any} ...) -> ::Nothing
+```
+---
+Styles `name` with the stylepairs `sty` in a callback. Note that `style!` will only add to the style, 
+whereas `set_style!` may be used to change the style. `name` should be a `Component` or a `Component`'s name.
+```example
+using Toolips
+home = route("/") do c::Connection
+    change = button("changer", text = "change text")
+    on(change, "click") do cl::ClientModifier
+        style!(cl, change, "background-color" => "green", "color" => "white")
     end
-    push!(cc.changes, "document.getElementById('$name').className = '$sname';")
+    write!(c, change)
 end
-
-function style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, String} ...)
+```
+"""
+function style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, <:Any} ...)
     if typeof(name) <: AbstractComponent
         name = name.name
     end
     push!(cm.changes,
         join(("document.getElementById('$name').style['$(p[1])'] = '$(p[2])';" for p in sty)))
+    nothing::Nothing
 end
 
+"""
+```julia
+set_style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, <:Any} ...) -> ::Nothing
+```
+---
+Sets the style of the `Component` `name` (provided as itself or its `Component.name`) to `sty` in a callback. 
+Note that this function sets style, removing all previous styles. In order to simply add to the style, or alter it, 
+    use `style!(::AbstractComponentModifier, ...)`.
+```example
+using Toolips
+home = route("/") do c::Connection
+    change = button("changer", text = "change text")
+    style!(change, "color" => "white", "background-color" => "darkred")
+    on(change, "click") do cl::ClientModifier
+        set_style!(cl, change, "background-color" => "green")
+    end
+    write!(c, change)
+end
+```
+"""
 function set_style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, String} ...)
-    sstring = join(["$(p[1]):$(p[2])" for p in sty], ";")
+    sstring::String = join(("$(p[1]):$(p[2])" for p in sty), ";")
     if typeof(name) <: AbstractComponent
         name = name.name
     end
     push!(cm.changes, "document.getElementById('$name').style = '$sstring'")
+    nothing::Nothing
 end
 
 write!(c::Connection, ac::AbstractComponentModifier) = write!(c, join(ac.changes))
 
-alert!(cm::AbstractComponentModifier, s::AbstractString) = push!(cm.changes,
-        "alert('$s');")
+"""
+```julia
+alert!(cm::AbstractComponentModifier, s::Striing) -> ::Nothing
+```
+---
+Alerts the client with the `String` `s` in a callback.
+```example
+module Server
+using Toolips
+home = route("/") do c::Connection
+    albutt = button("changer", text = "alert me!")
+    style!(change, "color" => "white", "background-color" => "darkred")
+    on(albutt, "click") do cl::ClientModifier
+        alert!(cl, "hello world!")
+    end
+    write!(c, albut)
+end
 
-function focus!(cm::AbstractComponentModifier, name::String)
+export home, start!
+end
+```
+"""
+alert!(cm::AbstractComponentModifier, s::String) = push!(cm.changes, "alert('$s');"); nothing::Nothing
+
+"""
+```julia
+focus!(cm::AbstractComponentModifier, name::String) -> ::Nothing
+```
+---
+Focuses the `Component` provided in `name` in a callback from the `Client`. `name` will be either 
+a `Component`, or the `Component`'s `name`.
+```example
+using Toolips
+home = route("/") do c::Connection
+    tbox = textdiv("sample")
+    style!(tbox, "background-color" => "red", "color" => "white", "padding" => 5px)
+    change = button("changer", text = "enter your name")
+    on(change, "click") do cl::ClientModifier
+        focus!(cl, tbox)
+    end
+    write!(c, tbox, change)
+end
+```
+"""
+function focus!(cm::AbstractComponentModifier, name::Any)
     push!(cm.changes, "document.getElementById('$name').focus();")
 end
 

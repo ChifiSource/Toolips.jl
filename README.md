@@ -33,7 +33,8 @@ pkg> add Toolips
       - [routing](#routing)
       - [extensions](#extensions)
     - [responses](#responses)
-      - [components]()
+      - [files](#files)
+      - [components](#components)
   - [examples](#examples)
     - [user api](#user-api)
     - [NAS server](#nas-server)
@@ -97,7 +98,7 @@ This is primarily used for extensions, for example; [ToolipsUDP](https://github.
 using ToolipsUDP
 ToolipsUDP.new_app("Example", ToolipsUDP.UDPServer)
 ```
-##### projects and routes
+## projects and routes
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
 - Any sub-type of `Extension`.
@@ -119,7 +120,7 @@ end
 # starts our server:
 using HelloWorld; start!(HelloWorld)
 ```
-###### routing
+### routing
 ```julia
 home = route("/") do c::Connection
     write!(c, "hello world!")
@@ -189,8 +190,8 @@ proxy_pass!(c::Connection, url::String)
 startread!(c::AbstractConnection)
 download!(c::AbstractConnection, uri::String)
 ```
-###### extensions
-##### responses
+### extensions
+## responses
 #### examples
 ###### user API
 ###### NAS server

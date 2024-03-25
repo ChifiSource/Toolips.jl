@@ -410,7 +410,6 @@ create_serverdeps("ToolipsApp")
 ```
 """
 function create_serverdeps(name::String)
-    extstr::String = "Vector{ServerExtension}([" * join(["$e(), " for e in exts]) * "])"
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add("Toolips")

@@ -474,7 +474,6 @@ function generate_router(mod::Module, ip::IP4)
             mod.routes = vcat(mod.routes, f)
         end
     end
-    
     mod.routes = Vector{AbstractRoute}([mod.routes ...])
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
@@ -491,6 +490,7 @@ function generate_router(mod::Module, ip::IP4)
     pman::ProcessManager = ProcessManager(w)
     push!(data, :procs => pman)
     garbage::Int64 = 0
+    GC.gc(true)
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
         [route!(c, ext) for ext in loaded]
@@ -501,7 +501,10 @@ function generate_router(mod::Module, ip::IP4)
             GC.gc()
         elseif garbage == 15
             GC.gc()
-        elseif garbage == 20
+        elseif garbage == 15
+            GC.gc()
+            garbage = 0
+        elseif garbage == 30
             GC.gc(true)
             garbage = 0
         end

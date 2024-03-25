@@ -267,7 +267,7 @@ setindex!(cm::AbstractComponentModifier, p::Pair, s::Any) = begin
     "document.getElementById('$s').setAttribute('$key','$val');")
 end
 
-abstract type AbstractClientModifier <: Modifier end
+abstract type AbstractClientModifier <: AbstractComponentModifier end
 
 """
 ```julia
@@ -321,6 +321,40 @@ mutable struct ClientModifier <: AbstractClientModifier
     end
 end
 
+"""
+```julia
+get_text(cl::AbstractClientModifier, name::String) -> ::Component{:property}
+```
+`get_text` is used to retrieve the text of a `Component` in a `ClientModifier`. 
+The `Component{:property}` can then be used with `setindex!`.
+#### example
+The following example is the function that makes the searchbar for the 
+    `Toolips` app. This simple searchbar uses `get_text` and `redirect_args!` to 
+    redirect the client with new `GET` arguments. This is a simple way to create a 
+    complex website without using callbacks.
+```example
+function make_searchbar(text::String)
+    scontainer = div("searchcontainer")
+    style!(scontainer, "background" => "transparent", 
+    "left" => 18perc, "width" => 92perc, "z-index" => "10", "display" => "flex")
+    sbar = a("searchbar", text = "enter search ...", contenteditable = true)
+    barstyle = ("padding" => 5px, "border-radius" => 1px, "background-color" => "#0b0930", "color" => "white", 
+    "font-weight" => "bold", "font-size" => 15pt)
+    style!(sbar, "width" => 40percent, "width" => 85perc, "min-width" => 85perc, barstyle ...)
+    sbutton = button("sbutton", text = "search")
+    style!(sbutton, barstyle ...)
+    on(sbar, "click") do cl
+        set_text!(cl, sbar, "")
+    end
+    on(sbutton, "click") do cl
+        proptext = get_text(cl, "searchbar")
+        redirect_args!(cl, "/docs", :search => proptext)
+    end
+    push!(scontainer, sbar, sbutton)
+    scontainer
+end
+```
+"""
 function get_text(cl::AbstractClientModifier, name::String)
     Component{:property}("document.getElementById('$name').textContent;")
 end
@@ -442,6 +476,29 @@ function bind(f::Function, key::String, eventkeys::Symbol ...; on::Symbol = :dow
             });""")
 end
 
+"""
+```julia
+move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any}) -> ::Nothing
+```
+---
+`move!` is a `ComponentModifier` `Function` that will move a `Component` into 
+another `Component`. The values of `p` -- as is the case in most `ComponentModifier` functions which take 
+a `Component` -- can be `Component` names or the Components themselves. The key of the `Pair` 
+will become the child of the value.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    child = div("moved", text = "hello")
+    parent = div("movedinto")
+    style!(parent, "margin" => 10px, "background-color" => "red")
+    on(c, parent, "click") do cl::ClientModifier
+        move!(cl, "moved" => "movedinto")
+    end
+    write!(c, child, parent)
+end
+```
+"""
 function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})
     firstname = p[1]
     secondname = p[2]
@@ -452,15 +509,38 @@ function move!(cm::AbstractComponentModifier, p::Pair{<:Any, <:Any})
         secondname = secondname.name
     end
     push!(cm.changes, "
-    document.getElementById('$firstname').appendChild(document.getElementById('$secondname'));
+    document.getElementById('$secondname').appendChild(document.getElementById('$firstname'));
   ")
+  nothing::Nothing
 end
 
+"""
+```julia
+remove!(cm::AbstractComponentModifier, s::Any) -> ::Nothing
+```
+---
+`remove!` is a `ComponentModifier` `Function` that will remove a `Component` 
+from the page. `s` can be either a `String`, the component's `name` or the 
+`Component` itself.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    box = div("sample")
+    style!(box, "margin" => 10px, "background-color" => "red")
+    on(c, box, "click") do cl::ClientModifier
+        remove!(cl, "sample")
+    end
+    write!(c, box)
+end
+```
+"""
 function remove!(cm::AbstractComponentModifier, s::Any)
     if typeof(s) <: AbstractComponent
         s = s.name
     end
     push!(cm.changes, "document.getElementById('$s').remove();")
+    nothing::Nothing
 end
 
 function set_text!(c::Modifier, s::Any, txt::Any)

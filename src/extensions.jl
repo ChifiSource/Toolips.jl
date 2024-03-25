@@ -566,9 +566,7 @@ function set_text!(c::AbstractComponentModifier, s::Any, txt::String)
     if typeof(s) <: AbstractComponent
         s = s.name
     end
-    txt = replace(txt, "`" => "\\`")
-    txt = replace(txt, "\"" => "\\\"")
-    txt = replace(txt, "''" => "\\'")
+    txt = replace(txt, "`" => "\\`", "\"" => "\\\"", "''" => "\\'")
     push!(c.changes, "document.getElementById('$s').innerHTML = `$txt`;")
     nothing::Nothing
 end
@@ -779,7 +777,8 @@ focus!(cm::AbstractComponentModifier, name::String) -> ::Nothing
 ```
 ---
 Focuses the `Component` provided in `name` in a callback from the `Client`. `name` will be either 
-a `Component`, or the `Component`'s `name`.
+a `Component`, or the `Component`'s `name`. `focus!` will put the user's cursor/text input into the element. 
+The inverse to `focus!` is `blur!`.
 ```example
 using Toolips
 home = route("/") do c::Connection
@@ -797,31 +796,150 @@ function focus!(cm::AbstractComponentModifier, name::Any)
     push!(cm.changes, "document.getElementById('$name').focus();")
 end
 
-function blur!(cm::AbstractComponentModifier, name::String)
-    push!(cm.changes, "document.getElementById('$name').blur();")
+"""
+```julia
+blur!(cm::AbstractComponentModifier, name::String) -> ::Nothing
+```
+---
+Un-focuses the `Component` provided in `name` in a callback from the `Client`. `name` will be either 
+a `Component`, or the `Component`'s `name`. This will unselect the currently focused element, the inverse of 
+`focus!`
+```example
+module Server
+using Toolips
+
+home = route("/") do c::Connection
+    tbox = textdiv("sample")
+    style!(tbox, "background-color" => "red", "color" => "white", "padding" => 5px)
+    change = button("changer", text = "enter your name")
+    on(change, "click") do cl::ClientModifier
+        focus!(cl, tbox)
+        sleep!(cl, 20)
+        blur!(cl, tbox)
+    end
+    write!(c, tbox, change)
 end
 
+export home, start!
+end
+```
+"""
+function blur!(cm::AbstractComponentModifier, name::String)
+    push!(cm.changes, "document.getElementById('$name').blur();")
+    nothing::Nothing
+end
+
+"""
+```julia
+redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0) -> ::Nothing
+```
+---
+`redirect!` will cause the client to send a `GET` request to `url`. `delay` can be used to add a millisecond delay. 
+This can also be used for navigating users around your website. It might also be useful to check out `redirect_args!` 
+    for redirecting a `ClientModifier` with arguments.
+```example
+using Toolips
+home = route("/") do c::Connection
+    change = button("changer", text = "go to github")
+    on(change, "click") do cl::ClientModifier
+        redirect!(cl, "https://github.com/")
+    end
+    write!(c, hange)
+end
+```
+"""
 function redirect!(cm::AbstractComponentModifier, url::AbstractString, delay::Int64 = 0)
     push!(cm.changes, """setTimeout(
     function () {window.location.href = "$url";}, $delay);""")
 end
 
+"""
+```julia
+redirect_args!(cm::AbstractComponentModifier, url::AbstractString, with::Pair{Symbol, Component{:property}} ...) -> ::Nothing
+```
+---
+`redirect_args!` is used to change redirects based on arguments entirely on the client side. In most cases, we will be using `redirect!` to 
+move clients to a different page -- even with a `ClientModifier`. This provides a tool for the exception, where we want to work with `Component` 
+properties on the client side. We are able to get `Component{:property}`'s back from a `ClientModifier` by using `getindex` or `get_text`. Note that this 
+`ComponentProperty` is not a Julia-bound type, this is a representation of that property in JavaScript which is ran without Julia on the client. 
+In order to run callbacks on the server, instead just use `ToolipsSession` and provide a `Connection` to `on`. (`using ToolipsSession; ?(on)`)
+#### example
+The following example is from the `Toolips` documentation site's searchbar. This example uses `get_text` to retrieve the text property. Note that 
+`getindex` is used for regular properties, whereas `get_text` is exclusively used for text.
+```example
+function make_searchbar(text::String)
+    scontainer = div("searchcontainer")
+    style!(scontainer, "background" => "transparent", 
+    "left" => 18perc, "width" => 92perc, "z-index" => "10", "display" => "flex")
+    sbar = a("searchbar", text = "enter search ...", contenteditable = true)
+    barstyle = ("padding" => 5px, "border-radius" => 1px, "background-color" => "#0b0930", "color" => "white", 
+    "font-weight" => "bold", "font-size" => 15pt)
+    style!(sbar, "width" => 40percent, "width" => 85perc, "min-width" => 85perc, barstyle ...)
+    sbutton = button("sbutton", text = "search")
+    style!(sbutton, barstyle ...)
+    on(sbar, "click") do cl
+        set_text!(cl, sbar, "")
+    end
+    on(sbutton, "click") do cl
+        proptext = get_text(cl, "searchbar")
+        redirect_args!(cl, "/docs", :search => proptext)
+    end
+    push!(scontainer, sbar, sbutton)
+    scontainer
+end
+```
+"""
 function redirect_args!(cm::AbstractClientModifier, url::AbstractString, with::Pair{Symbol, Component{:property}} ...; 
     delay::Int64 = 0)
     args = join(("'$(w[1])=' + $(w[2].name)" for w in with), " + ")
     push!(cm.changes, """setTimeout(
     function () {window.location.href = "$url" + "?" + $args;}, $delay);""")
+    nothing::Nothing
 end
 
+"""
+```julia
+next!(f::Function, cl::AbstractComponentModifier, comp::Any) -> ::Nothing
+```
+---
+`next!` creates a sequence of events to occur after a component's transition as ended. `comp` can be 
+the component's `name` or the `Component` itself. Note that the `Component` has to be in a transition to 
+use `next!`, which means we will need to mutate its style. For simply creating a delay, there is `sleep!` -- 
+among other options. `next!` is ideal for multi-stage client-side animations, and interactive multi-stage callbacks.
+```example
+module AmericanServer
+using Toolips
+home = route("/") do c::Connection
+    change = button("changer", text = "go to github", align = "center")
+    # setting the transition time vvv
+    style!(change, "transition" => 500ms)
+    on(change, "click") do cl::ClientModifier
+        style!(cl, change, "background-color" => "red")
+        next!(cl, "changer") do cl2::ClientModifier
+            style!(cl2, change, "background-color" => "white")
+            next!(cl, "changer") do cl3::ClientModifier
+                style!(cl3, change, "background-color" => "blue")
+                set_text!(cl3, change, "amurica")
+            end
+        end
+    end
+    write!(c, change)
+end
+export home, start!
+end
+
+start!(AmericanServer)
+```
+"""
 function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
     if typeof(comp) <: AbstractComponent
         comp = comp.name
     end
-    newcl = ClientModifier()
+    newcl::ClientModifier = ClientModifier()
     f(newcl)
-    fcl = funccl(newcl)
     push!(cl.changes,
-    "document.getElementById('$comp').addEventListener('transitionend', $fcl);")
+    "document.getElementById('$comp').addEventListener('transitionend', $(funccl(newcl));")
+    nothing::Nothing
 end
 
 function update!(cm::AbstractComponentModifier, ppane::AbstractComponent, plot::Any)
@@ -835,10 +953,10 @@ end
 
 function update_base64!(cm::AbstractComponentModifier, name::String, raw::Any,
     filetype::String = "png")
-    io = IOBuffer();
-    b64 = ToolipsServables.Base64.Base64EncodePipe(io)
+    io::IOBuffer = IOBuffer();
+    b64::Base64EncodePipe = ToolipsServables.Base64.Base64EncodePipe(io)
     show(b64, "image/$filetype", raw)
     close(b64)
-    mysrc = String(io.data)
+    mysrc::String = String(io.data)
     cm[name] = "src" => "data:image/$filetype;base64," * mysrc
 end

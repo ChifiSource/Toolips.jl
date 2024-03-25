@@ -543,43 +543,150 @@ function remove!(cm::AbstractComponentModifier, s::Any)
     nothing::Nothing
 end
 
-function set_text!(c::Modifier, s::Any, txt::Any)
+"""
+```julia
+set_text!(c::AbstractComponentModifier, s::Any, txt::String) -> ::Nothing
+```
+---
+Sets the text of the `Component` (or `Component` `name`) `s`.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    mytextbox = div("sampletext", text = "text will change", align = "center")
+    changetxt = button("changer", text = "change text", align = "center")
+    on(changetxt, "click") do cl::ClientModifier
+        set_text!(cl, mytextbox, "text changed!")
+    end
+    write!(c, mytextbox, changetxt)
+end
+```
+"""
+function set_text!(c::AbstractComponentModifier, s::Any, txt::String)
     if typeof(s) <: AbstractComponent
         s = s.name
-    end
-    if typeof(txt) <: AbstractComponent
-        push!(c.changes, "document.getElementById('$s').innerHTML = $(txt.name);")
-       return 
     end
     txt = replace(txt, "`" => "\\`")
     txt = replace(txt, "\"" => "\\\"")
     txt = replace(txt, "''" => "\\'")
     push!(c.changes, "document.getElementById('$s').innerHTML = `$txt`;")
+    nothing::Nothing
 end
 
-function set_children!(cm::AbstractComponentModifier, s::Any, v::Vector{Servable})
+"""
+```julia
+set_children!(cm::AbstractComponentModifier, s::Any, v::Vector{<:Servable}) -> ::Nothing
+```
+---
+`set_children!` will set the children of `s`, a `Component` or `Component`'s `name`, to `v`.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    mychildbox = div("sampletext", text = "text will change", align = "center")
+    change = button("changer", text = "change text")
+    on(change, "click") do cl::ClientModifier
+        childs = [div("sample", text = string(x)) for x in 1:5]
+        set_children!(cl, mychildbox, childs)
+    end
+    write!(c, mychildbox, change)
+end
+```
+"""
+function set_children!(cm::AbstractComponentModifier, s::Any, v::Vector{<:Servable})
     if typeof(s) <: AbstractComponent
         s = s.name
     end
-    set_text!(cm, s, join([string(serv) for serv in v]))
+    set_text!(cm, s, join(string(serv) for serv in v))::Nothing
 end
 
-function append!(cm::AbstractComponentModifier, name::Any, child::Servable)
+"""
+```julia
+append!(cm::AbstractComponentModifier, name::Any, child::AbstractComponent) -> ::Nothing
+```
+---
+Appends the `Component` `child` to the `Component` or `Component `name` provided in the argument `name`.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    mychildbox = div("sampletext", text = "text will change", align = "center")
+    change = button("changer", text = "change text")
+    on(change, "click") do cl::ClientModifier
+        newsect = a("anchor", text = "hello")
+        style!(newsect, "opacity" => 50percent, "color" => "red")
+        append!(cl, mychildbox, newsect)
+    end
+    write!(c, mychildbox, change)
+end
+```
+"""
+function append!(cm::AbstractComponentModifier, name::Any, child::AbstractComponent)
     if typeof(name) <: AbstractComponent
        name = name.name
     end
-    txt = replace(string(child), "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
+    txt::String = replace(string(child), "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
     push!(cm.changes, "document.getElementById('$name').appendChild(document.createRange().createContextualFragment(`$txt`));")
+    nothing::Nothing
 end
 
-function insert!(cm::AbstractComponentModifier, name::String, i::Int64, child::Servable)
-    spoofconn = Toolips.SpoofConnection()
-    write!(spoofconn, child)
-    txt = replace(spoofconn.http.text, "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
+"""
+```julia
+insert!(cm::AbstractComponentModifier, name::String, i::Int64, child::AbstractComponent) -> ::Nothing
+```
+---
+Inserts `child` into `name` (a `Component` or its `name`) at index `i`. Note that, in true Julia fashion, 
+indexes start at 1.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    mychildbox = div("sampletext", text = "text will change", align = "center")
+    change = button("changer", text = "change text")
+    firstsect = a("an", text = "initial message")
+    push!(mychildbox, firstsect)
+    on(change, "click") do cl::ClientModifier
+        newsect = a("anchor", text = "second message")
+        style!(newsect, "opacity" => 50percent, "color" => "red")
+        insert!(cl, mychildbox, 1, newsect)
+    end
+    write!(c, mychildbox, change)
+end
+```
+"""
+function insert!(cm::AbstractComponentModifier, name::String, i::Int64, child::AbstractComponent)
+    txt::String = replace(string(child), "`" => "\\`", "\"" => "\\\"", "'" => "\\'")
     push!(cm.changes, "document.getElementById('$name').insertBefore(document.createRange().createContextualFragment(`$txt`), document.getElementById('$name').children[$(i - 1)]);")
+    nothing::Nothing
 end
 
-function sleep!(cm::AbstractComponentModifier, time::Int64)
+"""
+```julia
+sleep!(cm::AbstractComponentModifier, time::Any) -> ::Nothing
+```
+---
+`sleep!` will cause a client-side timeout for `time` milliseconds. This can be used to delay 
+different actions in a callback, which might be especially useful in the `ClientModifier` context.
+#### example
+```example
+using Toolips
+home = route("/") do c::Connection
+    mychildbox = div("sampletext", text = "text will change", align = "center")
+    change = button("changer", text = "change text")
+    firstsect = a("an", text = "initial message")
+    push!(mychildbox, firstsect)
+    on(change, "click") do cl::ClientModifier
+        newsect = a("anchor", text = "second message")
+        style!(newsect, "opacity" => 50percent, "color" => "red")
+        insert!(cl, mychildbox, 1, newsect)
+        sleep!(cl, 500)
+        style!(cl, change, "background-color" => "black", "color" => "white")
+    end
+    write!(c, mychildbox, change)
+end
+```
+"""
+function sleep!(cm::AbstractComponentModifier, time::Any)
     push!(cm.changes, "await new Promise(r => setTimeout(r, $time));")
 end
 

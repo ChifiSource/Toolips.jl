@@ -62,7 +62,7 @@ Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```
 ###### documentation
-`Toolips` documentation is built into the `Toolips` `Module` itself, which is itself a `Toolips` server we can start.
+The quickest way to access `Toolips` documentation is to use the server built into `Toolips` itself. For this, simply run `start!(Toolips)`:
 ```julia
 using Toolips
 start!(Toolips)
@@ -73,12 +73,15 @@ module MyServer
 home = route("/") do c::Connection
     write!(c, "hello world!")
 end
-export toolips_app, toolips_doc, default_404
+exporthome, toolips_doc, default_404
+end
 ```
 - `toolips_app` is an in-`Module` route-manager for `Toolips` servers.
 - `toolips_doc` is a documentation browser for `Toolips` and other packages.
 - `default_landing` is a simple landing page, which provides links to `toolips_doc` and `toolips_app` -- primarily designed for when `Toolips` is started directly with `start!`.
 - `default_404` is a 404 page that can be used in your apps.
+
+There is also the [Toolips web documentation](), which is a far more robust and complete website which might be ideal for beginners, but also requires an internet connection. This `README` also serves as a great introduction to `Toolips`, which is not too complicated outside beyond the general scope of this `README`. It might also be valuable to learn more about templating if you are creating frontend applications, for this you will want to check out [`ToolipsServables`](#https://github.com/ChifiSource/ToolipsServables.jl).
 #### quick start
 Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
 ```julia
@@ -95,7 +98,7 @@ using ToolipsUDP
 ToolipsUDP.new_app("Example", ToolipsUDP.UDPServer)
 ```
 ##### projects and routes
-In `Toolips`, projects are modules which export `Toolips` types. These special types are
+In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
 - Any sub-type of `Extension`.
 - or a `Vector{<:AbstractRoute}`
@@ -117,7 +120,12 @@ end
 using HelloWorld; start!(HelloWorld)
 ```
 ###### routing
-To create a `Route`, we provide the `route` `Function` with a target, a `String` path starting at `/` to mount the website's base URL. The `Function` we provide will take a `<:` of an `AbstractConnection`. We are able to annotate this argument in our `route` call to change the `Connection` type that will be provided. Finally, we use `write!` to write data or `Servables` to the incoming request stream. This routing is further expanded with `multiroute`. Using `multiroute` can effectively allow us to create our own miniature router underneath our current router.
+```julia
+home = route("/") do c::Connection
+    write!(c, "hello world!")
+end
+```
+To create a `Route`, we provide the `route` `Function` with a **target**, a `String` path starting at `/` to mount the website's base URL and a `Function` passed through **do**. The general `Toolips` process on a route is creating data and then writing it to the `Connection` with `write!`. The `Function` we provide will take a `<:` of an `AbstractConnection`. We are able to annotate this argument in our `route` call to change our route's functionality based on the dispatch. This creates what is effectively *multiple dispatch routing*, consider the example below:
 ```julia
 module HelloWorld
 using Toolips
@@ -136,6 +144,51 @@ export start!, home
 end
 ```
 In the case above, mobile clients will be redirected to the latter `Function`, as their `Connection` will convert into a `MobileConnection`.
+
+Routes are stored in the `Connection` under `Connection.routes`. We can dynamically change our `routes` by mutating this `Vector{<:AbstractRoute}`.
+```julia
+module ToolipsServer
+using Toolips
+using Toolips.Components
+
+home = route("/") do c::Connection
+    new_route = route("/newpage") do c::Connection
+        write!(c, "second page")
+    end
+    push!(c.routes, new_route)
+    # creating a quick page to link to our route
+    lnk = a("othersite", text = "visit new route", align = "center", href = "/newpage")
+    style!(lnk, "margin-top" => 10percent)
+    write!(c, lnk)
+end
+
+export default_404, home
+end
+```
+Data can also be stored in the `Connection`, and this includes some extensions.
+```julia
+```
+There are several "getter" methods associated with the `Connection`, here is a comprehensive list:
+```julia
+get_args
+get_heading
+get_ip
+get_post
+get_method
+get_post
+get_parent
+get_client_system
+```
+All of these take a `Connection` and are pretty self explanatory with the exception of `get_client_system`. This will provide the system of the client, but also whether or not the client is on a mobile system. Note that the operating system is given as the request header gives it, of course.
+```julia
+client_operating_system_name, ismobile = get_client_system(c)
+```
+There's also
+```julia
+proxy_pass!(c::Connection, url::String)
+startread!(c::AbstractConnection)
+download!(c::AbstractConnection, uri::String)
+```
 ###### extensions
 ##### responses
 #### examples

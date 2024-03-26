@@ -134,7 +134,8 @@ mutable struct Logger <: AbstractExtension
             end
         end
         if length(crayons) < 1
-            crayons = [Crayon(foreground  = :light_blue, bold = true)]
+            crayons = [Crayon(foreground  = :light_blue, bold = true), Crayon(foreground = :yellow, bold = true), 
+            Crayon(foreground = :red, bold = true)]
         end
         new([crayon for crayon in crayons], prefix, write, writeat, prefix_crayon)
     end

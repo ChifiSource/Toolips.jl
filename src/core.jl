@@ -245,6 +245,30 @@ end
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
 # args
+"""
+```julia
+get_args(c::AbstractConnection) -> ::Dict{Symbol, String}
+```
+---
+Returns the `GET` arguments of the current `Connection` in a `Dict{Symbol, String}`.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    args = getargs(c)
+    if :page in args
+        write!(c, "requested page: " * args[:page])
+    end
+end
+
+export home, logger
+end
+```
+"""
 function get_args(c::AbstractConnection)
     fullpath = split(c.stream.message.target, '?')
     if length(fullpath) > 1
@@ -257,10 +281,67 @@ function get_args(c::AbstractConnection)
     Dict{Symbol, String}()::Dict{Symbol, String}
 end
 
-function get_heading(c::AbstractConnection)
+"""
+```julia
+get_heading(c::AbstractConnection) -> ::String
+```
+---
+Gets the markdown heading of `c`. 
+#### example
+```example
+module MyServer
+using Toolips
 
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    heading = get_heading(c)
+    if heading == "hello-world"
+        log(logger, "someone requested hello-world")
+    end
 end
 
+export home, logger
+end
+```
+(Note that markdown headings are handled automatically by your browser, this 
+is purposed primarily for a custom implementation of heading navigation.)
+"""
+function get_heading(c::AbstractConnection)
+    target::String = c.stream.message.target
+    f = findlast("#", target)
+    if isnothing(f)
+        ""::String
+    end
+    target[f + 1:length(target)]::String
+end
+
+"""
+```julia
+get_ip(c::AbstractConnection) -> ::String
+```
+---
+`get_ip` returns the IP of the current `Connection`.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    heading = get_heading(c)
+    if heading == "hello-world"
+        log(logger, "someone requested hello-world")
+    end
+end
+
+export home, logger
+end
+```
+(Note that markdown headings are handled automatically by your browser, this 
+is purposed primarily for a custom implementation of heading navigation.)
+"""
 function get_ip(c::AbstractConnection)
     str = c.stream.message["User-Agent"]
     spl = split(str, "/")
@@ -457,10 +538,10 @@ abstract type ServerTemplate end
 
 abstract type WebServer <: ServerTemplate end
 
-const Servers = Vector{Pair{<:ServerTemplate, Module}}
-
-function kill!(ws::ServerTemplate)
-    close(ws.server)
+function kill!(mod::Module)
+    close(mod.server)
+    mod.server = nothing
+    GC.gc(true)
 end
 
 mutable struct StartError <: Exception
@@ -516,7 +597,7 @@ end
 function generate_router(mod::Module, ip::IP4)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
-    mod.routes = []
+    mod.routes = Vector{AbstractRoute}()
     loaded = []
     for name in server_ns
         f = getfield(mod, name)
@@ -530,12 +611,13 @@ function generate_router(mod::Module, ip::IP4)
         end
         T = nothing
     end
-    mod.routes = Vector{AbstractRoute}([mod.routes ...])
+    mod.routes = [r for r in mod.routes]
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
         push!(loaded, Logger())
         logger_check = length(loaded)
     end
+    log(loaded[logger_check], "loaded router type: $(typeof(mod.routes))", 2)
     log(loaded[logger_check], "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
@@ -558,10 +640,9 @@ function generate_router(mod::Module, ip::IP4)
             GC.gc()
         elseif garbage == 15
             GC.gc()
-        elseif garbage == 15
+        elseif garbage == 25
             GC.gc()
-            garbage = 0
-        elseif garbage == 30
+        elseif garbage == 35
             GC.gc(true)
             garbage = 0
         end

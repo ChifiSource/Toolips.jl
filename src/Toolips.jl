@@ -60,7 +60,7 @@ using HTTP
 using Pkg
 using Markdown
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!
+import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
 
 const Components = ToolipsServables
 
@@ -94,7 +94,7 @@ end
 
 include("core.jl")
 export IP4, Extension, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
-export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes
 include("extensions.jl")
 export on, bind, ClientModifier, move!, remove!, set_text!, set_children!, append!, insert!, sleep!, set_style!, focus!, blur!, alert!
 export redirect!, next!, update!, update_base64!

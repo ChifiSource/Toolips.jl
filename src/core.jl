@@ -102,8 +102,8 @@ logger = Toolips.Logger()
 
 home = route("/") do c::Connection
     name = get_post(c)
-    log(logger, "$name just posted")
-    write!(c, "hello, $name")
+    log(logger, "\$name just posted")
+    write!(c, "hello, \$name")
 end
 export home, logger
 end
@@ -153,9 +153,9 @@ function in(t::String, v::Vector{<:AbstractRoute})
     false::Bool
 end
 
-string(c::Vector{<:AbstractRoute}) = join([begin
+string(c::Vector{<:AbstractRoute}) = join((begin
     r.path * "\n" 
-end for r in c])
+end for r in c))
 
 getindex(c::AbstractConnection, symb::Symbol) = c.data[symb]
 
@@ -181,6 +181,7 @@ to `route!(c::AbstractConnection, r::Routes{T <: Any})` will create a new router
 ```example
 
 ```
+- See also: `AbstractConnection`, `Route`, `route`, `route!`
 """
 const Routes{T} = Vector{T} where T <: AbstractRoute
 
@@ -197,22 +198,49 @@ waitfor(c::AbstractConnection, args ...; keyargs ...) = waitfor(c[:procs], args 
 put!(c::AbstractConnection, args ...; keyargs ...) = distribute!(c[:procs], args ...; keyargs ...)
 
 """
+```julia
+Connection <: AbstractConnection
+```
+- `stream`**::HTTP.Stream**
+- `data`**::Dict{Symbol, Any}**
+- `routes`**::Vector{<:AbstractRoute}**
 
+The `Connection` is the main type a `Toolips` server uses to serve an incoming 
+HTTP request. Indexing the `Connection` yields routes or server data when a `String` or 
+`Symbol` is used. A `Connection` can also be written to with `write!`. Arguments, and 
+other client information can be retrieved with the various *get* functions for an `AbstractConnection`.
+```julia
+get_args(c::AbstractConnection)
+get_ip(c::AbstractConnection)
+get_post(c::AbstractConnection)
+get_route(c::AbstractConnection)
+get_method(c::AbstractConnection)
+get_parent(c::AbstractConnection)
+get_client_system(c::AbstractConnection)
+```
+###### example
+A `Connection` is provided directly to your route's handler `Function` as its only argument. 
+When we create a `Route` with `route`, we will be passed a `Connection` which we can 
+then use with `write!` to respond.
+```example
+module SampleServer
+using Toolips
+        # annotating gives multiple dispatch to routes (recommended)
+home = route("/") do c::Connection
+    write!(c, "hello world!")
+end
+
+export home, start!
+end
+```
+`Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
+- See also: `route`, `AbstractConnection`, `route!`, `write!`, `Components`, `SpoofConnection`
 """
 mutable struct Connection <: AbstractConnection
-    stream::Any
+    stream::HTTP.Stream
     data::Dict{Symbol, Any}
-    routes::Vector{AbstractRoute}
+    routes::Vector{<:AbstractRoute}
 end
-
-"""
-
-"""
-mutable struct SpoofConnection <: AbstractConnection
-    stream::String
-    SpoofConnection() = new("")::SpoofConnection
-end
-write!(c::SpoofConnection, args::Any ...) = c.stream = c.stream * write(c.stream, join([string(args) for args in args]))
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
@@ -469,7 +497,7 @@ end
 
 function start! end
 
-function start!(mod::Module = server_cli(Main.ARGS), from::Type{<:ServerTemplate} = WebServer; ip::IP4 = ip4_cli(Main.ARGS), 
+function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS),  from::Type{<:ServerTemplate} = WebServer;
     threads::Int64 = 1)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
@@ -500,6 +528,8 @@ function generate_router(mod::Module, ip::IP4)
         elseif T <: AbstractVector{<:AbstractRoute}
             mod.routes = vcat(mod.routes, f)
         end
+        f = nothing
+        T = nothing
     end
     mod.routes = Vector{AbstractRoute}([mod.routes ...])
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
@@ -508,6 +538,7 @@ function generate_router(mod::Module, ip::IP4)
         logger_check = length(loaded)
     end
     log(loaded[logger_check], "server listening at http://$(string(ip))")
+    logger_check = nothing
     data = Dict{Symbol, Any}()
     [on_start(ext, data, mod.routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))

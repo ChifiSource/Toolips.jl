@@ -999,23 +999,37 @@ allows for the creation of a `WebServer` ideal for websites and endpoints. This 
 """
 abstract type WebServer <: ServerTemplate end
 
+"""
+```julia
+kill!(mod::Module) -> ::Nothing
+```
+---
+`kill!` will stop an active `Toolips` server.
+```julia
+```
+- See also: `route`, `start!`, `Toolips`, `new_app`
+"""
 function kill!(mod::Module)
     close(mod.server)
     mod.server = nothing
+    mod.routes = nothing
     GC.gc(true)
+    Pkg.gc()
 end
 
 mutable struct StartError <: Exception
-
+    message::String
 end
 
 mutable struct RouteError <: Exception
-    function showerror(io::IO, e::RouteError)
-        print(io, "ERROR ON ROUTE: $(e.route) $(e.error)")
-    end
+    path::String
 end
 
-showerror(io::IO, e::StartError) = print(io, "Toolips Core Error: $(e.message)")
+function showerror(io::IO, e::RouteError)
+    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.route) $(e.error)")
+end
+
+showerror(io::IO, e::StartError) = print(io, Crayon(foreground = :blue, bold = true), "Error starting server: $(e.message)")
 
 function ip4_cli(ARGS)
     IP = "127.0.0.1"
@@ -1037,6 +1051,16 @@ function server_cli(ARGS)
     end
 end
 
+"""
+```julia
+start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS), from::Type{<:ServerTemplate}; threads = 1) -> ::ParametricProcesses.ProcessManager
+```
+---
+The `on_start` binding is called for each exported extension with this `Method` when the server starts.
+```julia
+```
+- See also: `route!`, `AbstractExtension`, `route`, `kill!`, `start!`
+"""
 function start! end
 
 function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS),  from::Type{<:ServerTemplate} = WebServer;
@@ -1045,7 +1069,7 @@ function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
-    w = pm["$mod router"]
+    w::Worker{:async} = pm["$mod router"]
     serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true
@@ -1091,20 +1115,20 @@ function generate_router(mod::Module, ip::IP4)
     push!(data, :procs => pman)
     garbage::Int64 = 0
     GC.gc(true)
+    Pkg.gc()
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
         [route!(c, ext) for ext in loaded]
         route!(c, c.routes)::Any
         mod.routes = c.routes
         garbage += 1
-        if garbage == 7
+        if garbage == 25
             GC.gc()
-        elseif garbage == 15
+        elseif garbage == 50
             GC.gc()
-        elseif garbage == 25
+        elseif garbage == 75
             GC.gc()
-        elseif garbage == 35
-            Pkg.gc()
+        elseif garbage == 100
             GC.gc(true)
             garbage = 0
         end

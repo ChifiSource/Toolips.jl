@@ -93,7 +93,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, Extension, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
+export IP4, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes
 include("extensions.jl")
 export on, bind, ClientModifier, move!, remove!, set_text!, set_children!, append!, insert!, sleep!, set_style!, focus!, blur!, alert!
@@ -246,7 +246,7 @@ end
 
 function mod_docmenu(mod::Module)
     options = [begin
-        safename = replace(string(val), "!" => "")
+        safename = replace(string(val), "!" => "o")
         opt = div("doc$mod$safename", class = "menuitem", text = "$val")
         on(opt, "click") do cl::ClientModifier
             redirect!(cl, "/docs?get=$mod.$val")

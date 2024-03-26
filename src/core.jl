@@ -528,7 +528,6 @@ function generate_router(mod::Module, ip::IP4)
         elseif T <: AbstractVector{<:AbstractRoute}
             mod.routes = vcat(mod.routes, f)
         end
-        f = nothing
         T = nothing
     end
     mod.routes = Vector{AbstractRoute}([mod.routes ...])

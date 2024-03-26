@@ -436,7 +436,7 @@ end
 function on(f::Function, event::String)
     cl = ClientModifier(); f(cl)
     scrpt = """addEventListener("$event", $(funccl(cl)));"""
-    script("doc$event", text = scrpt)::Component{:script}
+    script("doc$event", text = scrpt)
 end
 
 """
@@ -938,7 +938,7 @@ function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
     newcl::ClientModifier = ClientModifier()
     f(newcl)
     push!(cl.changes,
-    "document.getElementById('$comp').addEventListener('transitionend', $(funccl(newcl));")
+    "document.getElementById('$comp').addEventListener('transitionend', $(funccl(newcl)));")
     nothing::Nothing
 end
 

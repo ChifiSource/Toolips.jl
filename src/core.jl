@@ -484,7 +484,7 @@ end
 ```
 """
 function get_method(c::AbstractConnection)
-    string(c.stream.message["Method"])::String
+    string(c.stream.message.method)::String
 end
 
 """

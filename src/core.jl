@@ -603,7 +603,7 @@ Route{T <: AbstractConnection} <: AbstractRoute
 - path**::String**
 - page**::Function**
 ---
-The `Route` is the most basic form of `AbstractRoute`. This constructor should **not** be called directly, 
+The `Route` is the most basic form of `AbstractRoute`. This constructor will likely *not* be called directly, 
 instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
 ```julia
 using Toolips
@@ -611,7 +611,29 @@ using Toolips
 route("/") do c::AbstractConnection
     write!(c, "Hello world!")
 end
-````
+```
+Routes are parametric `Toolips` types. `route!` is called once on the `Vector{<:AbstractRoute}`, 
+your `Connection.routes` -- the routes for your server, and then again on the `route` directly. 
+The base `Route` type, provided by `route`, is **parametric**. This allows for multiple dispatch routing 
+based on the annotated `Connection` type. For this, simply route two annotated `Routes` with `route`. 
+Consider the following example:
+```julia
+module SampleServer
+using Toolips
+
+desktop = route("/") do c::Connection
+    write!(c, "this client is on desktop")
+end
+
+mobile = route("/") do c::MobileConnection
+    write!(c, "this client is on mobile")
+end
+
+home = route(desktop, mobile)
+
+export home
+end
+```
 """
 mutable struct Route{T <: AbstractConnection} <: AbstractRoute
     path::String
@@ -632,8 +654,72 @@ function show(io::IO, r::AbstractRoute)
     println(r.path)
 end
 
+"""
+```julia
+abstract type AbstractMultiRoute <: AbstractRoute
+```
+An `AbstractMultiRoute` is essentially a router beneath the router. 
+the default multi-route type is `MultiRoute`. This allows us to route multiple 
+paths from the same path.
+- has the field `path`, like other routes.
+- Has a binding to `multiroute!`
+---
+- See also: `route`, `route!`, `Connection`, `multiroute!`, `MultiRoute`
+"""
 abstract type AbstractMultiRoute <: AbstractRoute end
 
+
+"""
+```julia
+MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
+```
+- path**::String**
+- routes**::Vector{T}**
+---
+A multi-route creates a router beneath the `target` router that normally 
+routes `Toolips`. This allows for the creation of quite dynamic and flexible 
+routing. `MultiRoute` is the default implementation for this interface, 
+and this implementation uses `convert` and `convert!` on the `Connection` 
+to determine which `Route` to be used with multiple dispatch. This effectively 
+creates multiple dispatch routing, such as the case with the `MobileConnection`.
+```julia
+module SampleServer
+using Toolips
+
+desktop = route("/") do c::Connection
+    write!(c, "this client is on desktop")
+end
+
+mobile = route("/") do c::MobileConnection
+    write!(c, "this client is on mobile")
+end
+
+home = route(desktop, mobile)
+
+export home
+end
+```
+Here is a look at how `convert` and `convert!` are used, as well as the 
+`MobileConnection` example itself:
+```julia
+mutable struct MobileConnection <: AbstractConnection
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+end
+
+function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
+    get_client_system(c)[2]
+end
+
+function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection
+end
+```
+`convert` will return a `Bool`, determining whether or not the `Connection` should 
+be converted to this `Connection` type. In this case we use the *mobile* return from 
+`get_client_system`. `convert!` will turn our `Connection` into that `Connection`.
+"""
 mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
     path::String
     routes::Vector{T}
@@ -646,6 +732,24 @@ mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
 end
 
 """
+```julia
+route(::Function{T}, path::String) -> ::Route{T}
+route(r::Route{<:AbstractConnection} ...) -> ::MultiRoute{Route{<:AbstractConnection}}
+```
+The `route` `Function` is the routing interface for `Toolips` default routes. 
+`route` in most circumstances will take a *target path* and a `Function`, which 
+will be the handler for the `HTTP` response. This `Route`'s handler `Function` 
+will take some type of `AbstractConnection`, which we can also annotate to use with `MultiRoute`.
+
+Inside of the handler, a `Connection` has data written to it with `write!`. This comes in the form 
+of data-types and `Servables`. `Servables` are essential structures for 
+building the web with HTML and files, this includes the `Component`, `File`, 
+`Style`, and `KeyFrames` types provided by `Toolips`.
+```julia
+module RoutingExample
+
+end
+```
 """
 function route end
 
@@ -660,8 +764,8 @@ end
 
 route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
 
-"""
-"""
+function route! end
+
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
 function route!(c::Connection, tr::Routes{<:AbstractRoute})

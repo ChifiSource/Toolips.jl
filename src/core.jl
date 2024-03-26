@@ -668,7 +668,6 @@ paths from the same path.
 """
 abstract type AbstractMultiRoute <: AbstractRoute end
 
-
 """
 ```julia
 MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
@@ -719,6 +718,8 @@ end
 `convert` will return a `Bool`, determining whether or not the `Connection` should 
 be converted to this `Connection` type. In this case we use the *mobile* return from 
 `get_client_system`. `convert!` will turn our `Connection` into that `Connection`.
+In order to add a new `Connection`, simply `import` and extend using this same template. 
+For creating your multi-route, ensure a binding to `multiroute!`.
 """
 mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
     path::String
@@ -730,6 +731,66 @@ mutable struct MultiRoute{T <: AbstractRoute} <: AbstractMultiRoute
         new{Route}(r[1].path, [rout for rout in r])
     end
 end
+
+"""
+```julia
+convert(c::Connection, routes::Routes, into::Type{<:AbstractConnection}) -> ::Bool
+```
+---
+`convert` is a `Function` designed to be extended by import. This `Function` 
+simply asks if `c` should be turned into the type `into`. The return should be a 
+    boolean.
+#### example
+The following example is the **entire** `MobileConnection` implementation.
+```example
+using Toolips
+import Toolips: convert!, convert, AbstractConnection
+mutable struct MobileConnection <: AbstractConnection
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+end
+
+function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
+    get_client_system(c)[2]
+end
+
+function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection
+end
+```
+"""
+function convert end
+
+"""
+```julia
+convert!(c::Connection, routes::Routes, into::Type{<:AbstractConnection})
+```
+---
+`convert` is a `Function` designed to be extended by import. This `Function` 
+is called after `convert` confirms that the `Connection` should be converted. 
+This `Function` converts `c` into the type `into`.
+#### example
+The following example is the **entire** `MobileConnection` implementation.
+```example
+using Toolips
+import Toolips: convert!, convert, AbstractConnection
+mutable struct MobileConnection <: AbstractConnection
+    stream::HTTP.Stream
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+end
+
+function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
+    get_client_system(c)[2]
+end
+
+function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection
+end
+```
+"""
+function convert! end
 
 """
 ```julia
@@ -747,16 +808,24 @@ building the web with HTML and files, this includes the `Component`, `File`,
 `Style`, and `KeyFrames` types provided by `Toolips`.
 ```julia
 module RoutingExample
+using Toolips
 
+desktop = route("/") do c::Connection
+    write!(c, "this client is on desktop")
+end
+
+mobile = route("/") do c::MobileConnection
+    write!(c, "this client is on mobile")
+end
+
+home = route(desktop, mobile)
+
+export home
 end
 ```
+- See also: `multiroute!`, `route!`, `Route`, `Routes`, `Connection`, `AbstractConnection`, `start!`
 """
 function route end
-
-function convert(c::AbstractConnection, vec::Vector{<:AbstractRoute}, 
-    c2::Type{<:AbstractConnection})
-    false
-end
 
 route(f::Function, r::String) = begin
     Route(r, f)::Route{<:Any}
@@ -764,6 +833,43 @@ end
 
 route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
 
+"""
+```julia
+route!(c::AbstractConnection, r::AbstractRoute) -> ::Nothing
+route!(c::Connection, tr::Routes{<:AbstractRoute}) -> ::Nothing
+```
+---
+The `route!` `Function` is used by the router twice; once when the entire 
+`Vector` of routes is routed (the second method listed above,) and again 
+on the `Route` that is routed to. Considering this, it is possible to create a new 
+router by extending `route!(c::Connection, tr::Routes{<:AbstractRoute})`
+#### example
+The following example is pulled from [`ChiProxy`](https://github.com/ChifiSource/ChiProxy.jl), 
+this example creates a router based on hostname, and also changes route functionality 
+to perform a proxy pass.
+```julia
+using Toolips
+import Toolips: route!
+
+function route!(c::Toolips.AbstractConnection, pr::AbstractProxyRoute)
+    Toolips.proxy_pass!(c, "http://$(string(pr.ip4))")
+end
+
+route!(c::Connection, vec::Vector{<:AbstractProxyRoute}) = begin
+    if Toolips.get_route(c) == "/favicon.ico"
+        write!(c, "no icon here, fool")
+        return
+    end
+    selected_route::String = get_host(c)
+    if selected_route in vec
+        route!(c, vec[selected_route])
+    else
+        write!(c, "this route is not here")
+    end
+end
+```
+- See also: `multiroute!`, `route!`, `Route`, `Routes`, `Connection`, `AbstractConnection`, `start!`
+"""
 function route! end
 
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
@@ -789,6 +895,17 @@ function route!(c::Connection, tr::Routes{<:AbstractRoute})
     end
 end
 
+"""
+```julia
+multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute) -> ::Nothing
+```
+---
+`multiroute!` allows for another router to exist underneath the `route!`-based router. This `Function` 
+    is called whenever a multi-route is routed. This is designed to be **imported** and 
+    extended. For this, simply create your own `<:AbstractMultiRoute` based on `MultiRoute`, 
+    and then write this `Method` for that type.
+- See also: `route!`, `Route`, `Routes`, `Connection`, `AbstractConnection`, `MultiRoute`
+"""
 function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
     met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
     if isnothing(met)
@@ -814,6 +931,18 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
 end
 
 # extensions
+"""
+```julia
+abstract type AbstractExtension
+```
+---
+An `AbstractExtension` is the top-level abstraction for a `Toolips` server extension. 
+`Toolips` provides one `AbstractExtension`, the `Logger`. If the functions exist, an 
+extension will call its `on_start` `Method` when the server starts and its `route!` 
+`Method` everytime a client is served.
+
+- See also: `AbstractComponentModifier`, `ClientModifier`, `Component`, `on`, `bind`
+"""
 abstract type AbstractExtension end
 abstract type Extension{T <: Any} <: AbstractExtension end
 

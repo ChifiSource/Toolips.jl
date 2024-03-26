@@ -71,14 +71,14 @@ string(ip::IP4) = begin
 end
 
 """
-**Core**
-### get(url::String) -> ::String
-------------------
-Quick binding for an HTTP GET request.
-#### example
+```julia
+get(url::String) -> ::String
+get(url::IP4) -> ::String
 ```
-body = get("/")
-    "hi"
+Performs a `GET` request from Julia.
+---
+```example
+response = Toolips.get("https://github.com/ChifiSource")
 ```
 """
 function get(url::String)
@@ -86,15 +86,30 @@ function get(url::String)
     string(r.body)::String
 end
 
+get(url::IP4) = get("http://$(url.ip):$(url.port)")
+
 """
-**Core**
-### post(url::String, body::String) -> ::String
-------------------
-Quick binding for an HTTP POST request.
-#### example
+```julia
+post(url::String, body::String) -> ::String
+post(url::IP4, body::String) -> ::String
 ```
-response = post("/")
-    "my response"
+Performs a `POST` request from Julia.
+---
+```example
+module Server
+using Toolips
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    name = get_post(c)
+    log(logger, "$name just posted")
+    write!(c, "hello, $name")
+end
+export home, logger
+end
+
+using Toolips
+start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
 ```
 """
 function post(url::String, body::String)
@@ -102,19 +117,31 @@ function post(url::String, body::String)
     string(r.body)::String
 end
 
+post(url::IP4, body::String) = post("http://$(url.ip):$(url.port)", body)
+
 # connections
 """
-
+```julia
+abstract type AbstractConnection
+```
+An `AbstractConnection` is how a server interacts with each client on an individual basis. 
+Variations of the `Connection` are passed to routes as their only argument. The `Connection`
+- Can be written to with `write!`
+- Contains client data accessible with *getter* functions, such as `get_ip`.
+---
+- See also: `start!`, `route`, `route!`, `Connection`, `get_ip`, `get_args`
 """
 abstract type AbstractConnection end
 
 """
-#### abstract type AbstractRoute
-Abstract Routes are what connect incoming connections to functions. A route must be 
-dispatched to `route!(::AbstractConnection, ::AbstractRoute)`.
-###### Consistencies
-- path**::String**
-- route!(c::AbstractConnection, **route::AbstractRoute**)
+```julia
+abstract type AbstractRoute
+```
+An `AbstractRoute` holds a `path`, a target which navigates the user throughout the webpage, 
+as well as some way to generate that page. Typically, these are created using `route`, though this 
+might not always be the case. The canonical route provided by `Toolips` is `Route{<:Any}`.
+---
+- See also: `route`, `route!`, `Connection`, `AbstractConnection`
 """
 abstract type AbstractRoute end
 

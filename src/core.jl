@@ -93,8 +93,8 @@ get(url::IP4) = get("http://$(url.ip):$(url.port)")
 post(url::String, body::String) -> ::String
 post(url::IP4, body::String) -> ::String
 ```
-Performs a `POST` request from Julia.
 ---
+Performs a `POST` request from Julia.
 ```example
 module Server
 using Toolips
@@ -568,7 +568,7 @@ home = route("/") do c::Connection
         mobmsg = ""
     end
     log(logger, system)
-    write!(c, "you are$mobmsg on mobile, and your system is $system")
+    write!(c, "you are\$mobmsg on mobile, and your system is \$system")
 end
 export home
 end
@@ -852,7 +852,7 @@ using Toolips
 import Toolips: route!
 
 function route!(c::Toolips.AbstractConnection, pr::AbstractProxyRoute)
-    Toolips.proxy_pass!(c, "http://$(string(pr.ip4))")
+    Toolips.proxy_pass!(c, "http://\$(string(pr.ip4))")
 end
 
 route!(c::Connection, vec::Vector{<:AbstractProxyRoute}) = begin
@@ -941,22 +941,62 @@ An `AbstractExtension` is the top-level abstraction for a `Toolips` server exten
 extension will call its `on_start` `Method` when the server starts and its `route!` 
 `Method` everytime a client is served.
 
-- See also: `AbstractComponentModifier`, `ClientModifier`, `Component`, `on`, `bind`
+- See also: `Connection`, `route!`, `on_start`, `Toolips`, `Extension`
 """
 abstract type AbstractExtension end
-abstract type Extension{T <: Any} <: AbstractExtension end
 
+"""
+```julia
+route!(c::AbstractConnection, e::AbstractExtension) -> ::Nothing
+```
+---
+This `route!` binding is called each time the `Connection` is created for each exported `AbstractExtension` 
+with a `route!` `Method`. This `Function` is designed to be imported and extended.
+```julia
+```s
+- See also: `Connection`, `route!`, `on_start`, `Toolips`, `Extension`
+"""
 function route!(c::AbstractConnection, e::AbstractExtension)
 end
 
+"""
+```julia
+on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute}) -> ::Nothing
+```
+---
+The `on_start` binding is called for each exported extension with this `Method` when the server starts.
+```julia
+```
+- See also: `route!`, `AbstractExtension`, `route`, `kill!`, `start!`
+"""
 function on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
 end
 
 """
+```julia
+abstract type ServerTemplate
+```
+---
+A `ServerTemplate` is a way to start a `Toolips` server. `Toolips` servers facilitate more than just 
+WebServers, including UDP servers. `Toolips` intentionally open-ended to allow for these implementations. 
+The `ServerTemplate` is provided to `new_app` to create default server files for specific instances and 
+also `start!` to allow for specific types of servers to start parametrically. `Toolips` provides one `ServerTemplate`; 
+    the `WebServer`.
 
+- See also: `new_app`, `kill!`, `start!`, `WebServer`, `Toolips`, `Components`
 """
 abstract type ServerTemplate end
 
+"""
+```julia
+abstract type WebServer <: ServerTemplate
+```
+---
+The `WebServer` is the main `ServerTemplate` provided by `Toolips` itself. This template 
+allows for the creation of a `WebServer` ideal for websites and endpoints. This template is 
+    also used as the defaults for `new_app` and `start!`.
+- See also: `new_app`, `kill!`, `start!`, `ServerTemplate`, `Toolips`, `Components`
+"""
 abstract type WebServer <: ServerTemplate end
 
 function kill!(mod::Module)
@@ -1064,6 +1104,7 @@ function generate_router(mod::Module, ip::IP4)
         elseif garbage == 25
             GC.gc()
         elseif garbage == 35
+            Pkg.gc()
             GC.gc(true)
             garbage = 0
         end

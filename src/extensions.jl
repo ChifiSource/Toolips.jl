@@ -942,16 +942,53 @@ function next!(f::Function, cl::AbstractComponentModifier, comp::Any)
     nothing::Nothing
 end
 
-function update!(cm::AbstractComponentModifier, ppane::AbstractComponent, plot::Any)
+"""
+```julia
+update!(cm::AbstractComponentModifier, ppane::Any, plot::Any) -> ::Nothing
+```
+---
+`update!` is used to put a Julia object into a `Component` in a callback. This `Function` will 
+use `show(io::IO, ::MIME{Symbol("text/html")}, PLOT::Any)` with your type. This being considered, ensure 
+this binding exists.
+"""
+function update!(cm::AbstractComponentModifier, ppane::Any, plot::Any)
     io::IOBuffer = IOBuffer();
     show(io, "text/html", plot)
     data::String = String(io.data)
     data = replace(data,
      """<?xml version=\"1.0\" encoding=\"utf-8\"?>\n""" => "")
-    set_text!(cm, ppane.name, data)
+    set_text!(cm, ppane, data)::Nothing
 end
 
-function update_base64!(cm::AbstractComponentModifier, name::String, raw::Any,
+"""
+```julia
+update_base64!(cm::AbstractComponentModifier, name::Any, raw::Any, filetype::String = "png") -> ::Nothing
+```
+---
+This `Function` is used to update the `Base64` of a given `base64_img` inside of a callback. `name` in this case will 
+be the `Component` or the `Component`'s `name` which should hold the image (this should be a `Component{:img}` or the name of one.)
+##### example
+```julia
+module Example
+using Toolips
+using Toolips.Components
+using Plots
+
+plt = plot([5, 10, 15], [5, 10, 15])
+plt2 = plot([1, 2, 7], [6, 4, 3])
+home = route("/") do c::Connection
+    comp = base64img("plot", plt)
+    on(comp, "click") do cl::ClientModifier
+        update_base64!(cl, comp, plt2)
+    end
+    write!(c, comp)
+end
+
+export home
+end
+```
+"""
+function update_base64!(cm::AbstractComponentModifier, name::Any, raw::Any,
     filetype::String = "png")
     io::IOBuffer = IOBuffer();
     b64::Base64EncodePipe = ToolipsServables.Base64.Base64EncodePipe(io)

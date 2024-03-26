@@ -330,20 +330,15 @@ using Toolips
 logger = Toolips.Logger()
 
 home = route("/") do c::Connection
-    heading = get_heading(c)
-    if heading == "hello-world"
-        log(logger, "someone requested hello-world")
-    end
+    client_ip::String = getip(c)
 end
 
 export home, logger
 end
 ```
-(Note that markdown headings are handled automatically by your browser, this 
-is purposed primarily for a custom implementation of heading navigation.)
 """
 function get_ip(c::AbstractConnection)
-    str = c.stream.message["User-Agent"]
+    str::String = c.stream.message["User-Agent"]
     spl = split(str, "/")
     ipstr = ""
     [begin
@@ -353,39 +348,232 @@ function get_ip(c::AbstractConnection)
             end
         end
     end for sub in spl]
-    return(ipstr)
+    return(ipstr)::String
 end
 
-get_post(c::AbstractConnection) = string(read(c.stream))
+"""
+```julia
+get_post(c::AbstractConnection) -> ::String
+```
+---
+Returns the `POST` body of the current `Connection`.
+#### example
+```example
+module Server
+using Toolips
+logger = Toolips.Logger()
 
+home = route("/") do c::Connection
+    name = get_post(c)
+    log(logger, "\$name just posted")
+    write!(c, "hello, \$name")
+end
+export home, logger
+end
+
+using Toolips
+start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
+```
+"""
+get_post(c::AbstractConnection) = string(read(c.stream))::String
+
+"""
+```julia
+download!(c::AbstractConnection, uri::String) -> ::Nothing
+```
+---
+Downloads the file stored at `uri` on the server machine to the client machine.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    dir = @__DIR__
+    download!(c, dir * "/MyServer.jl")
+end
+
+export home, logger
+end
+```
+"""
 function download!(c::AbstractConnection, uri::String)
     write(c.stream, HTTP.Response(200, body = read(uri, String)))
+    nothing
 end
 
+"""
+```julia
+proxy_pass!(c::AbstractConnection, url::String) -> ::Nothing
+```
+---
+Performs a *proxy pass* -- redirecting the client to another server without 
+performing a request, using the current server as a *proxy* to serve the other server.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    proxy_pass!(c, "https://github.com/ChifiSource")
+end
+
+export home, logger
+end
+```
+"""
 function proxy_pass!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.stream, status_exception = false)
+    nothing::String
 end
 
 startread!(c::AbstractConnection) = startread(c.stream)
 
-function get_route(c::AbstractConnection)
-    fullpath::String = c.stream.message.target
-    fullpath = string(split(fullpath, '?')[1])
-    fullpath
+"""
+```julia
+get_route(c::AbstractConnection) -> ::String
+```
+---
+Gets the current target of an incoming `Connection`. (This `Function` is used 
+by the router to direct  incoming connections to your routes.)
+#### example
+```example
+module MyServer
+using Toolips
+using Test
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    @test get_route(c) == "/"
 end
 
+export home, logger
+end
+```
+"""
+function get_route(c::AbstractConnection)
+    fullpath::String = c.stream.message.target
+    string(split(fullpath, '?')[1])::String
+end
+
+"""
+```julia
+get_method(c::AbstractConnection) -> ::String
+```
+---
+Gets the `METHOD` of the incoming `HTTP` request. The *METHOD* is what type of 
+HTTP request the client is trying to send; `POST` or `GET`. 
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    @info "a get request?: " * string(get_method(c) == "GET")
+end
+
+export home, logger
+end
+```
+"""
 function get_method(c::AbstractConnection)
     string(c.stream.message["Method"])::String
 end
 
+"""
+```julia
+get_host(c::AbstractConnection) -> ::String
+```
+---
+Gets the host (domain name and TLD) the client is currently requesting.
+#### example
+The example below is pulled directly from 
+[`ChiProxy`](https://github.com/ChifiSource/ChiProxy.jl). This is a `Toolips`-based 
+proxy server, which uses a router based on the hostname, rather than the target. 
+By extending `route!` to alter behavior with proxy routes, this example uses `get_host` 
+to determine the active path, rather than `get_target`.
+```example
+using Toolips
+import Toolips: route!
+route!(c::Connection, vec::Vector{<:AbstractProxyRoute}) = begin
+    if Toolips.get_route(c) == "/favicon.ico"
+        write!(c, "no icon here, fool")
+        return
+    end
+    selected_route::String = get_host(c)
+    if selected_route in vec
+        route!(c, vec[selected_route])
+    else
+        write!(c, "this route is not here")
+    end
+end
+```
+"""
 function get_host(c::AbstractConnection)
     string(c.stream.message["Host"])::String
 end
 
+"""
+```julia
+get_parent(c::AbstractConnection) -> ::String
+```
+---
+Returns the `parent`, which might reference where a browser is navigating from.
+#### example
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    log(logger, get_parent(c))
+    write!(c, "c:")
+end
+export home
+end
+```
+"""
 function get_parent(c::AbstractConnection)
     string(c.stream.message.parent)
 end
 
+"""
+```julia
+get_client_system(c::AbstractConnection) -> (::String, ::Bool)
+```
+---
+`get_client_system` will return the operating system of the client. 
+If it is unknown, (OpenBSD or similar,) `Toolips` will count this as `Linux`. 
+The `Function` will return a `String`, the systems name, and a `Bool` -- whether or not 
+this is a mobile operating system.
+#### example
+```example
+module ClientSystem
+using Toolips
+
+logger = Toolips.Logger()
+
+home = route("/") do c::Connection
+    system, mobile = get_client_system(c)
+    mobmsg = " not"
+    if mobile
+        mobmsg = ""
+    end
+    log(logger, system)
+    write!(c, "you are$mobmsg on mobile, and your system is $system")
+end
+export home
+end
+```
+"""
 function get_client_system(c::AbstractConnection)
     uri = c.stream.message["User-Agent"]
     mobile = false

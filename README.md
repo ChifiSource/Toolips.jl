@@ -35,11 +35,10 @@ pkg> add Toolips
     - [responses](#responses)
       - [files](#files)
       - [components](#components)
-  - [examples](#examples)
-    - [user api](#user-api)
-    - [NAS server](#nas-server)
-- [issues](#issues)
-  - [contributing guidelines](#contributing-guidelines)
+- [examples](#examples)
+  - [user api](#user-api)
+  - [NAS server](#nas-server)
+- [contributing](#contributing)
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
 #### get started
@@ -196,4 +195,3 @@ download!(c::AbstractConnection, uri::String)
 ###### user API
 ###### NAS server
 ### contributing
-###### contributing guidelines

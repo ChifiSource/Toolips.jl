@@ -1069,7 +1069,7 @@ function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
-    w::Worker{:async} = pm["$mod router"]
+    w::Worker{Async} = pm["$mod router"]
     serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true

@@ -348,7 +348,7 @@ function get_ip(c::AbstractConnection)
             end
         end
     end for sub in spl]
-    return(ipstr)::String
+    return(string(ipstr))::String
 end
 
 """
@@ -1118,8 +1118,9 @@ function generate_router(mod::Module, ip::IP4)
     Pkg.gc()
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
-        for ext in loaded
-            route!(c, ext)
+        stop = [route!(c, ext) for ext in loaded]
+        if false in stop
+            return
         end
         route!(c, c.routes)::Any
         mod.routes = c.routes

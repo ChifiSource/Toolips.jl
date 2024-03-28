@@ -93,7 +93,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, Connection, WebServer, log, write!, File, start!, TCPServer, route!, assign!, distribute!, waitfor
+export IP4, route, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method
 include("extensions.jl")
 export on, bind, ClientModifier, move!, remove!, set_text!, set_children!, append!, insert!, sleep!, set_style!, focus!, blur!, alert!

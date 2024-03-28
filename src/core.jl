@@ -1118,7 +1118,9 @@ function generate_router(mod::Module, ip::IP4)
     Pkg.gc()
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
-        [route!(c, ext) for ext in loaded]
+        for ext in loaded
+            route!(c, ext)
+        end
         route!(c, c.routes)::Any
         mod.routes = c.routes
         garbage += 1

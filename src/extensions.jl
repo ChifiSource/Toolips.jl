@@ -358,6 +358,21 @@ on(c, butt, "click") do cm::ComponentModifier
     sample::String = cm[butt]["text"]
 end
 ```
+Here is an example which indexes a `Component{:property}` from a `ClientModifier`.
+```julia
+route("/") do c::Connection
+                                # v   text     #  v  arg
+    textbox = textdiv("sample", text = "example", x = 5)
+    on(textbox, "focus") do cl::ClientModifier
+        set_text!(cl, textbox, "")
+    end
+    confirmbutt = button("butt", text = "confirm")
+    on(confirmbutt, "click") do cl::ClientModifier
+        prop = cl["confirm"]
+
+    end
+end
+```
 """
 mutable struct ClientModifier <: AbstractClientModifier
     name::String
@@ -366,6 +381,12 @@ mutable struct ClientModifier <: AbstractClientModifier
         new(name, Vector{String}())::ClientModifier
     end
 end
+
+#== do you understand now?
+Does this begin to make it make sense? What all this effort was worth.
+    `Component{:property}` is so cool.
+==#
+string(comp::Component{:property}) = comp.name
 
 """
 ```julia
@@ -407,6 +428,10 @@ end
 
 setindex!(cm::AbstractClientModifier, name::String, property::String, comp::Component{:property}) = begin
     push!(cm.changes, "document.getElementById('$name').setAttribute('$property',$comp);")
+end
+
+getindex(cl::AbstractClientModifier, name::String, prop::String) = begin
+    Component{:property}("document.getElementById('$name').getAttribute('$prop');")
 end
 
 write!(c::AbstractConnection, cm::ClientModifier) = write!(c, funccl(cm))
@@ -591,10 +616,10 @@ end
 
 """
 ```julia
-set_text!(c::AbstractComponentModifier, s::Any, txt::String) -> ::Nothing
+set_text!(c::AbstractComponentModifier, s::Any, txt::Any) -> ::Nothing
 ```
 ---
-Sets the text of the `Component` (or `Component` `name`) `s`.
+Sets the text of the `Component` (or `Component` `name`) `s`. `txt` can also be a `Component{:property}`
 #### example
 ```example
 using Toolips
@@ -608,9 +633,12 @@ home = route("/") do c::Connection
 end
 ```
 """
-function set_text!(c::AbstractComponentModifier, s::Any, txt::String)
+function set_text!(c::AbstractComponentModifier, s::Any, txt::Any)
     if typeof(s) <: AbstractComponent
         s = s.name
+    end
+    if typeof(txt) <: AbstractComponent
+        txt = string(s)
     end
     txt = replace(txt, "`" => "\\`", "\"" => "\\\"", "''" => "\\'")
     push!(c.changes, "document.getElementById('$s').innerHTML = `$txt`;")
@@ -782,7 +810,7 @@ home = route("/") do c::Connection
 end
 ```
 """
-function set_style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, String} ...)
+function set_style!(cm::AbstractComponentModifier, name::Any, sty::Pair{String, <:Any} ...)
     sstring::String = join(("$(p[1]):$(p[2])" for p in sty), ";")
     if typeof(name) <: AbstractComponent
         name = name.name

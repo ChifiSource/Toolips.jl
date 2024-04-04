@@ -35,6 +35,7 @@ pkg> add Toolips
     - [responses](#responses)
       - [files](#files)
       - [components](#components)
+- [built with toolips](#built-with-toolips)
 - [examples](#examples)
   - [user api](#user-api)
   - [NAS server](#nas-server)
@@ -191,6 +192,13 @@ download!(c::AbstractConnection, uri::String)
 ```
 ### extensions
 ## responses
+###### built with toolips
+Because `Tooips` was built primarily to drive other [chifi](https://github.com/ChifiSource) software, `ChifiSource` has created a number of projects with `Toolips`. Here is a list of large projects we have created based on `Toolips`, along with their repository links. 
+- [Olive](https://github.com/ChifiSource/Olive.jl) `Olive` is *the* reason that `Toolips` was created in the first place. `Olive` is a parametric extensible notebook editor for Julia. This is a great example to demonstrate a full-scale project.
+- [Gattino](https://github.com/ChifiSource/Gattino.jl) `Gattino` is `Toolips`-based, or rather `ToolipsServables`-based SVG data visualizations for Julia. A look into this project may give insight on how `ToolipsServables` and `Toolips` might be used without a `WebServer`.
+- [JLChat](https://github.com/emmaccode/JLChat.jl) `JLChat` is emma's `Toolips`-built chatroom demonstration. This example is great for demonstrating how to create a small application in `Toolips`, along with using [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) and its RPC feature.
+- [ChiProxy](https://github.com/ChifiSource/ChiProxy.jl) `ChiProxy` is a `Toolips`-bound proxy server for Julia. This proxy server demonstrates replacing the `Toolips` router by extending functions, allowing for routes to be routed by host rather than just `target` -- as well as a plethora of other special capabilities.
+- [ChiNS](#ChiNS) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
 #### examples
 ###### user API
 ###### NAS server

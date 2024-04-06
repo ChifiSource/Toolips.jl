@@ -2,7 +2,7 @@
 
 julia_version = "1.9.2"
 manifest_format = "2.0"
-project_hash = "ff8ecb618791b75519289e01303b72a52b327cd7"
+project_hash = "beeb37569b8b0271e86baa48d7c95590f694e69c"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
@@ -197,6 +197,12 @@ version = "1.10.0"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[[deps.ToolipsServables]]
+deps = ["Base64", "Markdown"]
+git-tree-sha1 = "f7464434e95be2912490b009bc4fd700d309db9f"
+uuid = "bf3a9e68-ca66-4981-8178-9d71c4f8abaa"
+version = "0.1.0"
 
 [[deps.TranscodingStreams]]
 git-tree-sha1 = "a09c933bebed12501890d8e92946bbab6a1690f1"

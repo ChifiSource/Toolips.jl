@@ -200,4 +200,14 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     end
 end
 
+default_404 = Toolips.route("404") do c::Connection
+    dir::String = @__DIR__
+    raw::String = read(dir, String)
+    headerimg::Component{:img} = base64img("tlheader", raw, align = "center")
+    write!(c, headerimg)
+    write!(c, h6("404-header", text = "404 -- not found"))
+end
+
+export default_404
+
 end # Toolips c:

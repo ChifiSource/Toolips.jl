@@ -1,7 +1,6 @@
 using Test
 using Toolips
 
-
 module ToolipsTestServer
 using Toolips
 using Test
@@ -11,13 +10,18 @@ wd = @__DIR__
 
 main = route("/") do c::Connection
     @testset "server-side response" begin
-
+        @test getargs(c)[:message] == "hello!"
+        write!(c, "hello, client")
     end
 end
 
 mounted_dir = mount("/files/" => wd)
 mounted_file = mount("/example" => wd * "/runtests.jl")
 
+@testset "routes" begin
+    @test length(mounted_dir) == < 3
+    @test typeof(mounted_dir) <: AbstractVector
+end
 export main, mounted_dir, mounted_file, multrte, default_404
 end
 
@@ -33,11 +37,9 @@ end
     @test length(Toolips.gen_ref(5)) == 5
 end
 
-
-
 using Main.ToolipsTestServer
 
-@testset "toolips servers" verbose = true begin
+@testset "client-side request" verbose = true begin
     @testset "server creation" begin
 
     end

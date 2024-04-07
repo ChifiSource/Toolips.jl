@@ -92,7 +92,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
+export IP4, route, mount, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method
 include("extensions.jl")
 
@@ -125,44 +125,32 @@ function create_serverdeps(name::String)
     write(io, 
     """module $name
     using Toolips
+    # using Toolips.Components
+
     # extensions
     logger = Toolips.Logger()
-
-    # routes
-    otherpage = route("/page/path") do c::Connection
-        greeter = h2("maingreeting", text = "hello!")
-        curr_client = h3("clientn", text = "you are client number ...")
-        num = a("num", text = string(c[:clients]))
-        maindiv = div("maindiv")
-        push!(maindiv, greeter, curr_client, num)
-        write!(c, DOCTYPE(), greeter, curr_client, num)
-    end
     
     main = route("/") do c::Connection
         if ~(:clients in c.data)
             c[:clients] = 0
         end
         c[:clients] += 1
-        log(logger, "served client #\$(clients)")
-        route!(c, otherpage)
+
+        log(logger, "served client " * c[:clients])
+        write!(c, "hello client #" * c[:clients])
     end
 
     mobile = route("/") do c::Toolips.MobileConnection
-
+        write!(c, "hello mobile device!")
     end
 
     # multiroute (will call `mobile` if it is a `MobileConnection`)
     home = route(main, mobile)
 
-    # docs & api manager (/doc && /toolips)
-    api_manager = toolips_app
-    docs = toolips_doc
-
-
-    export home, otherpage, default_404
-    export api_manager, docs
+    # make sure to export!
+    export home, default_404
     export logger
-    end # - module""")
+    end # - module $name <3""")
     end
 end
 

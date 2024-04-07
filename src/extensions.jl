@@ -230,15 +230,15 @@ function mount(fpair::Pair{String, String})
 end
 
 function route_from_dir(path::String)
-    dirs::Vector{String} = readdir(dir)
+    dirs::Vector{String} = readdir(path)
     routes::Vector{String} = []
     [begin
-        if isfile("$dir/" * directory)
-            push!(routes, "$dir/$directory")
+        fpath = "$path/" * directory
+        if isfile(fpath)
+            push!(routes, fpath)
         else
             if ~(directory in routes)
-                newread::String = dir * "/$directory"
-                newrs::Vector{String} = route_from_dir(newread)
+                newrs::Vector{String} = route_from_dir(fpath)
                 [push!(routes, r) for r in newrs]
             end
         end

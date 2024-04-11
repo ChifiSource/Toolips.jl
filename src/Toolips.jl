@@ -191,9 +191,9 @@ end
 default_404 = Toolips.route("404") do c::Connection
     dir::String = @__DIR__
     raw::String = read(dir, String)
-    headerimg::Component{:img} = base64img("tlheader", raw, align = "center")
+    headerimg::Component{:img} = Components.base64img("tlheader", raw, align = "center")
     write!(c, headerimg)
-    write!(c, h6("404-header", text = "404 -- not found"))
+    write!(c, Components.h6("404-header", text = "404 -- not found"))
 end
 
 export default_404

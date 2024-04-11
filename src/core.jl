@@ -1064,18 +1064,80 @@ The `on_start` binding is called for each exported extension with this `Method` 
 function start! end
 
 function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS),  from::Type{<:ServerTemplate} = WebServer;
-    threads::Int64 = 1)
+    threads::Int64 = 1, async::Bool = true)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
     routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
-    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-    w.task = serve_router
-    w.active = true
     if threads > 1
         add_workers!(pm, threads)
+        pids = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
+        println(pids)
+        Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+            using Toolips
+            using $mod
+        end"""))
+        put!(pm, pids, routefunc)
+        selected = 0
+        if async
+            serve_router = @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
+                if selected == 0
+                    @info "serving off base thread"
+                    return(routefunc(http))
+                end
+                @info "serving off thread $selected"
+                put!(pm, [pids[selected]], http)
+                jb = new_job() do
+                    routefunc(http)
+                end
+                assign!(pm, pids[selected], jb)
+                if selected == length(pids)
+                    selected = 0
+                end
+            end
+            w.task = serve_router
+            @warn "asynchronous multi-threaded servers do not work..."
+        else
+            routes = mod.routes
+            data = mod.data
+            garbage::Int64 = 0
+            put!(pm, pids, routes)
+            put!(pm, pids, data)
+            put!(pm, pids, garbage)
+            HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
+                if selected == 0
+                    selected += 1
+                    @info "serving off base thread"
+                    routefunc(http)
+                    return
+                end
+                @info "serving off thread $(pids[selected])"
+                put!(pm, [pids[selected]], http)
+                f = () -> begin
+                    @info routes
+                    routefunc(http, routes, data, garbage)
+                end
+                jb = new_job(f)
+                assigned = assign!(pm, pids[selected], jb)
+                if selected == length(pids)
+                    selected = 0
+                end
+                selected += 1
+                waitfor(pm, assigned[1])
+            end
+        end
+        w.active = true
+        pm::ProcessManager
     end
+    serve_router = nothing
+    if async
+        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    else
+        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    end
+    w.task = serve_router
+    w.active = true
     pm::ProcessManager
 end
 
@@ -1106,6 +1168,7 @@ function generate_router(mod::Module, ip::IP4)
     log(loaded[logger_check], "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
+    mod.data = data
     [on_start(ext, data, mod.routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(ext) in allparams, loaded)
@@ -1116,6 +1179,27 @@ function generate_router(mod::Module, ip::IP4)
     garbage::Int64 = 0
     GC.gc(true)
     Pkg.gc()
+    routeserver(http::HTTP.Stream, routes::Vector{<:AbstractRoute}, 
+        data::Dict{Symbol, <:Any}, garbage::Int64) = begin
+            c::AbstractConnection = Connection(http, data, routes)
+            stop = [route!(c, ext) for ext in loaded]
+            if false in stop
+                return
+            end
+            route!(c, c.routes)::Any
+            routes = c.routes
+            garbage += 1
+            if garbage == 25
+                GC.gc()
+            elseif garbage == 50
+                GC.gc()
+            elseif garbage == 75
+                GC.gc()
+            elseif garbage == 100
+                GC.gc(true)
+                garbage = 0
+            end
+    end
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)
         stop = [route!(c, ext) for ext in loaded]

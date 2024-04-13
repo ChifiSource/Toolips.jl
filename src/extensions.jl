@@ -101,7 +101,7 @@ mutable struct MobileConnection <: AbstractConnection
 end
 
 function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
-    get_client_system(c)[2]
+    get_client_system(c)[2]::Bool
 end
 
 function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})

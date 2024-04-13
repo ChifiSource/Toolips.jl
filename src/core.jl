@@ -244,6 +244,28 @@ end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
+mutable struct IOConnection <: AbstractConnection
+    stream::String
+    args::Dict{Symbol, String}
+    ip::String
+    post::String
+    route::String
+    method::String
+    data::Dict{Symbol, Any}
+    routes::Vector{<:AbstractRoute}
+    IOConnection(c::Connection) = begin
+        new("", get_args(c), get_ip(c), get_post(c), get_route(c), 
+        get_method(c), c.data, c.routes)::IOConnection
+    end
+end
+
+get_args(c::IOConnection) = c.args
+get_post(c::IOConnection) = c.post
+get_ip(c::IOConnection) = c.ip
+get_method(c::IOConnection) = c.method
+get_route(c::IOConnection) = c.route
+write!(c::IOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
+
 # args
 """
 ```julia
@@ -874,7 +896,7 @@ function route! end
 
 route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
-function route!(c::Connection, tr::Routes{<:AbstractRoute})
+function route!(c::AbstractConnection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
     if target in tr
         selected::AbstractRoute = tr[target]
@@ -1043,14 +1065,6 @@ function ip4_cli(ARGS)
     IP:PORT
 end
 
-function server_cli(ARGS)
-    SERVER = Main
-    ip4::IP4 = ip4_cli(ARGS)
-    if length(ARGS) == 3
-        SERVER = SERVER.eval(ARGS[3])
-    end
-end
-
 """
 ```julia
 start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS), from::Type{<:ServerTemplate}; threads = 1) -> ::ParametricProcesses.ProcessManager
@@ -1063,85 +1077,64 @@ The `on_start` binding is called for each exported extension with this `Method` 
 """
 function start! end
 
-function start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS),  from::Type{<:ServerTemplate} = WebServer;
-    threads::Int64 = 1, async::Bool = true)
+function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS),
+    threads::Int64 = 1, async::Bool = true, gc_scale::Int64 = 100)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
+    routefunc::Function, pm::ProcessManager = generate_router(mod, ip, gc_scale)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1
+        log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
         add_workers!(pm, threads)
-        pids = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
-        println(pids)
+        pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
+        log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Toolips
             using $mod
         end"""))
         put!(pm, pids, routefunc)
-        selected = 0
-        if async
-            serve_router = @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
-                if selected == 0
-                    @info "serving off base thread"
-                    return(routefunc(http))
-                end
-                @info "serving off thread $selected"
-                put!(pm, [pids[selected]], http)
-                jb = new_job() do
-                    routefunc(http)
-                end
-                assign!(pm, pids[selected], jb)
-                if selected == length(pids)
-                    selected = 0
-                end
+        garbage::Int64 = 0
+        put!(pm, pids, garbage)
+        selected::Int64 = -1
+        routes = mod.routes
+        data = mod.data
+        put!(pm, pids, routes)
+        put!(pm, pids, data)
+        @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
+            c::AbstractConnection = Connection(http, mod.data, mod.routes)
+            ioc::IOConnection = IOConnection(c)
+            @sync selected += 1
+            if selected > length(pids)
+                @sync selected = -1
             end
-            w.task = serve_router
-            @warn "asynchronous multi-threaded servers do not work..."
-        else
-            routes = mod.routes
-            data = mod.data
-            garbage::Int64 = 0
-            put!(pm, pids, routes)
-            put!(pm, pids, data)
-            put!(pm, pids, garbage)
-            HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
-                if selected == 0
-                    selected += 1
-                    @info "serving off base thread"
-                    routefunc(http)
-                    return
-                end
-                @info "serving off thread $(pids[selected])"
-                put!(pm, [pids[selected]], http)
-                f = () -> begin
-                    @info routes
-                    routefunc(http, routes, data, garbage)
-                end
-                jb = new_job(f)
-                assigned = assign!(pm, pids[selected], jb)
-                if selected == length(pids)
-                    selected = 0
-                end
-                selected += 1
-                waitfor(pm, assigned[1])
+            if selected < 1
+                routefunc(ioc, garbage)
+                write!(c, ioc.stream)
+                mod.data, mod.routes = ioc.data, ioc.routes
+                return
             end
+            id::Int64 = pids[selected]
+            put!(pm, [id], ioc)
+            jb::ParametricProcesses.ProcessJob = new_job() do
+                routefunc(ioc, garbage)
+                ioc
+            end
+            assign!(pm, id, jb)
+            ioc = waitfor(pm, id)[1]
+            mod.data, mod.routes = ioc.data, ioc.routes
+            write!(c, ioc.stream)
         end
         w.active = true
-        pm::ProcessManager
+        return(pm::ProcessManager)
     end
-    serve_router = nothing
-    if async
-        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-    else
-        serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
-    end
+    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true
     pm::ProcessManager
 end
 
-function generate_router(mod::Module, ip::IP4)
+function generate_router(mod::Module, ip::IP4, gc_)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
     mod.routes = Vector{AbstractRoute}()
@@ -1164,10 +1157,12 @@ function generate_router(mod::Module, ip::IP4)
         push!(loaded, Logger())
         logger_check = length(loaded)
     end
-    log(loaded[logger_check], "loaded router type: $(typeof(mod.routes))", 2)
-    log(loaded[logger_check], "server listening at http://$(string(ip))")
+    logger = loaded[logger_check]
+    log(logger, "loaded router type: $(typeof(mod.routes))", 2)
+    log(logger, "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
+    push!(data, :Logger => logger)
     mod.data = data
     [on_start(ext, data, mod.routes) for ext in loaded]
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
@@ -1179,26 +1174,24 @@ function generate_router(mod::Module, ip::IP4)
     garbage::Int64 = 0
     GC.gc(true)
     Pkg.gc()
-    routeserver(http::HTTP.Stream, routes::Vector{<:AbstractRoute}, 
-        data::Dict{Symbol, <:Any}, garbage::Int64) = begin
-            c::AbstractConnection = Connection(http, data, routes)
-            stop = [route!(c, ext) for ext in loaded]
-            if false in stop
-                return
-            end
-            route!(c, c.routes)::Any
-            routes = c.routes
-            garbage += 1
-            if garbage == 25
-                GC.gc()
-            elseif garbage == 50
-                GC.gc()
-            elseif garbage == 75
-                GC.gc()
-            elseif garbage == 100
-                GC.gc(true)
-                garbage = 0
-            end
+    routeserver(c::IOConnection, garbage::Int64) = begin
+        stop = [route!(c, ext) for ext in loaded]
+        if false in stop
+            return(c.stream::String)
+        end
+        route!(c, c.routes)::Any
+        garbage += 1
+        if garbage == 25
+            GC.gc()
+        elseif garbage == 50
+            GC.gc()
+        elseif garbage == 75
+            GC.gc()
+        elseif garbage == 100
+            GC.gc(true)
+            garbage = 0
+        end
+        c.stream::String
     end
     routeserver(http::HTTP.Stream) = begin
         c::AbstractConnection = Connection(http, data, mod.routes)

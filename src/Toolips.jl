@@ -188,11 +188,11 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     end
 end
 
-default_404 = Toolips.route("404") do c::Connection
+default_404 = Toolips.route("404") do c::AbstractConnection
     dir::String = @__DIR__
     raw::String = read(dir, String)
-    headerimg::Component{:img} = Components.base64img("tlheader", raw, align = "center")
-    write!(c, headerimg)
+  #  headerimg::Component{:img} = Components.base64img("tlheader", raw, align = "center")
+   # write!(c, headerimg)
     write!(c, Components.h6("404-header", text = "404 -- not found"))
 end
 

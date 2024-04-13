@@ -15,8 +15,8 @@
 - **Declarative** and **composable** html, Javascript, *and* CSS templating syntax.
 - **Modular** servers -- toolips applications are **regular Julia Modules**.
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to APIs and *even* UDP -- all facilitated through multiple dispatch and Julia's extensible `Method` platform.
-- **Multiple-Dispatch Routing** -- Dispatch routes based on more than just their target, using *multiple dispatch* to divert different types of connections to different functions.
-- **Multi-threaded** -- *Declarative* [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl) using a [Distributed]()-based worker management system.
+- **Custom Routing** -- `Toolips` routing utilizes multiple dispatch to provide a more versatile server system.
+- **Parallel Computing** -- *Declarative* process management provided by [parametric processes].
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -32,6 +32,7 @@ pkg> add Toolips
     - [projects and routes](#projects-and-routes)
       - [routing](#routing)
       - [extensions](#extensions)
+      - [creating-extensions](#creating-extensions)
     - [responses](#responses)
       - [files](#files)
       - [components](#components)
@@ -62,27 +63,11 @@ using Pkg
 Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```
+- toolips primarily targets **full-stack web-development**, but does so through extensions -- the intention being to use `Toolips` for both simple APIs and complex web-apps. This being considered, it is important to look into [toolips extensions](https://github.com/ChifiSource#toolips-extensions) to realize the full capabilities of this package! [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) provides `Toolips` with full-stack callbacks, for example.
+- Check out [our toolips projects](#built-with-toolips) and [examples](#examples) for some examples of use-cases for the framework.
+- Check out [creating-extensions](#creating-extensions) for more information on building extensions.
 ###### documentation
-The quickest way to access `Toolips` documentation is to use the server built into `Toolips` itself. For this, simply run `start!(Toolips)`:
-```julia
-using Toolips
-start!(Toolips)
-```
-The `Toolips` server will load 4 routes -- `default_404`, `toolips_app`, `toolips_doc`, and `default_landing`. All of these routes may also be provided as exports for your own server.
-```julia
-module MyServer
-home = route("/") do c::Connection
-    write!(c, "hello world!")
-end
-exporthome, toolips_doc, default_404
-end
-```
-- `toolips_app` is an in-`Module` route-manager for `Toolips` servers.
-- `toolips_doc` is a documentation browser for `Toolips` and other packages.
-- `default_landing` is a simple landing page, which provides links to `toolips_doc` and `toolips_app` -- primarily designed for when `Toolips` is started directly with `start!`.
-- `default_404` is a 404 page that can be used in your apps.
 
-There is also the [Toolips web documentation](), which is a far more robust and complete website which might be ideal for beginners, but also requires an internet connection. This `README` also serves as a great introduction to `Toolips`, which is not too complicated outside beyond the general scope of this `README`. It might also be valuable to learn more about templating if you are creating frontend applications, for this you will want to check out [`ToolipsServables`](#https://github.com/ChifiSource/ToolipsServables.jl).
 #### quick start
 Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
 ```julia
@@ -190,8 +175,95 @@ proxy_pass!(c::Connection, url::String)
 startread!(c::AbstractConnection)
 download!(c::AbstractConnection, uri::String)
 ```
+Routes can be exported as any `Vector{<:AbstractRoute}` or `AbstractRoute`. Only routes which are exported will be loaded, exporting names which do not actually exist in the project will break the server.
 ### extensions
+#### creating extensions
 ## responses
+
+## multi-threading
+`Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize.
+```julia
+```
+For the most part, this is straightforward -- but there are some things to be aware of...
+- When a server is multi-threaded, its routes will be passed an `IOConnection` -- not a regular `Connection`. This `Connection` might not be compatible with all `Connection` functions; for example, an `IOConnection` will not `convert!` into a `MobileConnection`. Routes will need to be annotated as an `AbstractConnection` (to work with single or multiple threads,) an `IOConnection` (to work with multi-threaded servers only,) or a `Connection` for `multiroute` that has an `IOConnection` binding.
+- A multi-threaded server **must be a project**. The `Module` cannot be defined below `Main`, it must have its own `Project.toml` file. This is because your `Module` needs to be used across multiple threads from the same environment; `ParametricProcesses` will not be able to serialize your entire server and send it over to all of your threads. Instead, it is used via the environment. An environment compatible with this is of course set up for you when `new_app` is used.
+- Finally, only certain objects will be serialized across threads. This means that we must be weary of what is in our `IOConnection.data`, or we might run into problems serializing across threads. This will primarily happen with functions. For example, consider the following `Session` callback:
+```julia
+module ThreadedSampleServer
+using Toolips
+using Toolips.Components
+using ToolipsSession
+
+session = Session(["/"]) # <- active route "/"
+
+main = route("/") do c::Connection
+    mainbody = body("mainbod")
+    clickable = h3("sample", text = "hello")
+    style!(h3, "transition" => 2seconds)
+    push!(mainbody, clickable)
+    on(c, clickable, "click") do cm::ComponentModifier
+        alert!(cm, "goodbye!")
+        style!(cm, "sample", "opacity" => 0percent)
+    end
+    write!(c, mainbody)
+end
+
+function load_alert(cm::ComponentModifier)
+  
+end
+
+export session, main
+
+end
+```
+This is not multi-threading compatible for two different reasons; our `c` is annotated to `Connection`, and our `Session` callback has a `Function` inside of it we will need to serialize. To  avoid this with `Function` callbacks, we simply need to define the `Function` in our `Module`, as it is already loaded to our threads.
+```julia
+module ThreadedSampleServer
+using Toolips
+using Toolips.Components
+using ToolipsSession
+
+session = Session(["/"]) # <- active route "/"
+
+main = route("/") do c::Toolips.AbstractConnection
+    mainbody = body("mainbod")
+    clickable = h3("sample", text = "hello")
+    style!(h3, "transition" => 2seconds)
+    push!(mainbody, clickable)
+    on(load_alert, c, clickable, "click")
+    write!(c, mainbody)
+end
+
+function load_alert(cm::ComponentModifier)
+  alert!(cm, "goodbye!")
+  style!(cm, "sample", "opacity" => 0percent)
+end
+
+export session, main
+
+end
+```
+From here, we simply provide the `threads` key-word argument to `start!`
+```julia
+julia> using ThreadedSampleServer; ThreadedSampleServer.start!(ThreadedSampleServer, "192.168.1.15":8000, threads = 4)
+[ Info: Precompiling ThreadedSampleServer [307046d4-7f21-496b-9a80-f3bfb096e574]
+🌷 toolips> loaded router type: Vector{Toolips.Route{Toolips.AbstractConnection}}
+🌷 toolips> server listening at http://192.168.1.15:8000
+      Active manifest files: 9 found
+      Active artifact files: 3 found
+      Active scratchspaces: 0 found
+     Deleted no artifacts, repos, packages or scratchspaces
+🌷 toolips> adding 4 threaded workers ...
+🌷 toolips> spawned threaded workers: 2|3|4|5
+[ Info: Listening on: 192.168.1.15:8000, thread id: 4
+   pid                 process type                        name active
+  –––– –––––––––––––––––––––––––––– ––––––––––––––––––––––––––– ––––––
+  2080    ParametricProcesses.Async ThreadedSampleServer router   true
+     2 ParametricProcesses.Threaded                           1  false
+     3 ParametricProcesses.Threaded                           2  false
+     4 ParametricProcesses.Threaded                           3  false
+     5 ParametricProcesses.Threaded                           4  false
+```
 ###### built with toolips
 Because `Tooips` was built primarily to drive other [chifi](https://github.com/ChifiSource) software, `ChifiSource` has created a number of projects with `Toolips`. Here is a list of large projects we have created based on `Toolips`, along with their repository links. 
 - [Olive](https://github.com/ChifiSource/Olive.jl) `Olive` is *the* reason that `Toolips` was created in the first place. `Olive` is a parametric extensible notebook editor for Julia. This is a great example to demonstrate a full-scale project.

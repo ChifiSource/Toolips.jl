@@ -1077,12 +1077,12 @@ The `on_start` binding is called for each exported extension with this `Method` 
 """
 function start! end
 
-function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS),
-    threads::Int64 = 1, async::Bool = true, gc_scale::Int64 = 100)
+function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod, ip, gc_scale)
+    routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1
         log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
@@ -1134,7 +1134,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS),
     pm::ProcessManager
 end
 
-function generate_router(mod::Module, ip::IP4, gc_)
+function generate_router(mod::Module, ip::IP4)
     # Load Extensions, routes, and data.
     server_ns::Vector{Symbol} = names(mod)
     mod.routes = Vector{AbstractRoute}()

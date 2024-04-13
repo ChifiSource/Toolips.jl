@@ -44,22 +44,21 @@ pkg> add Toolips
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
 #### get started
-`Toolips` is available in four different flavors:
+`Toolips` is available in *three* different version flavors:
 - Latest (main) -- The main working version of toolips.
-- LTS (#lts) -- Long term support.
-- stable (#stable) -- Faster, more frequent updates, stable -- but some new features are not fully implemented.
-- and Unstable (#Unstable) -- Latest updates, least stable.
+- stable (#stable) -- Faster, more frequent updates than main; stable... but some new features are not fully implemented.
+- and Unstable (#Unstable) -- Latest updates, packages could be temporarily broken in different ways from time to time.
 ```julia
 using Pkg
 # Latest 
 Pkg.add("Toolips")
-Pkg.add("Toolips", rev = "lts")
 Pkg.add("Toolips", rev = "stable")
 Pkg.add("Toolips", rev = "Unstable")
 ```
-Alternatively, you can add by version or last of version using an `x` revision.
+Alternatively, you can add the latest of each breaking version using an `x` revision.
 ```julia
 using Pkg
+Pkg.add("Toolips", rev = "0.1.x")
 Pkg.add("Toolips", rev = "0.2.x")
 Pkg.add("Toolips", rev = "0.3.x")
 ```

@@ -52,7 +52,8 @@ module Toolips
 using Crayons
 using Sockets
 import ToolipsServables
-import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, Markdown, Servables
+using ToolipsServables.Markdown
+import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, Servables, on, ClientModifier
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
@@ -189,11 +190,22 @@ function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
 end
 
 default_404 = Toolips.route("404") do c::AbstractConnection
-    dir::String = @__DIR__
-    raw::String = read(dir, String)
-  #  headerimg::Component{:img} = Components.base64img("tlheader", raw, align = "center")
-   # write!(c, headerimg)
-    write!(c, Components.h6("404-header", text = "404 -- not found"))
+    if ~("/toolips03.png" in c.routes)
+        dir::String = @__DIR__ 
+        mount_r::Route = mount("/toolips03.png" => dir * "/toolips03.png")
+        push!(c.routes, mount_r)
+    end
+    tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
+    style!(tltop, "margin-top" => 10per, "transition" => 900ms, "opacity" => 0percent, "transform" => translateY(10percent))
+    notfound = Components.h6("404-header", text = "404 -- not found", align = "center")
+    style!(notfound, "color" => "#333333", "font-size" => 13pt)
+    messg = p("rtnt", text = "your server is up! this route ($(get_target(c))) does not exist on your server. (make sure it is exported.)")
+    mainbod = body("404-main", align = "center")
+    on(mainbod, "load") do cl::ClientModifier
+        style!(cl, tltop, "opacity" => 100percent)
+    end
+    push!(mainbody, tltop, notfound, mssg)
+    write!(c, mainbod)
 end
 
 export default_404

@@ -222,11 +222,21 @@ function mount(fpair::Pair{String, String})
     fpath::String = fpair[2]
     target::String = fpair[1]
     if ~(isdir(fpath))
+        if ~(isfile(fpath))
+            throw(RouteError{String}(fpair[1], "Unable to mount $(fpair[2]) (not a valid file or directory, or access denied)"))
+        end
         return(route(c::Connection -> begin
             write!(c, File(fpath))
         end, target))::AbstractRoute
     end
-    [route(c::Connection -> write!(c, File(path)), target * "/" * fpath) for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
+    if length(target) == 1
+        target = ""
+    elseif target[length(target)] == "/"
+        target = target[1:length(target)]
+    end
+    [begin
+        route(c::Connection -> write!(c, File(path)), target * replace(path, fpath => "")) 
+    end for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
 end
 
 function route_from_dir(path::String)

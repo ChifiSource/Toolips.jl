@@ -47,7 +47,7 @@ host = "127.0.0.1":8000
 ```julia
 IP4(ip::String, port::Int64)
 ```
-- See also: `templating`, `StyleComponent`, `AbstractComponent`, `elements`, `arguments`
+- See also: `start!`, `Toolips`, `route`, `route!`
 """
 struct IP4 <: Identifier
     ip::String
@@ -1043,12 +1043,13 @@ mutable struct StartError <: Exception
     message::String
 end
 
-mutable struct RouteError <: Exception
+mutable struct RouteError{E <: Any} <: Exception
     path::String
+    message::E
 end
 
 function showerror(io::IO, e::RouteError)
-    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.route) $(e.error)")
+    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.path) $(e.message)")
 end
 
 showerror(io::IO, e::StartError) = print(io, Crayon(foreground = :blue, bold = true), "Error starting server: $(e.message)")

@@ -56,6 +56,7 @@ function interpolate!(c::AbstractConnection, f::File{<:Any}, components::Abstrac
     write!(c, rawfile)
     nothing::Nothing
 end
+
 """
 ```julia
 MobileConnection <: AbstractConnection
@@ -94,18 +95,21 @@ It is unlikely you will use this constructor unless you are calling
 MobileConnection(stream::HTTP.Stream, data::Dict{Symbol, Any}, routes::Vector{AbstractRoute})
 ```
 """
-mutable struct MobileConnection <: AbstractConnection
-    stream::HTTP.Stream
+mutable struct MobileConnection{T} <: AbstractConnection
+    stream::Any
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
+    MobileConnection(c::AbstractConnection) = begin
+        new{typeof(c.stream)}(c.stream, c.data, c.routes)
+    end
 end
 
-function convert(c::Connection, routes::Routes, into::Type{MobileConnection})
+function convert(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
     get_client_system(c)[2]::Bool
 end
 
-function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
-    MobileConnection(c.stream, c.data, routes)::MobileConnection
+function convert!(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection{HTTP.Stream}
 end
 
 """
@@ -225,7 +229,7 @@ function mount(fpair::Pair{String, String})
         if ~(isfile(fpath))
             throw(RouteError{String}(fpair[1], "Unable to mount $(fpair[2]) (not a valid file or directory, or access denied)"))
         end
-        return(route(c::Connection -> begin
+        return(route(c::AbstractConnection -> begin
             write!(c, File(fpath))
         end, target))::AbstractRoute
     end
@@ -235,7 +239,7 @@ function mount(fpair::Pair{String, String})
         target = target[1:length(target)]
     end
     [begin
-        route(c::Connection -> write!(c, File(path)), target * replace(path, fpath => "")) 
+        route(c::AbstractConnection -> write!(c, File(path)), target * replace(path, fpath => "")) 
     end for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
 end
 

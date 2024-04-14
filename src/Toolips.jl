@@ -53,7 +53,7 @@ using Crayons
 using Sockets
 import ToolipsServables
 using ToolipsServables.Markdown
-import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, Servables, on, ClientModifier
+import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, p, percent, img, body
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
@@ -196,15 +196,16 @@ default_404 = Toolips.route("404") do c::AbstractConnection
         push!(c.routes, mount_r)
     end
     tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
-    style!(tltop, "margin-top" => 10per, "transition" => 900ms, "opacity" => 0percent, "transform" => translateY(10percent))
+    style!(tltop, "margin-top" => 10percent, "transition" => "900ms", "opacity" => 0percent, "transform" => "translateY(10%)")
     notfound = Components.h6("404-header", text = "404 -- not found", align = "center")
-    style!(notfound, "color" => "#333333", "font-size" => 13pt)
-    messg = p("rtnt", text = "your server is up! this route ($(get_target(c))) does not exist on your server. (make sure it is exported.)")
+    style!(notfound, "color" => "#333333", "font-size" => "13pt")
+    messg = p("rtnt", text = "your server is up! this route ($(get_route(c))) does not exist on your server. (make sure it is exported.)")
+    style!(messg, "color" => "#6879D0")
     mainbod = body("404-main", align = "center")
-    on(mainbod, "load") do cl::ClientModifier
-        style!(cl, tltop, "opacity" => 100percent)
+    scr = on("load") do cl::ClientModifier
+        style!(cl, tltop, "opacity" => 100percent, "transform" => "translateY(0%)")
     end
-    push!(mainbody, tltop, notfound, mssg)
+    push!(mainbod, tltop, notfound, messg, scr)
     write!(c, mainbod)
 end
 

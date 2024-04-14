@@ -520,7 +520,7 @@ The example below is pulled directly from
 [`ChiProxy`](https://github.com/ChifiSource/ChiProxy.jl). This is a `Toolips`-based 
 proxy server, which uses a router based on the hostname, rather than the target. 
 By extending `route!` to alter behavior with proxy routes, this example uses `get_host` 
-to determine the active path, rather than `get_target`.
+to determine the active path, rather than `get_route`.
 ```example
 using Toolips
 import Toolips: route!

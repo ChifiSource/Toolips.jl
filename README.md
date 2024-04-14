@@ -17,6 +17,7 @@
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to APIs and *even* UDP -- all facilitated through multiple dispatch and Julia's extensible `Method` platform.
 - **Custom Routing** -- `Toolips` routing utilizes multiple dispatch to provide a more versatile server system.
 - **Parallel Computing** -- *Declarative* process management provided by [parametric processes].
+- **More than web-development** -- Toolips includes tools for developing webservers, but is capable of creating many different types of servers.
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -32,10 +33,14 @@ pkg> add Toolips
     - [projects and routes](#projects-and-routes)
       - [routing](#routing)
       - [extensions](#extensions)
-      - [creating-extensions](#creating-extensions)
     - [responses](#responses)
       - [files](#files)
       - [components](#components)
+- [creating extensions](#creating-extensions)
+  - [connection extensions](#connection-extensions)
+  - [routing extensions](#routing-extensions)
+  - [server extensions](#server-extensions)
+  - [component extensions](#component-extensions)
 - [built with toolips](#built-with-toolips)
 - [examples](#examples)
   - [user api](#user-api)
@@ -174,8 +179,52 @@ proxy_pass!(c::Connection, url::String)
 startread!(c::AbstractConnection)
 download!(c::AbstractConnection, uri::String)
 ```
-Routes can be exported as any `Vector{<:AbstractRoute}` or `AbstractRoute`. Only routes which are exported will be loaded, exporting names which do not actually exist in the project will break the server.
+Routes can be exported as any `Vector{<:AbstractRoute}` or `AbstractRoute`. Only routes which are exported will be loaded, exporting names which do not actually exist in the project will break the server. The following functions/methods may be used to create new routes with base `Toolips`:
+```julia
+# creates a regular route
+route(::Function, ::String) -> ::Route{<:AbstractConnection}
+# creates a `multi-route`
+route(::Route ...) -> ::MultiRoute
+# mounts the file or directory in the value to the path in the key.
+mount(::Pair{String, String}) -> ::Route{AbstractConnection}
+```
+```julia
+module ServerSample
+  route()
+end
+```
 ### extensions
+Extensions appear in `Toolips` in four main forms:
+- `Connection` extensions,
+- routing extensions,
+- server extensions,
+- and `Component` extensions.
+
+###### connection extensions
+A `Connection` extension creates a new `Connection` which can be used with multi-route, or otherwise with a new router. The running example of this inside `Toolips` is the `MobileConnection`.
+```julia
+mutable struct MobileConnection{T} <: AbstractConnection
+    stream::Any
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+    MobileConnection(c::AbstractConnection) = begin
+        new{typeof(c.stream)}(c.stream, c.data, c.routes)
+    end
+end
+```
+The `MobileConnection` is created whenever an incoming client is on mobile. This is determined by `get_client_system`. Two functions are used for this; `convert` and `convert!`. `convert` is called on the `Connection` to see if the `Connection` should convert. If it should convert, then `convert!` is called.
+```julia
+function convert(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
+    get_client_system(c)[2]::Bool
+end
+
+function convert!(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
+    MobileConnection(c.stream, c.data, routes)::MobileConnection{HTTP.Stream}
+end
+```
+###### routing extensions
+###### server extensions
+###### component extensions
 #### creating extensions
 ## responses
 

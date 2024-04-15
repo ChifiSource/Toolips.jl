@@ -218,6 +218,9 @@ get_method(c::AbstractConnection)
 get_parent(c::AbstractConnection)
 get_client_system(c::AbstractConnection)
 ```
+```julia
+proxy_pass!(c::Connection, url::String)
+```
 ###### example
 A `Connection` is provided directly to your route's handler `Function` as its only argument. 
 When we create a `Route` with `route`, we will be passed a `Connection` which we can 
@@ -234,7 +237,7 @@ export home, start!
 end
 ```
 `Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
-- See also: `route`, `AbstractConnection`, `route!`, `write!`, `Components`, `SpoofConnection`
+- See also: `route`, `AbstractConnection`, `route!`, `write!`, `Components`, `IOConnection`, `MobileConnection`
 """
 mutable struct Connection <: AbstractConnection
     stream::HTTP.Stream
@@ -244,6 +247,39 @@ end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
+"""
+```julia
+IOConnection <: AbstractConnection
+```
+- `stream`**::String**
+- `args`**::Dict{Symbol, String}**
+- `ip`**::String**
+- `post`**::String**
+- `route`**::String**
+- `method`**::String**
+- `data`**::Dict{Symbol, Any}**
+- `routes`**::Vector{<:AbstractRoute}**
+- `system`**::String**
+
+
+###### example
+A `Connection` is provided directly to your route's handler `Function` as its only argument. 
+When we create a `Route` with `route`, we will be passed a `Connection` which we can 
+then use with `write!` to respond.
+```example
+module SampleServer
+using Toolips
+        # annotating gives multiple dispatch to routes (recommended)
+home = route("/") do c::Connection
+    write!(c, "hello world!")
+end
+
+export home, start!
+end
+```
+`Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
+- See also: `Connection`, `route`, `AbstractConnection`, `route!`, `write!`, `start!`, `Components`
+"""
 mutable struct IOConnection <: AbstractConnection
     stream::String
     args::Dict{Symbol, String}
@@ -253,9 +289,10 @@ mutable struct IOConnection <: AbstractConnection
     method::String
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
-    IOConnection(c::Connection) = begin
+    system::String
+    IOConnection(http::HTTP.Stream) = begin
         new("", get_args(c), get_ip(c), get_post(c), get_route(c), 
-        get_method(c), c.data, c.routes)::IOConnection
+        get_method(c), c.data, c.routes, get_client_system(c)[1])::IOConnection
     end
 end
 
@@ -264,6 +301,15 @@ get_post(c::IOConnection) = c.post
 get_ip(c::IOConnection) = c.ip
 get_method(c::IOConnection) = c.method
 get_route(c::IOConnection) = c.route
+
+get_client_system(c::IOConnection) = begin
+    mobile::Bool = false
+    if c.system in ("Android", "IOS")
+        mobile = true
+    end
+    return(c.system, mobile)
+end
+
 write!(c::IOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
 
 # args

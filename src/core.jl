@@ -360,17 +360,8 @@ end
 ```
 """
 function get_ip(c::AbstractConnection)
-    str::String = c.stream.message["User-Agent"]
-    spl = split(str, "/")
-    ipstr = ""
-    [begin
-        if contains(sub, ".")
-            if length(findall(".", sub)) > 1
-                ipstr = split(sub, " ")[1]
-            end
-        end
-    end for sub in spl]
-    return(string(ipstr))::String
+    host, port = Sockets.getpeername(c.stream)
+    string(host)::String
 end
 
 """
@@ -450,7 +441,6 @@ end
 """
 function proxy_pass!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.stream, status_exception = false)
-    nothing::String
 end
 
 startread!(c::AbstractConnection) = startread(c.stream)
@@ -782,7 +772,7 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
 end
 ```
 """
-function convert end
+convert(c::AbstractConnection, r::Vector{<:AbstractRoute}, into::Type{<:AbstractConnection}) = false::Bool
 
 """
 ```julia
@@ -900,18 +890,10 @@ function route!(c::AbstractConnection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
     if target in tr
         selected::AbstractRoute = tr[target]
-        if typeof(selected) <: AbstractMultiRoute
-            multiroute!(c, tr, selected)
-        else
-            route!(c, selected)
-        end
+        route!(c, selected)
     elseif "404" in tr
         selected = tr["404"]
-        if typeof(selected) <: AbstractMultiRoute
-            multiroute!(c, tr, selected)
-        else
-            route!(c, selected)
-        end
+        route!(c, selected)
     else
         route!(c, default_404)
     end
@@ -928,20 +910,20 @@ multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute) -> ::Noth
     and then write this `Method` for that type.
 - See also: `route!`, `Route`, `Routes`, `Connection`, `AbstractConnection`, `MultiRoute`
 """
-function multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute)
-    met = findfirst(r -> convert(c, vec, typeof(r).parameters[1]), r.routes)
+function route!(c::AbstractConnection, mr::AbstractMultiRoute)
+    met = findfirst(r -> convert(c, mr.routes, typeof(r).parameters[1]), mr.routes)
     if isnothing(met)
-        default = findfirst(r -> typeof(r).parameters[1] == Connection, r.routes)
+        default = findfirst(r -> typeof(r).parameters[1] == Connection, mr.routes)
         if ~(isnothing(default))
-            r.routes[default].page(c)
+            mr.routes[default].page(c)
         else
-            r.routes[1].page(c)
+            mr.routes[1].page(c)
         end
         return
     end
-    selected = r.routes[met]
-    c = convert!(c, vec, typeof(selected).parameters[1])
-    r.routes[met].page(c)
+    selected = mr.routes[met]
+    c = convert!(c, mr.routes, typeof(selected).parameters[1])
+    mr.routes[met].page(c)
 end
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)

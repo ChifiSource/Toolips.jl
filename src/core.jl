@@ -290,9 +290,21 @@ mutable struct IOConnection <: AbstractConnection
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
     system::String
-    IOConnection(http::HTTP.Stream) = begin
-        new("", get_args(c), get_ip(c), get_post(c), get_route(c), 
-        get_method(c), c.data, c.routes, get_client_system(c)[1])::IOConnection
+    IOConnection(http::HTTP.Stream, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
+        host::String = string(Sockets.getpeername(http)[1])
+        uri::String = http.message["User-Agent"]
+        system::String = "Linux"
+        if contains(uri, "Windows")
+            system = "Windows"
+        elseif contains(uri, "OSX")
+            system = "OSX"
+        elseif contains(uri, "Android")
+            system = "Android"
+        elseif contains(uri, "IOS")
+            system = "IOS"
+        end
+        new("", args, host, string(read(http)), string(split(c.stream.message.target, '?')[1]), 
+        string(c.stream.message.method), data, routes, system)::IOConnection
     end
 end
 
@@ -514,10 +526,7 @@ export home, logger
 end
 ```
 """
-function get_route(c::AbstractConnection)
-    fullpath::String = c.stream.message.target
-    string(split(fullpath, '?')[1])::String
-end
+get_route(c::AbstractConnection) = string(split(c.stream.message.target, '?')[1])::String
 
 """
 ```julia
@@ -541,9 +550,7 @@ export home, logger
 end
 ```
 """
-function get_method(c::AbstractConnection)
-    string(c.stream.message.method)::String
-end
+get_method(c::AbstractConnection) = string(c.stream.message.method)::String
 
 """
 ```julia
@@ -574,9 +581,7 @@ route!(c::Connection, vec::Vector{<:AbstractProxyRoute}) = begin
 end
 ```
 """
-function get_host(c::AbstractConnection)
-    string(c.stream.message["Host"])::String
-end
+get_host(c::AbstractConnection) = string(c.stream.message["Host"])::String
 
 """
 ```julia
@@ -1131,8 +1136,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         put!(pm, pids, routes)
         put!(pm, pids, data)
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
-            c::AbstractConnection = Connection(http, mod.data, mod.routes)
-            ioc::IOConnection = IOConnection(c)
+            ioc::IOConnection = IOConnection(http)
             @sync selected += 1
             if selected > length(pids)
                 @sync selected = -1
@@ -1152,7 +1156,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             assign!(pm, id, jb)
             ioc = waitfor(pm, id)[1]
             mod.data, mod.routes = ioc.data, ioc.routes
-            write!(c, ioc.stream)
+            write(http, ioc.stream)
         end
         w.active = true
         return(pm::ProcessManager)

@@ -132,25 +132,17 @@ function create_serverdeps(name::String)
     logger = Toolips.Logger()
     
     main = route("/") do c::Connection
-        if ~(:clients in c.data)
+        if ~(:clients in keys(c.data))
             c[:clients] = 0
         end
         c[:clients] += 1
-
-        log(logger, "served client " * c[:clients])
-        write!(c, "hello client #" * c[:clients])
+        client_number = string(c[:clients])
+        log(logger, "served client " * client_number)
+        write!(c, "hello client #" * client_number)
     end
-
-    mobile = route("/") do c::Toolips.MobileConnection
-        write!(c, "hello mobile device!")
-    end
-
-    # multiroute (will call `mobile` if it is a `MobileConnection`)
-    home = route(main, mobile)
 
     # make sure to export!
-    export home, default_404
-    export logger
+    export main, default_404, logger
     end # - module $name <3""")
     end
 end

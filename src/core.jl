@@ -303,8 +303,18 @@ mutable struct IOConnection <: AbstractConnection
         elseif contains(uri, "IOS")
             system = "IOS"
         end
-        new("", args, host, string(read(http)), string(split(c.stream.message.target, '?')[1]), 
-        string(c.stream.message.method), data, routes, system)::IOConnection
+        args = Dict{Symbol, String}()::Dict{Symbol, String}
+        fullpath::Vector{SubString} = split(http.message.target, '?')
+        if length(fullpath) > 1
+            fullpath = split(fullpath[2], "&")
+            args = Dict(begin 
+                p = split(p, "=")
+                Symbol(p[1]) => string(p[2]) 
+            end for p in fullpath)::Dict{Symbol, String}
+        end
+        
+        new("", args, host, string(read(http)), string(split(http.message.target, '?')[1]), 
+        string(http.message.method), data, routes, system)::IOConnection
     end
 end
 
@@ -972,7 +982,13 @@ function route!(c::AbstractConnection, mr::AbstractMultiRoute)
         end
         return
     end
-    selected = mr.routes[met]
+    selected::AbstractRoute = mr.routes[met]
+    if typeof(c) == IOConnection
+        newc = convert!(c, mr.routes, typeof(selected).parameters[1])
+        mr.routes[met].page(newc)
+        write!(c, newc.stream)
+        return
+    end
     c = convert!(c, mr.routes, typeof(selected).parameters[1])
     mr.routes[met].page(c)
 end
@@ -1136,14 +1152,14 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         put!(pm, pids, routes)
         put!(pm, pids, data)
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
-            ioc::IOConnection = IOConnection(http)
+            ioc::IOConnection = IOConnection(http, data, routes)
             @sync selected += 1
             if selected > length(pids)
                 @sync selected = -1
             end
             if selected < 1
                 routefunc(ioc, garbage)
-                write!(c, ioc.stream)
+                write(http, ioc.stream)
                 mod.data, mod.routes = ioc.data, ioc.routes
                 return
             end

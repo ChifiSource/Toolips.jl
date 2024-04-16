@@ -99,8 +99,8 @@ mutable struct MobileConnection{T} <: AbstractConnection
     stream::Any
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
-    MobileConnection(c::AbstractConnection) = begin
-        new{typeof(c.stream)}(c.stream, c.data, c.routes)
+    MobileConnection(stream::Any, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
+        new{typeof(stream)}(stream, data, routes)
     end
 end
 
@@ -109,8 +109,10 @@ function convert(c::AbstractConnection, routes::Routes, into::Type{MobileConnect
 end
 
 function convert!(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
-    MobileConnection(c.stream, c.data, routes)::MobileConnection{HTTP.Stream}
+    MobileConnection(c.stream, c.data, routes)::MobileConnection{typeof(c.stream)}
 end
+
+write!(c::MobileConnection{String}, a::Any ...) = c.stream = c.stream * join(string(obj) for obj in a)
 
 """
 ```julia
@@ -196,7 +198,7 @@ export home, logger
 end
 ```
 """
-log(c::Connection, args ...) = log(c[:Logger], args ...)
+log(c::AbstractConnection, args ...) = log(c[:Logger], args ...)
 
 """
 ```julia

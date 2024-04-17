@@ -962,14 +962,14 @@ end
 
 """
 ```julia
-multiroute!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute) -> ::Nothing
+route!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute) -> ::Nothing
 ```
 ---
-`multiroute!` allows for another router to exist underneath the `route!`-based router. This `Function` 
+This `route!` dispatch allows for another router to exist underneath the `route!`-based router. This `Function` 
     is called whenever a multi-route is routed. This is designed to be **imported** and 
     extended. For this, simply create your own `<:AbstractMultiRoute` based on `MultiRoute`, 
     and then write this `Method` for that type.
-- See also: `route!`, `Route`, `Routes`, `Connection`, `AbstractConnection`, `MultiRoute`
+- See also: `Route`, `Routes`, `Connection`, `AbstractConnection`, `MultiRoute`
 """
 function route!(c::AbstractConnection, mr::AbstractMultiRoute)
     met = findfirst(r -> convert(c, mr.routes, typeof(r).parameters[1]), mr.routes)

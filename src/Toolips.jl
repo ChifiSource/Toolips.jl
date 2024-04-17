@@ -185,7 +185,7 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     if ~("/toolips03.png" in c.routes)
         dir::String = @__DIR__ 
         mount_r::Route = mount("/toolips03.png" => dir * "/toolips03.png")
-        push!(c.routes, mount_r)
+        c.routes = vcat(c.routes, mount_r)
     end
     tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
     style!(tltop, "margin-top" => 10percent, "transition" => "900ms", "opacity" => 0percent, "transform" => "translateY(10%)")

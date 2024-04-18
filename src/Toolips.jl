@@ -132,7 +132,7 @@ function create_serverdeps(name::String)
     logger = Toolips.Logger()
     
     main = route("/") do c::Connection
-        if ~(:clients in keys(c.data))
+        if :clients in c
             c[:clients] = 0
         end
         c[:clients] += 1

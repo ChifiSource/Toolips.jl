@@ -247,6 +247,10 @@ end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
 
+in(t::Symbol, v::AbstractConnection) = t in keys(v.data)
+
+in(t::String, v::AbstractConnection) = t in v.routes
+
 """
 ```julia
 IOConnection <: AbstractConnection

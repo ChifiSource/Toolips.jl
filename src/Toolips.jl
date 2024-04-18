@@ -1,379 +1,206 @@
+#==
+map
+- imports
+- `Components`
+- helpful `Module` introspection dispatches.
+- includes/exports
+- default pages
+- project generation
+==#
+
 """
-Created in February, 2022 by
-[chifi - an open source software dynasty.](https://github.com/orgs/ChifiSource)
-by team
-[toolips](https://github.com/orgs/ChifiSource/teams/toolips)
-This software is MIT-licensed.
-### Toolips
-**Toolips.jl** is a **fast**, **asynchronous**, **low-memory**, **full-stack**,
-and **reactive** web-development framework **always** written in **pure** Julia.
-##### Module Composition
-- [**Toolips**](https://github.com/ChifiSource/Toolips.jl)
----
-- [`interface`]()
-- ["Extensions.jl"]()
-- ["Components.jl"]()
----
-- [`server`]()
-- ["Core.jl"]()
+#### toolips 0.3 - a manic web-development framework
+- Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
+- This software is MIT-licensed.
+
+Toolips is an **extensible** and **declarative** web-development framework for the julia programming language. 
+The intention with this framework is to *fill most web-development needs well.* While there are lighter options for 
+APIs and heavier options for web-apps, `Toolips` presents a plethora of capabilities for both of these contexts -- as well as many more!
+
+```example
+module MyServer
+using Toolips
+using Toolips.Components
+# import 
+# create a logger
+logger = Logger()
+
+# quick extension
+
+const people = Extension{:people}
+
+# mount directory "MyServer/public" to "/public"
+public = mount("/public" => "public")
+
+# create a route
+main = route("/") do c::Connection
+
+end
+
+# export routes
+export public
+export main
+
+# export extensions
+export logger
+end # module
+```
+####### provides
+- `new_app(name**::String, )`
 """
 module Toolips
 using Crayons
 using Sockets
+import ToolipsServables
+using ToolipsServables.Markdown
+import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, p, percent, img, body
+using ParametricProcesses
+import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
 using Pkg
-using ParseNotEval
-using Dates
-import Base: getindex, setindex!, push!, get, string, write, show, display, (:)
-import Base: showerror, in, Pairs, Exception, div, keys, *, vect, read, cp
-#==
-WebMeasures / Colors
-==#
-"""
-### WebMeasure{format}
-WebMeasures are simple measurement Symbols that are used to create
-the `px` and `percent` syntax.
-##### example
-```
-# px/percent examples:
-mydiv = div("mydiv", align = "center")
-style!(mydiv, "padding" => 15px, "width" => 50percent)
-# What this looks like in toolips:
-const px = WebMeasure{:px}()
-*(i::Int64, p::WebMeasure{:px}) = i * "px"
-```
-------------------
-##### constructors
-WebMeasure{format}()
-"""
-mutable struct WebMeasure{format} end
+import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
+import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
 
-const px = WebMeasure{:px}()
-*(i::Int64, p::WebMeasure{:px}) = "$(i)px"
+const Components = ToolipsServables
 
-const percent = WebMeasure{:percent}()
-*(i::Int64, p::WebMeasure{:percent}) = "$(i)%"
+export Components, distribute!, assign!, new_job, @everywhere, distribute_open!, waitfor, assign_open!
 
-const seconds = WebMeasure{:seconds}()
-*(i::Int64, p::WebMeasure{:seconds}) = "$(i)s"
-*(i::Float64, p::WebMeasure{:seconds}) = "$(i)s"
-const ms = WebMeasure{:ms}()
-*(i::Int64, p::WebMeasure{:ms}) = "$(i)ms"
-const pt = WebMeasure{:pt}()
-*(i::Int64, p::WebMeasure{:pt}) = "$(i)pt"
-"""
-**Interface**
-### rgb(r::Int64, g::Int64, b::Int64) -> ::String
-------------------
-Creates a style rgb color.
-#### example
-```
-myp = p("myp", text = "example")
-style!(myp, "color" => rgb(1, 5, 9))
-```
-"""
-rgb(r::Int64, g::Int64, b::Int64) = "rgb($r, $g, $b)"
-
-"""
-**Interface**
-### rgb(r::Int64, g::Int64, b::Int64, a::Int64) -> ::String
-------------------
-Creates a style rgba color.
-#### example
-```
-myp = p("myp", text = "example")
-style!(myp, "color" => rgba(1, 5, 9, 100))
-```
-"""
-rgba(r::Int64, g::Int64, b::Int64, a::Int64) = "rgba($r, $g, $b, $a)"
-
-"""
-**Interface**
-### gradient(type::Symbol, dir::String = "right", c::String ...) -> ::String
-------------------
-Creates a style a gradient of type type in direction dir with colors c. Types are
-- radial
-- linear
-#### example
-```
-mydiv = div("mydiv", text = "example")
-style!(mydiv, "background" => gradient(:linear, "right", "blue", "green"))
-```
-"""
-function gradient(type::Symbol, dir::String = "right", c::String ...)
-    "$type-gradient(to $dir, " * join(["$col, " for col in c]) * ")"
+function getindex(mod::Module, field::Symbol)
+    getfield(mod, field)
 end
 
+function getindex(mod::Module, T::Type)
+    fields = names(mod)
+    poss = findall(feld -> typeof(getfield(mod, feld)) <: T, fields)
+    res = [getfield(mod, fields[feld]) for feld in poss]
+    if length(res) == 0
+        return(Vector{T}()::Vector{T})
+    end
+    res::Vector{<:T}
+end
 
+function show(io::IO, pm::ProcessManager)
+    headers::Vector{String} = ["pid", "process type", "name", "active"]
+    md = """
+    $(join(headers, "|"))
+    $(join(fill("----", length(headers)), "|"))
+    """
+    for worker in pm.workers
+        row = [string(worker.pid), string(typeof(worker).parameters[1]), worker.name, string(worker.active)]
+        md *= join(row, "|") * "\n"
+    end
+    display(Markdown.parse(md))
+end
 
-export percent, px, rgb, rgba, gradient, pt, seconds, ms
-#==
-Includes/Exports
-==#
-include("server/Core.jl")
-include("interface/Components.jl")
-# Core
-export ServerTemplate, Route, Connection, WebServer, Servable, ServerExtension
-export Hash
-# Server Extensions
-export Logger, Files
-# Servables
-export File, Component
-export Animation, Style
+include("core.jl")
+export IP4, route, mount, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method
+include("extensions.jl")
 
-export img, link, meta, input, a, p, h, button, ul, li, divider, form, br, i
-export title, span, iframe, svg, element, label, script, nav, button, form
-export element, label, script, nav, button, form, body, header, section, DOCTYPE
-export footer
-# High-level api
-export push!, getindex, setindex!, properties!, components, has_children
-export children, getproperties
-export animate!, style!, delete_keyframe!
-export route, routes, route!, write!, kill!, unroute!, navigate!
-export has_extension
-export getargs, getarg, postargs, postarg, get, post, getip, getpost
 #==
 Project API
 ==#
 """
-**Internals**
-### create_serverdeps(name::String, exts::Vector{String} = ["Logger"], inc::String = "") -> _
-------------------
-Creates the essential portions of the webapp file structure, where name is the
-project's name and inc is any extensions or strings to incorporate at the top
-of the file. Exts is a list of Server extensions.
-#### example
+```julia
+create_serverdeps(name::String) -> _
 ```
+---
+Creates a `Toolips` app template with a corresponding `Project.toml` environment and `dev.jl` 
+file to quickly get started.
+#### example
+```example
 create_serverdeps("ToolipsApp")
 ```
 """
-function create_serverdeps(name::String, exts::Vector{String} = ["Logger"],
-    inc::String = "")
-    extstr::String = "Vector{ServerExtension}([" * join(["$e(), " for e in exts]) * "])"
+function create_serverdeps(name::String)
     Pkg.generate(name)
     Pkg.activate(name)
-    Pkg.add(url = "https://github.com/ChifiSource/Toolips.jl.git")
+    Pkg.add("Toolips")
     Pkg.add("Revise")
     dir = pwd() * "/"
     src::String = dir * name * "/src"
-    if "Logger" in exts
-        logs::String = dir * name * "/logs"
-        mkdir(logs)
-        touch(logs * "/log.txt")
-    end
     touch(name * "/dev.jl")
-    touch(name * "/prod.jl")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
-        write(io, """
-module $name
-using Toolips
-$inc
-# welcome to your new toolips project!
-\"\"\"
-home(c::Connection) -> _
---------------------
-The home function is served as a route inside of your server by default. To
-    change this, view the start method below.
-\"\"\"
-function home(c::Connection)
-    write!(c, p("helloworld", text = "hello world!"))
-end
+    write(io, 
+    """module $name
+    using Toolips
+    # using Toolips.Components
 
-fourofour = route("404") do c
-    write!(c, p("404message", text = "404, not found!"))
-end
+    # extensions
+    logger = Toolips.Logger()
+    
+    main = route("/") do c::Connection
+        if :clients in c
+            c[:clients] = 0
+        end
+        c[:clients] += 1
+        client_number = string(c[:clients])
+        log(logger, "served client " * client_number)
+        write!(c, "hello client #" * client_number)
+    end
 
-routes = [route("/", home), fourofour]
-extensions = $extstr
-\"\"\"
-start(IP::String, PORT::Integer, ) -> ::ToolipsServer
---------------------
-The start function starts the WebServer.
-\"\"\"
-function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
-     ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
-     ws.start(); ws
-end
-end # - module
-        """)
+    # make sure to export!
+    export main, default_404, logger
+    end # - module $name <3""")
     end
 end
 
 """
-**Core**
-### new_app(::String) -> _
-------------------
-Creates a minimalistic app, usually used for creating APIs and endpoints.
-#### example
+```julia
+new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Nothing
 ```
+---
+Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
+from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
+templates are used as a base to start a server from default files.
+##### example
+```example
 using Toolips
 Toolips.new_app("ToolipsApp")
 ```
+```example
+using Toolips
+Toolips.new_app("ToolipsApp", Toolips.WebServer)
+```
+---
+- **see also:** `Toolips`, `route`, `start!`, `Connection`
 """
-function new_app(name::String = "ToolipsApp")
+function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
     create_serverdeps(name)
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
-        using Toolips
         using Revise
-        using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
-    end
-    open(name * "/prod.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
         using Toolips
         using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
+        toolips_process = start!($name)
         """)
     end
 end
 
-"""
-**Core**
-### new_webapp(::String) -> _
-------------------
-Creates a fully-featured Toolips web-app. Adds ToolipsSession, ideal for
-full-stack web-sites.
-#### example
-```
-using Toolips
-Toolips.new_webapp("ToolipsApp")
-```
-"""
-function new_webapp(name::String = "ToolipsApp")
-    servername = name * "Server"
-    create_serverdeps(name, ["Logger", "Files", "Session"],
-    "using ToolipsSession")
-    Pkg.add("ToolipsSession")
-    open(name * "/dev.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
-        using Toolips
-        using Revise
-        using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
+default_404 = Toolips.route("404") do c::AbstractConnection
+    if ~("/toolips03.png" in c.routes)
+        dir::String = @__DIR__ 
+        mount_r::Route = mount("/toolips03.png" => dir * "/toolips03.png")
+        c.routes = vcat(c.routes, mount_r)
     end
-    open(name * "/prod.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
-        using Toolips
-        using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
+    tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
+    style!(tltop, "margin-top" => 10percent, "transition" => "900ms", "opacity" => 0percent, "transform" => "translateY(10%)")
+    notfound = Components.h6("404-header", text = "404 -- not found", align = "center")
+    style!(notfound, "color" => "#333333", "font-size" => "13pt")
+    messg = p("rtnt", text = "your server is up! this route ($(get_route(c))) does not exist on your server. (make sure it is exported.)")
+    style!(messg, "color" => "#6879D0")
+    mainbod = body("404-main", align = "center")
+    scr = on("load") do cl::ClientModifier
+        style!(cl, tltop, "opacity" => 100percent, "transform" => "translateY(0%)")
     end
-    public = pwd() * "/$name/public"
-    mkdir(public)
+    push!(mainbod, tltop, notfound, messg, scr)
+    write!(c, mainbod)
 end
 
-"""
-**Core**
-### new_defaultapp(::String) -> _
-------------------
-Adds a toolips project with the standard library (Session, Base64, Markdown, Defaults)
-installed. More of a built default project with examples is created.
-#### example
-```
-using Toolips
-Toolips.new_defaultapp("ToolipsApp")
-```
-"""
-function new_defaultapp(name::String = "ToolipsApp")
-    create_serverdeps(name)
-    Pkg.add("ToolipsSession")
-    Pkg.add("ToolipsDefaults")
-    Pkg.add("ToolipsMarkdown")
-    Pkg.add("ToolipsBase64")
-    open(name * "/dev.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
-        using Toolips
-        using Revise
-        using $name
+export default_404
 
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
-    end
-    open(name * "/prod.jl", "w") do io
-        write(io, """
-        using Pkg; Pkg.activate(".")
-        using Toolips
-        using $name
-
-        IP = "127.0.0.1"
-        PORT = 8000
-        $servername = $name.start(IP, PORT)
-        """)
-    end
-    mkdir(pwd() * "/$name/public")
-    cp((@__DIR__) * "/../assets/icon.png", pwd() * "/$name/public/favicon.png", force = true)
-    open(name * "/src/$name.jl", "w") do io
-        write(io, """module $name
-        using Toolips
-        using ToolipsSession
-        using ToolipsDefaults
-        using ToolipsMarkdown
-        using ToolipsBase64
-        # welcome to your new toolips project!
-        myheader = div("myheader", align = "center")
-        headerlogo = img("headerlogo", src = "/favicon.png")
-        push!(myheader, headerlogo, h("headerlabel", 4, text = "toolips"))
-
-        \"\"\"
-        home(c::Connection) -> _
-        --------------------
-        The home function is served as a route inside of your server by default. To
-            change this, view the start method below.
-        \"\"\"
-        function home(c::Connection)
-            styles::Component{:sheet} = sheet("newapp")
-            styles[:children][:button]["background-color"] = lineargradient("blue", "lightblue")
-            write!(c, styles)
-            write!(c, myheader)
-
-            mainbody::Component{:body} = body("mainbody")
-
-        end
-
-        fourofour = route("404") do c
-            write!(c, p("404message", text = "404, not found!"))
-        end
-
-        routes = [route("/", home), fourofour]
-        extensions = [Logger(), Files(), Session()]
-        \"\"\"
-        start(IP::String, PORT::Integer, ) -> ::ToolipsServer
-        --------------------
-        The start function starts the WebServer.
-        \"\"\"
-        function start(IP::String = "127.0.0.1", PORT::Integer = 8000)
-             ws = WebServer(IP, PORT, routes = routes, extensions = extensions)
-             ws.start(); ws
-        end
-        end # - module
-        """)
-    end
-end
-# --
-
-end
+end # Toolips c:

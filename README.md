@@ -71,7 +71,7 @@ Pkg.add("Toolips", rev = "0.3.x")
 - Check out [our toolips projects](#built-with-toolips) and [examples](#examples) for some examples of use-cases for the framework.
 - Check out [creating-extensions](#creating-extensions) for more information on building extensions.
 ###### documentation
-
+*Awesome documentation website coming soon*
 #### quick start
 Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
 ```julia
@@ -200,6 +200,10 @@ Extensions appear in `Toolips` in four main forms:
 - server extensions,
 - and `Component` extensions.
 
+`Connection` extensions allow us to utilize `MultiRoute` with new multiple dispatch `Connection` configurations. Routing extensions allow us to change the functionality of the `Toolips` router in different instances. Server extensions allow us to add autoloaded data, or perform actions alongside our server. 
+## responses
+
+## creating extensions
 ###### connection extensions
 A `Connection` extension creates a new `Connection` which can be used with multi-route, or otherwise with a new router. The running example of this inside `Toolips` is the `MobileConnection`.
 ```julia
@@ -207,8 +211,8 @@ mutable struct MobileConnection{T} <: AbstractConnection
     stream::Any
     data::Dict{Symbol, Any}
     routes::Vector{AbstractRoute}
-    MobileConnection(c::AbstractConnection) = begin
-        new{typeof(c.stream)}(c.stream, c.data, c.routes)
+    MobileConnection(stream::Any, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
+        new{typeof(stream)}(stream, data, routes)
     end
 end
 ```
@@ -219,21 +223,94 @@ function convert(c::AbstractConnection, routes::Routes, into::Type{MobileConnect
 end
 
 function convert!(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
-    MobileConnection(c.stream, c.data, routes)::MobileConnection{HTTP.Stream}
+    MobileConnection(c.stream, c.data, routes)::MobileConnection{typeof(c.stream)}
+end
+
+# for IO Connection specifically...
+function convert!(c::IOConnection, routes::Routes, into::Type{MobileConnection})
+    stream = Dict{Symbol, String}(:stream => c.stream, :args => get_args(c), :post => get_post(c), 
+    :ip => get_ip(c), :method => get_method(c), :target => get_target(c), :host => get_host(c))
+    MobileConnection(stream, c.data, routes)::MobileConnection{Dict{Symbol, String}}
+end
+```
+Note that the `MobileConnection` is actually a `MobileConnection{<:Any}`. We build a data dictionary in order to turn the `IOConnection` into a `MobileConnection`, whereas in the case of the `Connection` we are provided the standard `HTTP.Stream` directly. This simple system facilitates both types. Beyond this, you are free to extend other `Connection` functions to enhance your interface if they are not compatible with your current `Connection`. Not implementing this will mean that the `Connection` will not work with multi-threading.
+```julia
+get_ip(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:ip]
+get_method(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:method]
+get_args(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:args]
+get_target(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:target]
+get_host(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:host]
+write!(c::MobileConnection{Dict{Symbol, String}}, a::Any ...) = c.stream[:stream] = c.stream[:stream] * join(string(obj) for obj in a)
+```
+Let's implement a `PostConnection` in order to demonstrate this:
+```julia
+module PostConnections
+using Toolips
+import Toolips: AbstractConnection, convert, convert!
+mutable struct PostConnection{T} <: AbstractConnection
+    stream::Any
+    data::Dict{Symbol, Any}
+    routes::Vector{AbstractRoute}
+    PostConnection(stream::Any, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
+        new{typeof(stream)}(stream, data, routes)
+    end
+end
+
+function convert(c::AbstractConnection, routes::Routes, into::Type{PostConnection})
+    get_method(c) == "POST"
+end
+
+function convert!(c::AbstractConnection, routes::Routes, into::Type{PostConnection})
+    PostConnection(c.stream, c.data, routes)::PostConnection{typeof(c.stream)}
+end
+
+function convert!(c::IOConnection, routes::Routes, into::Type{PostConnection})
+    stream = Dict{Symbol, String}(:stream => c.stream, :args => get_args(c), :post => get_post(c), 
+    :ip => get_ip(c), :method => get_method(c), :target => get_target(c), :host => get_host(c))
+    PostConnection(stream, c.data, routes)::PostConnection{Dict{Symbol, String}}
+end
+```
+Now let's use it:
+```julia
+module PostSample
+using Toolips
+using Main.PostConnections
+using Toolips.Components
+
+# regular `GET`
+home_main = route("/") do c::Connection
+    write!(c, h2("main", text = "you landed!", align = "center"))
+end
+
+home_post = route("/") do c::PostConnection
+    write!(c, "welcome to the API :)")
+end
+
+home = route(home_main, home_post)
+
+export home_main, home_post, home
 end
 ```
 ###### routing extensions
+Another type of extension that can be created for toolips is the routing extension. Routing extensions are created by extending the `route!` function. This function may be extended by adding new methods for `Route` types (`<:AbstractRoute`), `Connection` types (`<:AbstractConnection`), a `Vector` with `<:AbstractRoute` as its type parameter, or extension types (`<:AbstractExtension`).
+- on an incoming `Connection`, `route!` is initially called on each extension using `route!(c, ::AbstractExtension)` (only if the binding exists) before the main routing process begins -- giving extensions the first oppurtunity to `write!` to the `Connection`.
+- `route!` is called twice during the routing process, first on the `Connection` and the `Vector{<:AbstractRoute}` that holds the routes. This is where the startup printout of `Toolips` comes to relevance:
+```julia
+julia> Toolips.start!(Sample)
+🌷 toolips> loaded router type: Vector{Toolips.Route{Connection}}
+🌷 toolips> server listening at http://127.0.0.1:8000
+
+```
+- `route!` is also called **again** on a `MultiRoute` if a `MultiRoute` is being used. In the binding for the quintessential `MultiRoute` type, for example, the incoming `Connection` checks for conversion into any of the dispatched functions. All of these considered, there are a lot of ways to extend the routing of `Toolips`.
 ###### server extensions
 ###### component extensions
-#### creating extensions
-## responses
 
 ## multi-threading
 `Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize.
 ```julia
 ```
 For the most part, this is straightforward -- but there are some things to be aware of...
-- When a server is multi-threaded, its routes will be passed an `IOConnection` -- not a regular `Connection`. This `Connection` might not be compatible with all `Connection` functions; for example, an `IOConnection` will not `convert!` into a `MobileConnection`. Routes will need to be annotated as an `AbstractConnection` (to work with single or multiple threads,) an `IOConnection` (to work with multi-threaded servers only,) or a `Connection` for `multiroute` that has an `IOConnection` binding.
+- When a server is multi-threaded, its routes will be passed an `IOConnection` -- not a regular `Connection`. Routes will need to be annotated as an `AbstractConnection` (to work with single or multiple threads,) an `IOConnection` (to work with multi-threaded servers only,) or an `AbstractConnection` to work with multi-threaded servers.
 - A multi-threaded server **must be a project**. The `Module` cannot be defined below `Main`, it must have its own `Project.toml` file. This is because your `Module` needs to be used across multiple threads from the same environment; `ParametricProcesses` will not be able to serialize your entire server and send it over to all of your threads. Instead, it is used via the environment. An environment compatible with this is of course set up for you when `new_app` is used.
 - Finally, only certain objects will be serialized across threads. This means that we must be weary of what is in our `IOConnection.data`, or we might run into problems serializing across threads. This will primarily happen with functions. For example, consider the following `Session` callback:
 ```julia

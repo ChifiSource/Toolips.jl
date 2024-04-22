@@ -41,6 +41,7 @@ pkg> add Toolips
   - [routing extensions](#routing-extensions)
   - [server extensions](#server-extensions)
   - [component extensions](#component-extensions)
+- [multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
 - [examples](#examples)
   - [user api](#user-api)

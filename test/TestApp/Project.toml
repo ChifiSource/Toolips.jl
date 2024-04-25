@@ -1,0 +1,8 @@
+name = "TestApp"
+uuid = "659da87a-7584-42a9-94cb-c0b3fab1531a"
+authors = ["emmac <emma boudreau>"]
+version = "0.1.0"
+
+[deps]
+Revise = "295af30f-e4ad-537b-8983-00126c2a3abe"
+Toolips = "a47e2ad8-fcf7-417c-9746-32b9bdf220bd"

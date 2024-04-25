@@ -36,6 +36,7 @@ pkg> add Toolips
     - [responses](#responses)
       - [files](#files)
       - [components](#components)
+      - [templating](#templating)
 - [creating extensions](#creating-extensions)
   - [connection extensions](#connection-extensions)
   - [routing extensions](#routing-extensions)
@@ -43,9 +44,6 @@ pkg> add Toolips
   - [component extensions](#component-extensions)
 - [multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
-- [examples](#examples)
-  - [user api](#user-api)
-  - [NAS server](#nas-server)
 - [contributing](#contributing)
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
@@ -222,6 +220,8 @@ mult_rt = route(desktop, mob)
 export mult_rt, start!
 end
 ```
+- [creating connection extensions](#connection-extensions)
+
 ## responses
 Like most web-development frameworks, creating websites or APIs with `Toolips` primarily revolves around creating a response. In the case of an API, this is actually pretty simple. `write!` will convert any provided type to a `String` and then write it to the incoming `Connection` stream. 
 ```julia
@@ -237,7 +237,41 @@ home = route("/") do c::Connection
     write!(c, string(x * y))
 end
 ```
-For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
+- Note the use of `get_args`, `get_post` *might* also be important for APIs.
+
+For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl). This `Module` includes the `File` type for easily serving parametrically files by path and `AbstractComponent` types for high-level parametric HTML and CSS templating.
+#### files
+Files in `Toolips` can either be built manually with the `File` constructor or can be directly mounted to a route with `mount`. `mount` takes a `Vector{Pair{String, String}}`, and will return a `Route` or a `Vector{<:AbstractRoute}` -- depending on whether or not the provided path is a file or a directory. A directory will be recursively routed, creating a route for each file in each sub-directory below it...
+```julia
+```
+When created manually, a `File` is able to be written with `write!`, like normal. This also gives us the ability to use `interpolate!`, which will interpolate `Components` by `name` or interpolate values by using `interpolate!` in place of `write!`.
+```julia
+function interpolate!(c::AbstractConnection, f::File{<:Any}, components::AbstractComponent ...; args ...)
+```
+For example, using this `Method` to interpolate HTML with components and values...
+```html
+<body>
+<div>
+<h2>hello client</h2>
+<a>your ip address is $ip</a>
+<h4>would you like to name yourself?</h4>
+$namebutton
+</div>
+```
+```julia
+
+```
+```julia
+```
+This example interpolates HTML -- but is the *catchall*, or top-level function (binded to `File{<:Any}` -- meaning you could also write different methods to change behavior depending on file type.
+```julia
+function interpolate!(c::AbstractConnection, f::File{:md}, components::AbstractComponent ...; args ...)
+    raw::String = string(f)
+    interp_positions = findall("```", raw)
+    ...
+end
+```
+#### components
 ```julia
 ```
 This package also allows us to create callbacks for these components...
@@ -246,6 +280,8 @@ This package also allows us to create callbacks for these components...
 And [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) expands on this by providing server-side callbacks and some pretty extreme fullstack capabilities.
 ```julia
 ```
+#### templating
+As demonstrated in this `README` thus far, `Toolips` has a diverse set of a capabilities when it comes to templating. Templating in `Toolips` is done by constructing and composing components into a `body` and then writing it to the `Connection`, or interpolating a file via the `interpolate!` function.
 ## creating extensions
 ###### connection extensions
 A `Connection` extension creates a new `Connection` which can be used with multi-route, or otherwise with a new router. The running example of this inside `Toolips` is the `MobileConnection`.
@@ -344,7 +380,9 @@ julia> Toolips.start!(Sample)
 🌷 toolips> server listening at http://127.0.0.1:8000
 
 ```
-- `route!` is also called **again** on a `MultiRoute` if a `MultiRoute` is being used. In the binding for the quintessential `MultiRoute` type, for example, the incoming `Connection` checks for conversion into any of the dispatched functions. All of these considered, there are a lot of ways to extend the routing of `Toolips`.
+- `route!` is also called **again** on a `MultiRoute` if a `MultiRoute` is being used. In the binding for the quintessential `MultiRoute` type, for example, the incoming `Connection` checks for conversion into any of the dispatched functions.
+
+All of these considered, there are a lot of ways to extend the routing of `Toolips`.
 ###### server extensions
 ###### component extensions
 
@@ -442,9 +480,6 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
   - Using: `Toolips`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl), [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl)
 - [ChiProxy](https://github.com/ChifiSource/ChiProxy.jl) `ChiProxy` is a `Toolips`-bound proxy server for Julia. This proxy server demonstrates replacing the `Toolips` router by extending functions, allowing for routes to be routed by host rather than just `target` -- as well as a plethora of other special capabilities.
   - Using: `Toolips`
-- [ChiNS](#ChiNS) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
+- [ChiNS](#https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
   - Using: [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl)
-#### examples
-###### user API
-###### NAS server
 ### contributing

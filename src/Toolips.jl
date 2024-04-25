@@ -136,7 +136,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
+export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 include("extensions.jl")
 
@@ -175,8 +175,8 @@ function create_serverdeps(name::String)
     logger = Toolips.Logger()
     
     main = route("/") do c::Connection
-        if :clients in c
-            c[:clients] = 0
+        if ~(:clients in c)
+            push!(c.data, :clients => 0)
         end
         c[:clients] += 1
         client_number = string(c[:clients])

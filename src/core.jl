@@ -157,7 +157,12 @@ string(c::Vector{<:AbstractRoute}) = join((begin
     r.path * "\n" 
 end for r in c))
 
-getindex(c::AbstractConnection, symb::Symbol) = c.data[symb]
+getindex(c::AbstractConnection, symb::Symbol) = begin
+    if ~(symb in keys(c.data))
+        throw(KeyError(symb))
+    end
+    c.data[symb]
+end
 
 getindex(c::AbstractConnection, symb::String) = c.routes[symb]
 
@@ -251,7 +256,7 @@ in(t::Symbol, v::AbstractConnection) = t in keys(v.data)
 
 in(t::String, v::AbstractConnection) = t in v.routes
 
-abstract type AbstractIOConnection <: AbstractConnection
+abstract type AbstractIOConnection <: AbstractConnection end
 
 """
 ```julia
@@ -320,7 +325,7 @@ mutable struct IOConnection <: AbstractIOConnection
             end for p in fullpath)::Dict{Symbol, String}
         end
         new("", args, host, string(read(http)), string(split(http.message.target, '?')[1]), 
-        string(http.message.method), data, routes, system, http.message["Host"])::IOConnection
+        string(http.message.method), data, routes, system, string(http.message["Host"]))::IOConnection
     end
 end
 
@@ -1003,8 +1008,9 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
     rt = findfirst(r::AbstractRoute -> r.path == path, vec)
     if ~(isnothing(rt))
         selected::AbstractRoute = vec[rt]
-        vec[rt]::AbstractRoute
+        return(vec[rt])::AbstractRoute
     end
+    throw(KeyError(path))
 end
 
 # extensions
@@ -1087,9 +1093,16 @@ kill!(mod::Module) -> ::Nothing
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
 function kill!(mod::Module)
+    try
+        getfield(mod, :server)
+    catch e
+        throw("trying to `kill!` inactive server: $mod")
+    end
+    close(mod.data[:procs])
     close(mod.server)
     mod.server = nothing
     mod.routes = nothing
+    mod.data = nothing
     GC.gc(true)
     Pkg.gc()
 end
@@ -1134,11 +1147,11 @@ The `on_start` binding is called for each exported extension with this `Method` 
 function start! end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1, router_threads::Int64 = threads)
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1
         log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
@@ -1149,11 +1162,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             using Toolips
             using $mod
         end"""))
-        put!(pm, pids, routefunc)
+        put!(pm, pids, routeserver)
         garbage::Int64 = 0
         put!(pm, pids, garbage)
-        selected::Int64 = -1
-        max::Int64 = router_threads
+        selected::Int64 = minimum(router_threads)
+        finish::Int64 = maximum(router_threads)
         routes = mod.routes
         data = mod.data
         put!(pm, pids, routes)
@@ -1161,11 +1174,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
             ioc::IOConnection = IOConnection(http, data, routes)
             @sync selected += 1
-            if selected >= max
-                @sync selected = -1
+            if selected >= finish
+                @sync selected = minimum(router_threads[1])
             end
             if selected < 1
-                routefunc(ioc, garbage)
+                routeserver(ioc, garbage)
                 write(http, ioc.stream)
                 mod.data, mod.routes = ioc.data, ioc.routes
                 return
@@ -1173,7 +1186,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             id::Int64 = pids[selected]
             put!(pm, [id], ioc)
             jb::ParametricProcesses.ProcessJob = new_job() do
-                routefunc(ioc, garbage)
+                routeserver(ioc, garbage)
                 ioc
             end
             assign!(pm, id, jb)
@@ -1184,7 +1197,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         w.active = true
         return(pm::ProcessManager)
     end
-    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    serve_router = @async HTTP.listen(routeserver, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true
     pm::ProcessManager

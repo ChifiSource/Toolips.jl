@@ -45,8 +45,51 @@ export main
 export logger
 end # module
 ```
-####### provides
-- `new_app(name**::String, )`
+##### provides
+- `new_app`
+- `default_404`
+- `Components`
+- **core**
+  - `IP4`
+  - `get(::String)`
+  - `post`
+  - `AbstractConnection`
+  - `distribute!`
+  - `assign!`
+  - `assign_open!`
+  - `distribute_open!`
+  - `waitfor`
+  - `put!`
+  - `Connection`
+  - `write!`
+  - `IOConnection`
+  - `get_ip`
+  - `get_args`
+  - `get_post`
+  - `get_method`
+  - `get_route`
+  - `get_host`
+  - `get_client_system`
+  - `get_heading`
+  - `get_parent`
+  - `download!`
+  - `proxy_pass!`
+  - `respond!`
+  - `Route`
+  - `route`
+  - `route!`
+  - `AbstractExtension`
+  - `on_start`
+  - `ServerTemplate`
+  - `WebServer`
+  - `kill!`
+  - `start!`
+- **extensions**
+  - interpolate!
+  - `MobileConnection`
+  - `Logger`
+  - `log(::AbstractConnection, ::String, ::Int64)`
+  - `mount`
 """
 module Toolips
 using Crayons
@@ -93,8 +136,8 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, mount, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
-export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method
+export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 include("extensions.jl")
 
 #==

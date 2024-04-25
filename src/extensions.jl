@@ -115,15 +115,16 @@ end
 # for IO Connection specifically...
 function convert!(c::IOConnection, routes::Routes, into::Type{MobileConnection})
     stream = Dict{Symbol, String}(:stream => c.stream, :args => get_args(c), :post => get_post(c), 
-    :ip => get_ip(c), :method => get_method(c), :target => get_target(c), :host => get_host(c))
+    :ip => get_ip(c), :method => get_method(c), :target => get_route(c), :host => get_host(c))
     MobileConnection(stream, c.data, routes)::MobileConnection{Dict{Symbol, String}}
 end
 
 get_ip(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:ip]
 get_method(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:method]
 get_args(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:args]
-get_target(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:target]
+get_route(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:target]
 get_host(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:host]
+get_post(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:post]
 write!(c::MobileConnection{Dict{Symbol, String}}, a::Any ...) = c.stream[:stream] = c.stream[:stream] * join(string(obj) for obj in a)
 
 """

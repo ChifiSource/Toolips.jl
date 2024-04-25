@@ -251,9 +251,11 @@ in(t::Symbol, v::AbstractConnection) = t in keys(v.data)
 
 in(t::String, v::AbstractConnection) = t in v.routes
 
+abstract type AbstractIOConnection <: AbstractConnection
+
 """
 ```julia
-IOConnection <: AbstractConnection
+IOConnection <: AbstractIOConnection
 ```
 - `stream`**::String**
 - `args`**::Dict{Symbol, String}**
@@ -284,7 +286,7 @@ end
 `Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
 - See also: `Connection`, `route`, `AbstractConnection`, `route!`, `write!`, `start!`, `Components`
 """
-mutable struct IOConnection <: AbstractConnection
+mutable struct IOConnection <: AbstractIOConnection
     stream::String
     args::Dict{Symbol, String}
     ip::String
@@ -294,6 +296,7 @@ mutable struct IOConnection <: AbstractConnection
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
     system::String
+    host::String
     IOConnection(http::HTTP.Stream, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
         host::String = string(Sockets.getpeername(http)[1])
         uri::String = http.message["User-Agent"]
@@ -316,19 +319,18 @@ mutable struct IOConnection <: AbstractConnection
                 Symbol(p[1]) => string(p[2]) 
             end for p in fullpath)::Dict{Symbol, String}
         end
-        
         new("", args, host, string(read(http)), string(split(http.message.target, '?')[1]), 
-        string(http.message.method), data, routes, system)::IOConnection
+        string(http.message.method), data, routes, system, http.message["Host"])::IOConnection
     end
 end
 
-get_args(c::IOConnection) = c.args
-get_post(c::IOConnection) = c.post
-get_ip(c::IOConnection) = c.ip
-get_method(c::IOConnection) = c.method
-get_route(c::IOConnection) = c.route
-
-get_client_system(c::IOConnection) = begin
+get_args(c::AbstractIOConnection) = c.args
+get_post(c::AbstractIOConnection) = c.post
+get_ip(c::AbstractIOConnection) = c.ip
+get_method(c::AbstractIOConnection) = c.method
+get_route(c::AbstractIOConnection) = c.route
+get_host(c::AbstractIOConnection) = c.host
+get_client_system(c::AbstractIOConnection) = begin
     mobile::Bool = false
     if c.system in ("Android", "IOS")
         mobile = true
@@ -336,7 +338,7 @@ get_client_system(c::IOConnection) = begin
     return(c.system, mobile)
 end
 
-write!(c::IOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
+write!(c::AbstractIOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
 
 # args
 """

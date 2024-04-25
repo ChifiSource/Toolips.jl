@@ -201,9 +201,51 @@ Extensions appear in `Toolips` in four main forms:
 - server extensions,
 - and `Component` extensions.
 
-`Connection` extensions allow us to utilize `MultiRoute` with new multiple dispatch `Connection` configurations. Routing extensions allow us to change the functionality of the `Toolips` router in different instances. Server extensions allow us to add autoloaded data, or perform actions alongside our server. 
-## responses
+`Connection` extensions allow us to utilize `MultiRoute` with new multiple dispatch `Connection` configurations. Routing extensions allow us to change the functionality of the `Toolips` router in different instances. Server extensions allow us to add autoloaded data, or perform actions alongside before our routes whenever a `Connection` is served. Finally, `Component` extensions give us more composable `Component` types to work with, and more high-level web-development capabilities.
 
+`Connection` extensions are typically used through `MultiRoute`. This is done by providing multiple routes to `route`, which will call different routes depending on the incoming client `Connection`. For example, the `MobileConnection` is the quintessential `Connection` extension provided by `Toolips`.
+```julia
+module Sample
+using Toolips
+
+desktop = route("/") do c::Connection
+    write!(c, "this page is only served to mobile users")
+end
+
+mob = route("/") do c::MobileConnection
+    write!(c, "this page is only served to mobile users")
+end
+
+# make multiroute
+mult_rt = route(desktop, mob)
+
+export mult_rt, start!
+end
+```
+## responses
+Like most web-development frameworks, creating websites or APIs with `Toolips` primarily revolves around creating a response. In the case of an API, this is actually pretty simple. `write!` will convert any provided type to a `String` and then write it to the incoming `Connection` stream. 
+```julia
+module Multiply
+using Toolips
+
+home = route("/") do c::Connection
+    args = get_args(c)
+    arg_keys = keys(args)
+    if ~(:y in arg_keys) || ~(:x in arg_keys)
+        write!(c, "you have not provided `x` or `y`.")
+    end
+    write!(c, string(x * y))
+end
+```
+For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
+```julia
+```
+This package also allows us to create callbacks for these components...
+```julia
+```
+And [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) expands on this by providing server-side callbacks and some pretty extreme fullstack capabilities.
+```julia
+```
 ## creating extensions
 ###### connection extensions
 A `Connection` extension creates a new `Connection` which can be used with multi-route, or otherwise with a new router. The running example of this inside `Toolips` is the `MobileConnection`.

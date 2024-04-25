@@ -12,12 +12,10 @@
 `toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
-- **Declarative** and **composable** html, Javascript, *and* CSS templating syntax.
+- **Declarative** and **composable** files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
 - **Modular** servers -- toolips applications are **regular Julia Modules**.
-- **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to APIs and *even* UDP -- all facilitated through multiple dispatch and Julia's extensible `Method` platform.
-- **Custom Routing** -- `Toolips` routing utilizes multiple dispatch to provide a more versatile server system.
-- **Parallel Computing** -- *Declarative* process management provided by [parametric processes].
-- **More than web-development** -- Toolips includes tools for developing webservers, but is capable of creating many different types of servers.
+- **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to simple endpoints.
+- **Parallel Computing** -- *Declarative* process management provided by [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl).
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -71,6 +69,7 @@ Pkg.add("Toolips", rev = "0.3.x")
 - Check out [creating-extensions](#creating-extensions) for more information on building extensions.
 ###### documentation
 *Awesome documentation website coming soon*
+- For now, you can use `?Toolips` to see a full list of exports.
 #### quick start
 Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
 ```julia
@@ -107,6 +106,9 @@ end
 ```julia
 # starts our server:
 using HelloWorld; start!(HelloWorld)
+# providing IP
+using HelloWorld
+start!(HelloWorld, "127.0.0.1":8000)
 ```
 ### routing
 ```julia
@@ -238,7 +240,54 @@ home = route("/") do c::Connection
 end
 ```
 - Note the use of `get_args`, `get_post` *might* also be important for APIs.
+```julia
+module Crystals
+using Toolips
+import Base: getindex, in
 
+mutable struct APIClient
+    ip::String
+    requests::Int64
+    max::Int64
+    name::String
+end
+
+getindex(apc::Vector{APIClient}, ip::String) = begin
+    found_client = findfirst(c::APIClient -> c.ip == ip, apc)
+    if isnothing(found_client)
+        throw(KeyError(ip))
+    end
+    apc[found_client]
+end
+end
+
+in(ip::String, apc::Vector{APIClient}) = begin
+  found_client = findfirst(c::APIClient -> c.ip == ip, apc)
+  ~(isnothing(found_client))
+end
+
+clients = Vector{APIClient}()
+
+verify = route("/") do c::AbstractConnection
+  nm = get_post(c)
+  allnames = [client.name for client in clients]
+  if length(nm) > 3 && replace(nm, " " => "") != "" && ~(nm in allnames)
+     write!(c, "you are verified, $nm ! Have fun with the crystal API!"
+     push!(clients, APIClient(get_ip(c), 1, 50, nm))
+  end
+end
+
+crystals_api = route("/crystals") do c::AbstractConnection
+    args = get_args(c)
+    arg_keys = keys(args)
+    if ~(get_ip(c) in clients)
+        write!(c, "You are not verified! Please POST your name to our home-page to identify yourself.")
+    end
+end
+
+export crystals_api
+end
+```
 For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl). This `Module` includes the `File` type for easily serving parametrically files by path and `AbstractComponent` types for high-level parametric HTML and CSS templating.
 #### files
 Files in `Toolips` can either be built manually with the `File` constructor or can be directly mounted to a route with `mount`. `mount` takes a `Vector{Pair{String, String}}`, and will return a `Route` or a `Vector{<:AbstractRoute}` -- depending on whether or not the provided path is a file or a directory. A directory will be recursively routed, creating a route for each file in each sub-directory below it...

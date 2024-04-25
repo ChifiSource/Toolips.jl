@@ -1134,7 +1134,7 @@ The `on_start` binding is called for each exported extension with this `Method` 
 function start! end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1)
+    threads::Int64 = 1, router_threads::Int64 = threads)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
@@ -1153,6 +1153,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         garbage::Int64 = 0
         put!(pm, pids, garbage)
         selected::Int64 = -1
+        max::Int64 = router_threads
         routes = mod.routes
         data = mod.data
         put!(pm, pids, routes)
@@ -1160,7 +1161,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
             ioc::IOConnection = IOConnection(http, data, routes)
             @sync selected += 1
-            if selected > length(pids)
+            if selected >= max
                 @sync selected = -1
             end
             if selected < 1

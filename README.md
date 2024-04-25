@@ -3,6 +3,7 @@
 
 [![deps](https://juliahub.com/docs/Toolips/deps.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4?t=2)
 [![version](https://juliahub.com/docs/Toolips/version.svg)](https://juliahub.com/ui/Packages/Toolips/TrAr4)
+[![pkgeval](https://juliahub.com/docs/General/Toolips/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/Toolips)
 </br>
 
 [documentation](https://documentation.c/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)

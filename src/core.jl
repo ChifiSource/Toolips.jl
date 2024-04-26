@@ -994,14 +994,11 @@ function route!(c::AbstractConnection, mr::AbstractMultiRoute)
         return
     end
     selected::AbstractRoute = mr.routes[met]
-    if typeof(c) == IOConnection
-        newc = convert!(c, mr.routes, typeof(selected).parameters[1])
-        mr.routes[met].page(newc)
+    newc::AbstractConnection = convert!(c, mr.routes, typeof(selected).parameters[1])
+    mr.routes[met].page(newc)
+    if typeof(newc) <: AbstractIOConnection   
         write!(c, newc.stream)
-        return
     end
-    c = convert!(c, mr.routes, typeof(selected).parameters[1])
-    mr.routes[met].page(c)
 end
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)
@@ -1154,6 +1151,9 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1
+        if Threads.nthreads() < threads
+            throw(StartError("Julia was not started with enough threads for this server."))
+        end
         log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
         add_workers!(pm, threads)
         pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
@@ -1174,7 +1174,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
             ioc::IOConnection = IOConnection(http, data, routes)
             @sync selected += 1
-            if selected >= finish
+            if selected > finish
                 @sync selected = minimum(router_threads[1])
             end
             if selected < 1
@@ -1191,7 +1191,10 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             end
             assign!(pm, id, jb)
             ioc = waitfor(pm, id)[1]
-            mod.data, mod.routes = ioc.data, ioc.routes
+            @sync begin
+                mod.routes = [r for r in ioc.routes]
+                [mod.data[key] = ioc.data[key] for key in keys(mod.data)]
+            end
             write(http, ioc.stream)
         end
         w.active = true

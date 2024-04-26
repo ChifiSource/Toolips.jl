@@ -174,7 +174,7 @@ function create_serverdeps(name::String)
     # extensions
     logger = Toolips.Logger()
     
-    main = route("/") do c::Connection
+    main = route("/") do c::Toolips.AbstractConnection
         if ~(:clients in c)
             push!(c.data, :clients => 0)
         end
@@ -233,14 +233,18 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
     style!(tltop, "margin-top" => 10percent, "transition" => "900ms", "opacity" => 0percent, "transform" => "translateY(10%)")
     notfound = Components.h6("404-header", text = "404 -- not found", align = "center")
-    style!(notfound, "color" => "#333333", "font-size" => "13pt")
-    messg = p("rtnt", text = "your server is up! this route ($(get_route(c))) does not exist on your server. (make sure it is exported.)")
-    style!(messg, "color" => "#6879D0")
+    style!(notfound, "color" => "#333333", "font-size" => "12pt")
+    uphead = Components.a("upheader", text = "your server is up! ")
+    style!(uphead, "color" => "darkblue", "font-size" => "15pt", "font-weight" => "bold")
+    messg = Components.a("rtnt", text = "this route ($(get_route(c))) does not exist on your server.")
+    style!(messg, "color" => "#6879D0", "font-size" => "13pt")
+    exported_footer = Components.a("eport", text = " (make sure it is exported.)")
+    style!(exported_footer, "color" => "#gray", "font-size" => "13pt")
     mainbod = body("404-main", align = "center")
     scr = on("load") do cl::ClientModifier
         style!(cl, tltop, "opacity" => 100percent, "transform" => "translateY(0%)")
     end
-    push!(mainbod, tltop, notfound, messg, scr)
+    push!(mainbod, tltop, notfound, uphead, Components.br(), messg, exported_footer, scr)
     write!(c, mainbod)
 end
 

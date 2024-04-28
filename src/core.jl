@@ -522,6 +522,10 @@ function proxy_pass!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.stream, status_exception = false)
 end
 
+function proxy_pass!(c::AbstractConnection, ip4::IP4)
+    HTTP.get("http://$(string(ip4))", response_stream = c.stream, status_exception = false)
+end
+
 startread!(c::AbstractConnection) = startread(c.stream)
 
 """
@@ -1150,7 +1154,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     mod.server = server
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
-    if threads > 1
+    if threads > 1 && length(0:maximum(router_threads)) > 0
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end

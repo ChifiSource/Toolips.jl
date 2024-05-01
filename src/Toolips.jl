@@ -45,8 +45,51 @@ export main
 export logger
 end # module
 ```
-####### provides
-- `new_app(name**::String, )`
+##### provides
+- `new_app`
+- `default_404`
+- `Components`
+- **core**
+  - `IP4`
+  - `get(::String)`
+  - `post`
+  - `AbstractConnection`
+  - `distribute!`
+  - `assign!`
+  - `assign_open!`
+  - `distribute_open!`
+  - `waitfor`
+  - `put!`
+  - `Connection`
+  - `write!`
+  - `IOConnection`
+  - `get_ip`
+  - `get_args`
+  - `get_post`
+  - `get_method`
+  - `get_route`
+  - `get_host`
+  - `get_client_system`
+  - `get_heading`
+  - `get_parent`
+  - `download!`
+  - `proxy_pass!`
+  - `respond!`
+  - `Route`
+  - `route`
+  - `route!`
+  - `AbstractExtension`
+  - `on_start`
+  - `ServerTemplate`
+  - `WebServer`
+  - `kill!`
+  - `start!`
+- **extensions**
+  - interpolate!
+  - `MobileConnection`
+  - `Logger`
+  - `log(::AbstractConnection, ::String, ::Int64)`
+  - `mount`
 """
 module Toolips
 using Crayons
@@ -93,8 +136,8 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, mount, Connection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip
-export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method
+export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
+export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 include("extensions.jl")
 
 #==
@@ -131,9 +174,9 @@ function create_serverdeps(name::String)
     # extensions
     logger = Toolips.Logger()
     
-    main = route("/") do c::Connection
-        if :clients in c
-            c[:clients] = 0
+    main = route("/") do c::Toolips.AbstractConnection
+        if ~(:clients in c)
+            push!(c.data, :clients => 0)
         end
         c[:clients] += 1
         client_number = string(c[:clients])
@@ -190,14 +233,18 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
     style!(tltop, "margin-top" => 10percent, "transition" => "900ms", "opacity" => 0percent, "transform" => "translateY(10%)")
     notfound = Components.h6("404-header", text = "404 -- not found", align = "center")
-    style!(notfound, "color" => "#333333", "font-size" => "13pt")
-    messg = p("rtnt", text = "your server is up! this route ($(get_route(c))) does not exist on your server. (make sure it is exported.)")
-    style!(messg, "color" => "#6879D0")
+    style!(notfound, "color" => "#333333", "font-size" => "12pt")
+    uphead = Components.a("upheader", text = "your server is up! ")
+    style!(uphead, "color" => "darkblue", "font-size" => "15pt", "font-weight" => "bold")
+    messg = Components.a("rtnt", text = "this route ($(get_route(c))) does not exist on your server.")
+    style!(messg, "color" => "#6879D0", "font-size" => "13pt")
+    exported_footer = Components.a("eport", text = " (make sure it is exported.)")
+    style!(exported_footer, "color" => "#gray", "font-size" => "13pt")
     mainbod = body("404-main", align = "center")
     scr = on("load") do cl::ClientModifier
         style!(cl, tltop, "opacity" => 100percent, "transform" => "translateY(0%)")
     end
-    push!(mainbod, tltop, notfound, messg, scr)
+    push!(mainbod, tltop, notfound, uphead, Components.br(), messg, exported_footer, scr)
     write!(c, mainbod)
 end
 

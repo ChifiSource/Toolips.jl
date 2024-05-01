@@ -157,7 +157,12 @@ string(c::Vector{<:AbstractRoute}) = join((begin
     r.path * "\n" 
 end for r in c))
 
-getindex(c::AbstractConnection, symb::Symbol) = c.data[symb]
+getindex(c::AbstractConnection, symb::Symbol) = begin
+    if ~(symb in keys(c.data))
+        throw(KeyError(symb))
+    end
+    c.data[symb]
+end
 
 getindex(c::AbstractConnection, symb::String) = c.routes[symb]
 
@@ -251,9 +256,11 @@ in(t::Symbol, v::AbstractConnection) = t in keys(v.data)
 
 in(t::String, v::AbstractConnection) = t in v.routes
 
+abstract type AbstractIOConnection <: AbstractConnection end
+
 """
 ```julia
-IOConnection <: AbstractConnection
+IOConnection <: AbstractIOConnection
 ```
 - `stream`**::String**
 - `args`**::Dict{Symbol, String}**
@@ -284,7 +291,7 @@ end
 `Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
 - See also: `Connection`, `route`, `AbstractConnection`, `route!`, `write!`, `start!`, `Components`
 """
-mutable struct IOConnection <: AbstractConnection
+mutable struct IOConnection <: AbstractIOConnection
     stream::String
     args::Dict{Symbol, String}
     ip::String
@@ -294,6 +301,7 @@ mutable struct IOConnection <: AbstractConnection
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
     system::String
+    host::String
     IOConnection(http::HTTP.Stream, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
         host::String = string(Sockets.getpeername(http)[1])
         uri::String = http.message["User-Agent"]
@@ -316,19 +324,18 @@ mutable struct IOConnection <: AbstractConnection
                 Symbol(p[1]) => string(p[2]) 
             end for p in fullpath)::Dict{Symbol, String}
         end
-        
         new("", args, host, string(read(http)), string(split(http.message.target, '?')[1]), 
-        string(http.message.method), data, routes, system)::IOConnection
+        string(http.message.method), data, routes, system, string(http.message["Host"]))::IOConnection
     end
 end
 
-get_args(c::IOConnection) = c.args
-get_post(c::IOConnection) = c.post
-get_ip(c::IOConnection) = c.ip
-get_method(c::IOConnection) = c.method
-get_route(c::IOConnection) = c.route
-
-get_client_system(c::IOConnection) = begin
+get_args(c::AbstractIOConnection) = c.args
+get_post(c::AbstractIOConnection) = c.post
+get_ip(c::AbstractIOConnection) = c.ip
+get_method(c::AbstractIOConnection) = c.method
+get_route(c::AbstractIOConnection) = c.route
+get_host(c::AbstractIOConnection) = c.host
+get_client_system(c::AbstractIOConnection) = begin
     mobile::Bool = false
     if c.system in ("Android", "IOS")
         mobile = true
@@ -336,7 +343,7 @@ get_client_system(c::IOConnection) = begin
     return(c.system, mobile)
 end
 
-write!(c::IOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
+write!(c::AbstractIOConnection, any::Any ...) = c.stream = c.stream * join(string(a) for a in any)
 
 # args
 """
@@ -513,6 +520,10 @@ end
 """
 function proxy_pass!(c::AbstractConnection, url::String)
     HTTP.get(url, response_stream = c.stream, status_exception = false)
+end
+
+function proxy_pass!(c::AbstractConnection, ip4::IP4)
+    HTTP.get("http://$(string(ip4))", response_stream = c.stream, status_exception = false)
 end
 
 startread!(c::AbstractConnection) = startread(c.stream)
@@ -987,22 +998,20 @@ function route!(c::AbstractConnection, mr::AbstractMultiRoute)
         return
     end
     selected::AbstractRoute = mr.routes[met]
-    if typeof(c) == IOConnection
-        newc = convert!(c, mr.routes, typeof(selected).parameters[1])
-        mr.routes[met].page(newc)
+    newc::AbstractConnection = convert!(c, mr.routes, typeof(selected).parameters[1])
+    mr.routes[met].page(newc)
+    if typeof(newc) <: AbstractIOConnection   
         write!(c, newc.stream)
-        return
     end
-    c = convert!(c, mr.routes, typeof(selected).parameters[1])
-    mr.routes[met].page(c)
 end
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)
     rt = findfirst(r::AbstractRoute -> r.path == path, vec)
     if ~(isnothing(rt))
         selected::AbstractRoute = vec[rt]
-        vec[rt]::AbstractRoute
+        return(vec[rt])::AbstractRoute
     end
+    throw(KeyError(path))
 end
 
 # extensions
@@ -1085,9 +1094,16 @@ kill!(mod::Module) -> ::Nothing
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
 function kill!(mod::Module)
+    try
+        getfield(mod, :server)
+    catch e
+        throw("trying to `kill!` inactive server: $mod")
+    end
+    close(mod.data[:procs])
     close(mod.server)
     mod.server = nothing
     mod.routes = nothing
+    mod.data = nothing
     GC.gc(true)
     Pkg.gc()
 end
@@ -1132,13 +1148,16 @@ The `on_start` binding is called for each exported extension with this `Method` 
 function start! end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1)
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routefunc::Function, pm::ProcessManager = generate_router(mod, ip)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
     w::Worker{Async} = pm["$mod router"]
-    if threads > 1
+    if threads > 1 && length(0:maximum(router_threads)) > 0
+        if Threads.nthreads() < threads
+            throw(StartError("Julia was not started with enough threads for this server."))
+        end
         log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
         add_workers!(pm, threads)
         pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
@@ -1147,10 +1166,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             using Toolips
             using $mod
         end"""))
-        put!(pm, pids, routefunc)
+        put!(pm, pids, routeserver)
         garbage::Int64 = 0
         put!(pm, pids, garbage)
-        selected::Int64 = -1
+        selected::Int64 = minimum(router_threads)
+        finish::Int64 = maximum(router_threads)
         routes = mod.routes
         data = mod.data
         put!(pm, pids, routes)
@@ -1158,11 +1178,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         @async HTTP.listen(ip.ip, ip.port, server = server) do http::HTTP.Stream
             ioc::IOConnection = IOConnection(http, data, routes)
             @sync selected += 1
-            if selected > length(pids)
-                @sync selected = -1
+            if selected > finish
+                @sync selected = minimum(router_threads[1])
             end
             if selected < 1
-                routefunc(ioc, garbage)
+                routeserver(ioc, garbage)
                 write(http, ioc.stream)
                 mod.data, mod.routes = ioc.data, ioc.routes
                 return
@@ -1170,18 +1190,21 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             id::Int64 = pids[selected]
             put!(pm, [id], ioc)
             jb::ParametricProcesses.ProcessJob = new_job() do
-                routefunc(ioc, garbage)
+                routeserver(ioc, garbage)
                 ioc
             end
             assign!(pm, id, jb)
             ioc = waitfor(pm, id)[1]
-            mod.data, mod.routes = ioc.data, ioc.routes
+            @sync begin
+                mod.routes = [r for r in ioc.routes]
+                [mod.data[key] = ioc.data[key] for key in keys(mod.data)]
+            end
             write(http, ioc.stream)
         end
         w.active = true
         return(pm::ProcessManager)
     end
-    serve_router = @async HTTP.listen(routefunc, ip.ip, ip.port, server = server)
+    serve_router = @async HTTP.listen(routeserver, ip.ip, ip.port, server = server)
     w.task = serve_router
     w.active = true
     pm::ProcessManager

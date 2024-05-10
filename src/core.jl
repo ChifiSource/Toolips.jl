@@ -54,12 +54,6 @@ struct IP4 <: Identifier
     port::Int64
 end
 
-function gen_ref(n::Int64 = 16)
-    sampler::String = "iokrtshgjiosjbisjgiretwshgjbrthrthjtyjtykjkbnvjasdpxijvjr"
-    samps = (rand(1:length(sampler)) for i in 1:n)
-    join(sampler[samp] for samp in samps)
-end
-
 (:)(ip::String, port::Int64) = IP4(ip, port)
 
 string(ip::IP4) = begin

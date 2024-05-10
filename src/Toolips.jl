@@ -96,7 +96,7 @@ using Crayons
 using Sockets
 import ToolipsServables
 using ToolipsServables.Markdown
-import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, p, percent, img, body
+import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, gen_ref, p, percent, img, body
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP

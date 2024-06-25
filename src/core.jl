@@ -147,6 +147,8 @@ function in(t::String, v::Vector{<:AbstractRoute})
     false::Bool
 end
 
+in(c::AbstractConnection, symb::Symbol) = return(symb in keys(c.data))::Bool
+
 string(c::Vector{<:AbstractRoute}) = join((begin
     r.path * "\n" 
 end for r in c))
@@ -242,6 +244,7 @@ mutable struct Connection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
+    ip::String
 end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
@@ -325,7 +328,15 @@ end
 
 get_args(c::AbstractIOConnection) = c.args
 get_post(c::AbstractIOConnection) = c.post
-get_ip(c::AbstractIOConnection) = c.ip
+"""
+```julia
+get_ip(c::AbstractConnection) -> ::String
+```
+---
+Retrieves the IP address of the current client in `String` form.
+"""
+get_ip(c::AbstractConnection) = c.ip
+
 get_method(c::AbstractIOConnection) = c.method
 get_route(c::AbstractIOConnection) = c.route
 get_host(c::AbstractIOConnection) = c.host
@@ -409,32 +420,6 @@ function get_heading(c::AbstractConnection)
         ""::String
     end
     target[f + 1:length(target)]::String
-end
-
-"""
-```julia
-get_ip(c::AbstractConnection) -> ::String
-```
----
-`get_ip` returns the IP of the current `Connection`.
-#### example
-```example
-module MyServer
-using Toolips
-
-logger = Toolips.Logger()
-
-home = route("/") do c::Connection
-    client_ip::String = getip(c)
-end
-
-export home, logger
-end
-```
-"""
-function get_ip(c::AbstractConnection)
-    host, port = Sockets.getpeername(c.stream)
-    string(host)::String
 end
 
 """
@@ -637,7 +622,7 @@ If it is unknown, (OpenBSD or similar,) `Toolips` will count this as `Linux`.
 The `Function` will return a `String`, the systems name, and a `Bool` -- whether or not 
 this is a mobile operating system.
 #### example
-```example
+```julia
 module ClientSystem
 using Toolips
 
@@ -1031,7 +1016,30 @@ route!(c::AbstractConnection, e::AbstractExtension) -> ::Nothing
 This `route!` binding is called each time the `Connection` is created for each exported `AbstractExtension` 
 with a `route!` `Method`. This `Function` is designed to be imported and extended.
 ```julia
-```s
+module ClientCount
+using Toolips
+import Toolips: route!, on_start
+
+mutable struct ClientCounter <: Toolips.AbstractExtension
+
+end
+
+function on_start(ext::ClientCounter, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    push!(data, :clients => 0)
+end
+
+function route!(c::AbstractConnection, e::ClientCounter)
+    c[:clients] += 1
+end
+
+home = route("/") do c::Connection
+    write!(c, "you are client #" * string(c[:clients]))
+end
+
+counter = ClientCounter()
+export counter, home
+end
+```
 - See also: `Connection`, `route!`, `on_start`, `Toolips`, `Extension`
 """
 function route!(c::AbstractConnection, e::AbstractExtension)
@@ -1044,6 +1052,26 @@ on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:Abstr
 ---
 The `on_start` binding is called for each exported extension with this `Method` when the server starts.
 ```julia
+module ClientCount
+using Toolips
+import Toolips: on_start
+
+mutable struct SayHello
+
+end
+
+function on_start(ext::SayHello, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    println("hello world!")
+end
+
+greeter = SayHello()
+
+home = route("/") do c::Connection
+    write!(c, ":)")
+end
+
+export greeter, home
+end
 ```
 - See also: `route!`, `AbstractExtension`, `route`, `kill!`, `start!`
 """
@@ -1057,6 +1085,8 @@ kill!(mod::Module) -> ::Nothing
 ---
 `kill!` will stop an active `Toolips` server.
 ```julia
+pm::Toolips.ProcessManager = start!(Toolips, "127.0.0.1":8000)
+kill!(Toolips)
 ```
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
@@ -1262,7 +1292,8 @@ function generate_router(mod::Module, ip::IP4)
         c.stream::String
     end
     routeserver(http::HTTP.Stream) = begin
-        c::AbstractConnection = Connection(http, data, mod.routes)
+        host, port = Sockets.getpeername(http)
+        c::AbstractConnection = Connection(http, data, mod.routes, string(host))
         stop = [route!(c, ext) for ext in loaded]
         if false in stop
             return

@@ -147,6 +147,8 @@ function in(t::String, v::Vector{<:AbstractRoute})
     false::Bool
 end
 
+in(c::AbstractConnection, symb::Symbol) = return(symb in keys(c.data))::Bool
+
 string(c::Vector{<:AbstractRoute}) = join((begin
     r.path * "\n" 
 end for r in c))
@@ -242,6 +244,7 @@ mutable struct Connection <: AbstractConnection
     stream::HTTP.Stream
     data::Dict{Symbol, Any}
     routes::Vector{<:AbstractRoute}
+    ip::String
 end
 
 write!(c::AbstractConnection, args::Any ...) = write(c.stream, join([string(args) for args in args]))
@@ -325,7 +328,15 @@ end
 
 get_args(c::AbstractIOConnection) = c.args
 get_post(c::AbstractIOConnection) = c.post
-get_ip(c::AbstractIOConnection) = c.ip
+"""
+```julia
+get_ip(c::AbstractConnection) -> ::String
+```
+---
+Retrieves the IP address of the current client in `String` form.
+"""
+get_ip(c::AbstractConnection) = c.ip
+
 get_method(c::AbstractIOConnection) = c.method
 get_route(c::AbstractIOConnection) = c.route
 get_host(c::AbstractIOConnection) = c.host
@@ -409,32 +420,6 @@ function get_heading(c::AbstractConnection)
         ""::String
     end
     target[f + 1:length(target)]::String
-end
-
-"""
-```julia
-get_ip(c::AbstractConnection) -> ::String
-```
----
-`get_ip` returns the IP of the current `Connection`.
-#### example
-```example
-module MyServer
-using Toolips
-
-logger = Toolips.Logger()
-
-home = route("/") do c::Connection
-    client_ip::String = getip(c)
-end
-
-export home, logger
-end
-```
-"""
-function get_ip(c::AbstractConnection)
-    host, port = Sockets.getpeername(c.stream)
-    string(host)::String
 end
 
 """
@@ -637,7 +622,7 @@ If it is unknown, (OpenBSD or similar,) `Toolips` will count this as `Linux`.
 The `Function` will return a `String`, the systems name, and a `Bool` -- whether or not 
 this is a mobile operating system.
 #### example
-```example
+```julia
 module ClientSystem
 using Toolips
 
@@ -1031,7 +1016,30 @@ route!(c::AbstractConnection, e::AbstractExtension) -> ::Nothing
 This `route!` binding is called each time the `Connection` is created for each exported `AbstractExtension` 
 with a `route!` `Method`. This `Function` is designed to be imported and extended.
 ```julia
-```s
+module ClientCount
+using Toolips
+import Toolips: route!, on_start
+
+mutable struct ClientCounter <: Toolips.AbstractExtension
+
+end
+
+function on_start(ext::ClientCounter, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    push!(data, :clients => 0)
+end
+
+function route!(c::AbstractConnection, e::ClientCounter)
+    c[:clients] += 1
+end
+
+home = route("/") do c::Connection
+    write!(c, "you are client #" * string(c[:clients]))
+end
+
+counter = ClientCounter()
+export counter, home
+end
+```
 - See also: `Connection`, `route!`, `on_start`, `Toolips`, `Extension`
 """
 function route!(c::AbstractConnection, e::AbstractExtension)
@@ -1044,6 +1052,26 @@ on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:Abstr
 ---
 The `on_start` binding is called for each exported extension with this `Method` when the server starts.
 ```julia
+module ClientCount
+using Toolips
+import Toolips: on_start
+
+mutable struct SayHello
+
+end
+
+function on_start(ext::SayHello, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute})
+    println("hello world!")
+end
+
+greeter = SayHello()
+
+home = route("/") do c::Connection
+    write!(c, ":)")
+end
+
+export greeter, home
+end
 ```
 - See also: `route!`, `AbstractExtension`, `route`, `kill!`, `start!`
 """
@@ -1052,38 +1080,13 @@ end
 
 """
 ```julia
-abstract type ServerTemplate
-```
----
-A `ServerTemplate` is a way to start a `Toolips` server. `Toolips` servers facilitate more than just 
-WebServers, including UDP servers. `Toolips` intentionally open-ended to allow for these implementations. 
-The `ServerTemplate` is provided to `new_app` to create default server files for specific instances and 
-also `start!` to allow for specific types of servers to start parametrically. `Toolips` provides one `ServerTemplate`; 
-    the `WebServer`.
-
-- See also: `new_app`, `kill!`, `start!`, `WebServer`, `Toolips`, `Components`
-"""
-abstract type ServerTemplate end
-
-"""
-```julia
-abstract type WebServer <: ServerTemplate
-```
----
-The `WebServer` is the main `ServerTemplate` provided by `Toolips` itself. This template 
-allows for the creation of a `WebServer` ideal for websites and endpoints. This template is 
-    also used as the defaults for `new_app` and `start!`.
-- See also: `new_app`, `kill!`, `start!`, `ServerTemplate`, `Toolips`, `Components`
-"""
-abstract type WebServer <: ServerTemplate end
-
-"""
-```julia
 kill!(mod::Module) -> ::Nothing
 ```
 ---
 `kill!` will stop an active `Toolips` server.
 ```julia
+pm::Toolips.ProcessManager = start!(Toolips, "127.0.0.1":8000)
+kill!(Toolips)
 ```
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
@@ -1130,16 +1133,41 @@ function ip4_cli(ARGS)
 end
 
 """
+- start a standard WebServer:
 ```julia
-start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS), from::Type{<:ServerTemplate}; threads = 1) -> ::ParametricProcesses.ProcessManager
+start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS), from::Type{<:ServerTemplate}; threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads) -> ::ParametricProcesses.ProcessManager
+```
+- for extended servers:
+```julia
+start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
 ```
 ---
-The `on_start` binding is called for each exported extension with this `Method` when the server starts.
+`start!` is used on a `Toolips` server `Module` to start a new server. Providing `threads` sets the total amount of threads to spawn for the accompanying `ProcessManager`. `router_threads` will determine how the router handles threads. 
+Every thread in this range until `0` will be the base thread, so `-2:threads` -- for example -- will serve 3 clients with the base threads, -2, -1, 0, and then move onto the first thread with 1, moving onto 2, and so-forth.
 ```julia
+module MyExampleServer
+using Toolips
+
+home = route("/") do c::AbstractConnection
+   write!(c, "hello world!")
+end
+
+export home, start!
+end
+
+using Main.MyExampleServer; start!(Main.MyExampleServer)
 ```
 - See also: `route!`, `AbstractExtension`, `route`, `kill!`, `start!`
 """
 function start! end
+
+struct ServerTemplate{T} end
+
+const WebServer = ServerTemplate{:WebServer}()
+
+function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
+    start!(mod; keyargs ...)
+end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
@@ -1278,7 +1306,8 @@ function generate_router(mod::Module, ip::IP4)
         c.stream::String
     end
     routeserver(http::HTTP.Stream) = begin
-        c::AbstractConnection = Connection(http, data, mod.routes)
+        host, port = Sockets.getpeername(http)
+        c::AbstractConnection = Connection(http, data, mod.routes, string(host))
         stop = [route!(c, ext) for ext in loaded]
         if false in stop
             return
@@ -1298,6 +1327,10 @@ function generate_router(mod::Module, ip::IP4)
         end
     end
     return(routeserver, pman)
+end
+
+function start!(routes::Vector{<:AbstractRoute}, extensions::Vector{<:AbstractExtension}; ip::IP4 = "127.0.0.1":8000)
+
 end
 
 display(ts::ServerTemplate) = show(ts)

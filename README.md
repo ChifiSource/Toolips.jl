@@ -10,13 +10,20 @@
 
 </div>
 
-`toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
+`Toolips` is an extensible web and server-development framework for the Julia programming language.
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
 - **Declarative** and **composable** files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
 - **Modular** servers -- toolips applications are **regular Julia Modules**.
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to simple endpoints.
 - **Parallel Computing** -- *Declarative* process management provided by [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl).
+
+Toolips is able to create ...
+- Endpoints
+- File servers
+- Fullstack web applications
+- Other HTTP/HTTPS servers (e.g. Proxy server)
+- UDP servers and services (e.g. Data-base cursors, DNS servers)
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -71,32 +78,17 @@ Pkg.add("Toolips", rev = "0.3.x")
 ###### documentation
 *Awesome documentation website coming soon*
 - For now, you can use `?Toolips` to see a full list of exports.
-#### quick start
-Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
-```julia
-using Toolips
-Toolips.new_app("ToolipsApp")
-```
-We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes only the `WebServer`, which is also the default.
-```julia
-Toolips.new_app("Example", Toolips.WebServer)
-```
-This is primarily used for extensions, for example; [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl):
-```julia
-using ToolipsUDP
-ToolipsUDP.new_app("Example", ToolipsUDP.UDPServer)
-```
 ## projects
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
 - Any sub-type of `Extension`.
 - or a `Vector{<:AbstractRoute}`
 
-To quickly create a project from a template, you may use `new_app(::String)`, but the code to create a server is also pretty easy to do quickly if needed.
+Here is a simple " hello world" project. 
 ```julia
 module HelloWorld
 using Toolips
-
+# hello world in toolips
 home = route("/") do c::Connection
     write!(c, "hello world")
 end
@@ -104,6 +96,7 @@ end
 export start!, home
 end
 ```
+Here we use `route` to create a `Route{Connection}`, `home`. `home` is then exported, along with `start!` -- which is used to start our server.
 ```julia
 # starts our server:
 using HelloWorld; start!(HelloWorld)
@@ -157,9 +150,6 @@ end
 export default_404, home
 end
 ```
-Data can also be stored in the `Connection`, and this includes some extensions.
-```julia
-```
 There are several "getter" methods associated with the `Connection`, here is a comprehensive list:
 ```julia
 get_args
@@ -180,6 +170,7 @@ There's also
 proxy_pass!(c::Connection, url::String)
 startread!(c::AbstractConnection)
 download!(c::AbstractConnection, uri::String)
+respond!(c::AbstractConnection, args ...)
 ```
 Routes can be exported as any `Vector{<:AbstractRoute}` or `AbstractRoute`. Only routes which are exported will be loaded, exporting names which do not actually exist in the project will break the server. The following functions/methods may be used to create new routes with base `Toolips`:
 ```julia
@@ -533,3 +524,20 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
 - [ChiNS](#https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
   - Using: [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl)
 ### contributing
+`Toolips` is a *totally* awesome project, and with more contributors becomes even better even faster. You may contribute to this project by...
+- using Toolips in your own project 🌷
+- creating extensions for the toolips ecosystem 💐
+- forking this project [contributing guidelines](#guidelines)
+- submitting issues
+- contributing to other [chifi](https://github.com/ChifiSource) projects
+- supporting chifi creators
+
+I thank you for all of your help with our project, or just for considering contributing! I want to stress further that we are not picky -- allowing us all to express ourselves in different ways is part of the key methodology behind the entire [chifi](https://github.com/ChifiSource) ecosystem. Feel free to contribute, we would **love** to see your art! Issues marked with `good first issue` might be a great place to start!
+#### guidelines
+When submitting issues or pull-requests for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
+1. You have replicated the issue on **Unstable**
+2. The issue does not currently exist... or does not have a planned implementation different to your own. In these cases, please collaborate on the issue, express your idea and we will select the best choice.
+3. **Pull Request TO UNSTABLE**
+4. Be **specific** about your issue -- if you are experiencing multiple issues, open multiple issues. It is better to have a high quantity of issues that specifically describe things than a low quantity of issues that describe multiple things.
+5. If you have a new issue, **open a new issue**. It is not best to comment your issue under an unrelated issue; even a case where you are experiencing that issue, if you want to mention **another issue**, open a **new issue**.
+6. Questions are fine, but **not** questions answered inside of this `README`.

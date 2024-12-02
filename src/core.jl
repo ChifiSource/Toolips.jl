@@ -1171,6 +1171,19 @@ end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
+
+    # Inject bindings we will use into the module
+    if !isdefined(mod, :server)
+        Core.eval(mod, :(global server, data, routes))
+
+        # Switch to the latest world where the bindings are available
+        invokelatest(_start!, mod, ip, threads, router_threads)
+    else
+        _start!(mod, ip, threads, router_threads)
+    end
+end
+
+function _start!(mod::Module, ip::IP4, threads::Int64, router_threads::UnitRange{Int64})
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
@@ -1238,6 +1251,7 @@ function generate_router(mod::Module, ip::IP4)
     mod.routes = Vector{AbstractRoute}()
     loaded = []
     for name in server_ns
+        isdefined(mod, name) || continue
         f = getfield(mod, name)
         T = typeof(f)
         if T <: AbstractExtension

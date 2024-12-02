@@ -47,7 +47,6 @@ pkg> add Toolips
   - [connection extensions](#connection-extensions)
   - [routing extensions](#routing-extensions)
   - [server extensions](#server-extensions)
-  - [component extensions](#component-extensions)
 - [multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
 - [contributing](#contributing)
@@ -425,11 +424,24 @@ julia> Toolips.start!(Sample)
 
 All of these considered, there are a lot of ways to extend the routing of `Toolips`.
 ###### server extensions
-###### component extensions
-
+Finally, for server extensions wqe will want to 
 ## multi-threading
-`Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize.
+`Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize. Providing `threads` will simply add additional workers to our `ProcessManager`. These workers can then be used with `distribute!` and `assign!` or `assign_open!` -- all functions extended to work with the `Connection` from `ParametricProcesses`. By default, the number of `router_threads` will be `-2`, 3 responses from the base thread, and then however many threaded workers are provided. But of course, if we provided -- say `1:1` then we would only get the threads in the `ProcessManager`.
 ```julia
+start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
+```
+```julia
+module MySampleServer
+using Toolips
+home = route("/") do c::Connection
+    write!(c, "hello")
+end
+
+export home, start!
+end
+
+using MySampleServer; start!(MySampleServer, router_threads
 ```
 For the most part, this is straightforward -- but there are some things to be aware of...
 - When a server is multi-threaded, its routes will be passed an `IOConnection` -- not a regular `Connection`. Routes will need to be annotated as an `AbstractConnection` (to work with single or multiple threads,) an `IOConnection` (to work with multi-threaded servers only,) or an `AbstractConnection` to work with multi-threaded servers.
@@ -534,7 +546,7 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
 
 I thank you for all of your help with our project, or just for considering contributing! I want to stress further that we are not picky -- allowing us all to express ourselves in different ways is part of the key methodology behind the entire [chifi](https://github.com/ChifiSource) ecosystem. Feel free to contribute, we would **love** to see your art! Issues marked with `good first issue` might be a great place to start!
 #### guidelines
-When submitting issues or pull-requests for Olive, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
+When submitting issues or pull-requests for `Toolips`, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
 1. You have replicated the issue on **Unstable**
 2. The issue does not currently exist... or does not have a planned implementation different to your own. In these cases, please collaborate on the issue, express your idea and we will select the best choice.
 3. **Pull Request TO UNSTABLE**

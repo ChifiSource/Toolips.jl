@@ -1163,8 +1163,6 @@ function start! end
 
 struct ServerTemplate{T} end
 
-const WebServer = ServerTemplate{:WebServer}()
-
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end

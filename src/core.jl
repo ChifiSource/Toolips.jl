@@ -1167,9 +1167,11 @@ using Main.MyExampleServer; start!(Main.MyExampleServer)
 """
 function start! end
 
-struct ServerTemplate{T} end
+abstract type AbstractServerTemplate end
 
-const WebServer = ServerTemplate{:WebServer}()
+struct ServerTemplate{T} <: AbstractServerTemplate end
+
+WebServer = ServerTemplate{:webserver}
 
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
@@ -1240,7 +1242,7 @@ end
 
 function generate_router(mod::Module, ip::IP4)
     # Load Extensions, routes, and data.
-    server_ns::Vector{Symbol} = names(mod)
+    server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
     loaded = []
     for name in server_ns
@@ -1255,6 +1257,7 @@ function generate_router(mod::Module, ip::IP4)
         end
         T = nothing
     end
+    server_ns = nothing
     mod.routes = [r for r in mod.routes]
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
@@ -1267,7 +1270,6 @@ function generate_router(mod::Module, ip::IP4)
     logger_check = nothing
     data = Dict{Symbol, Any}()
     push!(data, :Logger => logger)
-    mod.data = data
     for ext in loaded
         on_start(ext, data, mod.routes) 
     end
@@ -1280,6 +1282,33 @@ function generate_router(mod::Module, ip::IP4)
     garbage::Int8 = UInt8(0)
     GC.gc(true)
     Pkg.gc()
+    routeserver = make_routers(garbage, mod.routes, loaded, data)
+    return(routeserver, pman)
+end
+function make_routers(garbage::Integer, routes::Vector{<:AbstractRoute}, loaded::Vector{<:Any}, data)
+    routeserver(http::HTTP.Stream) = begin
+        host, port = Sockets.getpeername(http)
+        c::AbstractConnection = Connection(http, data, routes, string(host))
+        for ext in loaded
+            stop = route!(c, ext)
+            if stop == false
+                return
+            end
+        end
+        route!(c, c.routes)::Any
+        routes = c.routes
+        garbage += 1
+        if garbage == 25
+            GC.gc()
+        elseif garbage == 50
+            GC.gc()
+        elseif garbage == 75
+            GC.gc()
+        elseif garbage == 100
+            GC.gc(true)
+            garbage = 0
+        end
+    end
     routeserver(c::IOConnection, garbage::Int64) = begin
         for ext in loaded
             stop = route!(c, ext)
@@ -1301,30 +1330,7 @@ function generate_router(mod::Module, ip::IP4)
         end
         c.stream::String
     end
-    routeserver(http::HTTP.Stream) = begin
-        host, port = Sockets.getpeername(http)
-        c::AbstractConnection = Connection(http, data, mod.routes, string(host))
-        for ext in loaded
-            stop = route!(c, ext)
-            if stop == false
-                return(c.stream)::String
-            end
-        end
-        route!(c, c.routes)::Any
-        mod.routes = c.routes
-        garbage += 1
-        if garbage == 25
-            GC.gc()
-        elseif garbage == 50
-            GC.gc()
-        elseif garbage == 75
-            GC.gc()
-        elseif garbage == 100
-            GC.gc(true)
-            garbage = 0
-        end
-    end
-    return(routeserver, pman)
+    return(routeserver)
 end
 
 function start!(routes::Vector{<:AbstractRoute}, extensions::Vector{<:AbstractExtension}; ip::IP4 = "127.0.0.1":8000)

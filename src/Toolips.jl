@@ -210,7 +210,7 @@ Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ---
 - **see also:** `Toolips`, `route`, `start!`, `Connection`
 """
-function new_app(name::String, template::Type{<:ServerTemplate} = WebServer)
+function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)
     create_serverdeps(name)
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io

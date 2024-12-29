@@ -175,6 +175,7 @@ setindex!(c::AbstractConnection, f::Function, symb::String) = begin
     push!(c.routes, route(f, symb))
 end
 
+
 """
 ```julia
 Routes{T} (Type Alias for Vector{T} where T <:AbstractRoute)
@@ -999,6 +1000,27 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
     throw(KeyError(path))
 end
 
+function setindex!(vec::Vector{<:AbstractRoute}, r::AbstractRoute, path::String)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
+    if ~(isnothing(rt))
+        deleteat!(vec, rt)
+        push!(vec, r)
+        return
+    end
+    throw(KeyError(path))
+end
+
+function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
+    rt = findfirst(newrr::AbstractRoute -> newr.path == path, vec)
+    println(vec)
+    if ~(isnothing(rt))
+        vec[rt].page = f
+        return
+    end
+    throw(KeyError(path))
+end
+
+
 # extensions
 """
 ```julia
@@ -1259,13 +1281,19 @@ function generate_router(mod::Module, ip::IP4)
     end
     server_ns = nothing
     mod.routes = [r for r in mod.routes]
+    router_T = typeof(mod.routes)
+    if router_T == Vector{Route{AbstractConnection}} || router_T == Vector{Route{Connection}}
+        mod.routes = Vector{AbstractRoute}(mod.routes)
+        router_T = "http target router"
+    end
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
         push!(loaded, Logger())
         logger_check = length(loaded)
     end
     logger = loaded[logger_check]
-    log(logger, "loaded router type: $(typeof(mod.routes))", 2)
+    log(logger, "loaded router type: $(router_T)", 2)
+    router_T = nothing
     log(logger, "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()

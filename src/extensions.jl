@@ -112,7 +112,7 @@ mutable struct Logger <: AbstractExtension
     crayons::Vector{Crayon}
     prefix::String
     write::Bool
-    writeat::Int64
+    writeat::UInt8
     prefix_crayon::Crayon
     function Logger(prefix::String = "🌷 toolips> ", crayons::Crayon ...; dir::String = "logs.txt",
         write::Bool = false, writeat::Int64 = 3, prefix_crayon = Crayon(foreground  = :blue, bold = true))
@@ -127,7 +127,7 @@ mutable struct Logger <: AbstractExtension
             crayons = [Crayon(foreground  = :light_blue, bold = true), Crayon(foreground = :yellow, bold = true), 
             Crayon(foreground = :red, bold = true)]
         end
-        new([crayon for crayon in crayons], prefix, write, writeat, prefix_crayon)
+        new([crayon for crayon in crayons], prefix, write, UInt8(writeat), prefix_crayon)
     end
 end
 

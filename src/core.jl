@@ -35,7 +35,7 @@ abstract type Identifier end
 struct IP4 <: Identifier
 ```
 - `ip`**::String**
-- `port`**::Int64**
+- `port`**::UInt16**
 
 An `IPv4` is the " fourth" iteration of the internet protocol, which assigns 
 IP addresses to computers via an Internet Service Provider (ISP) and DHCP (a router server.) 
@@ -45,16 +45,22 @@ IP addresses to computers via an Internet Service Provider (ISP) and DHCP (a rou
 host = "127.0.0.1":8000
 ```
 ```julia
-IP4(ip::String, port::Int64)
+IP4(ip::Abstractstring, port::Integer)
 ```
 - See also: `start!`, `Toolips`, `route`, `route!`
 """
 struct IP4 <: Identifier
     ip::String
-    port::Int64
+    port::UInt16
+    IP4(ip::AbstractString, port::Integer = 80) = begin
+        if port < 0 || port > 0xFFFF
+            throw(ArgumentError("Port number must be in the range 0–65535."))
+        end
+        new(string(ip), UInt16(port))::IP4
+    end
 end
 
-(:)(ip::String, port::Int64) = IP4(ip, port)
+(:)(ip::AbstractString, port::Integer) = IP4(ip, port)
 
 string(ip::IP4) = begin
     if ip.port == 0
@@ -168,6 +174,7 @@ setindex!(c::AbstractConnection, a::Any, symb::Symbol) = c.data[symb] = a
 setindex!(c::AbstractConnection, f::Function, symb::String) = begin
     push!(c.routes, route(f, symb))
 end
+
 
 """
 ```julia
@@ -993,6 +1000,27 @@ function getindex(vec::Vector{<:AbstractRoute}, path::String)
     throw(KeyError(path))
 end
 
+function setindex!(vec::Vector{<:AbstractRoute}, r::AbstractRoute, path::String)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
+    if ~(isnothing(rt))
+        deleteat!(vec, rt)
+        push!(vec, r)
+        return
+    end
+    throw(KeyError(path))
+end
+
+function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
+    rt = findfirst(newrr::AbstractRoute -> newr.path == path, vec)
+    println(vec)
+    if ~(isnothing(rt))
+        vec[rt].page = f
+        return
+    end
+    throw(KeyError(path))
+end
+
+
 # extensions
 """
 ```julia
@@ -1161,7 +1189,11 @@ using Main.MyExampleServer; start!(Main.MyExampleServer)
 """
 function start! end
 
-struct ServerTemplate{T} end
+abstract type AbstractServerTemplate end
+
+struct ServerTemplate{T} <: AbstractServerTemplate end
+
+WebServer = ServerTemplate{:webserver}
 
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
@@ -1169,19 +1201,6 @@ end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
-
-    # Inject bindings we will use into the module
-    if !isdefined(mod, :server)
-        Core.eval(mod, :(global server, data, routes))
-
-        # Switch to the latest world where the bindings are available
-        invokelatest(_start!, mod, ip, threads, router_threads)
-    else
-        _start!(mod, ip, threads, router_threads)
-    end
-end
-
-function _start!(mod::Module, ip::IP4, threads::Int64, router_threads::UnitRange{Int64})
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
@@ -1202,8 +1221,8 @@ function _start!(mod::Module, ip::IP4, threads::Int64, router_threads::UnitRange
         put!(pm, pids, routeserver)
         garbage::Int64 = 0
         put!(pm, pids, garbage)
-        selected::Int64 = minimum(router_threads)
-        finish::Int64 = maximum(router_threads)
+        selected::Int8 = Int8(minimum(router_threads))
+        finish::UInt8 = UInt8(maximum(router_threads))
         routes = mod.routes
         data = mod.data
         put!(pm, pids, routes)
@@ -1245,11 +1264,10 @@ end
 
 function generate_router(mod::Module, ip::IP4)
     # Load Extensions, routes, and data.
-    server_ns::Vector{Symbol} = names(mod)
+    server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
     loaded = []
     for name in server_ns
-        isdefined(mod, name) || continue
         f = getfield(mod, name)
         T = typeof(f)
         if T <: AbstractExtension
@@ -1261,33 +1279,70 @@ function generate_router(mod::Module, ip::IP4)
         end
         T = nothing
     end
+    server_ns = nothing
     mod.routes = [r for r in mod.routes]
+    router_T = typeof(mod.routes)
+    if router_T == Vector{Route{AbstractConnection}} || router_T == Vector{Route{Connection}}
+        mod.routes = Vector{AbstractRoute}(mod.routes)
+        router_T = "http target router"
+    end
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
         push!(loaded, Logger())
         logger_check = length(loaded)
     end
     logger = loaded[logger_check]
-    log(logger, "loaded router type: $(typeof(mod.routes))", 2)
+    log(logger, "loaded router type: $(router_T)", 2)
+    router_T = nothing
     log(logger, "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
     push!(data, :Logger => logger)
-    mod.data = data
-    [on_start(ext, data, mod.routes) for ext in loaded]
+    for ext in loaded
+        on_start(ext, data, mod.routes) 
+    end
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(ext) in allparams, loaded)
     # process manager Routing func (async)
     w::Worker{Async} = Worker{Async}("$mod router", rand(1000:3000))
     pman::ProcessManager = ProcessManager(w)
     push!(data, :procs => pman)
-    garbage::Int64 = 0
+    garbage::Int8 = UInt8(0)
     GC.gc(true)
     Pkg.gc()
+    routeserver = make_routers(garbage, mod.routes, loaded, data)
+    return(routeserver, pman)
+end
+function make_routers(garbage::Integer, routes::Vector{<:AbstractRoute}, loaded::Vector{<:Any}, data)
+    routeserver(http::HTTP.Stream) = begin
+        host, port = Sockets.getpeername(http)
+        c::AbstractConnection = Connection(http, data, routes, string(host))
+        for ext in loaded
+            stop = route!(c, ext)
+            if stop == false
+                return
+            end
+        end
+        route!(c, c.routes)::Any
+        routes = c.routes
+        garbage += 1
+        if garbage == 25
+            GC.gc()
+        elseif garbage == 50
+            GC.gc()
+        elseif garbage == 75
+            GC.gc()
+        elseif garbage == 100
+            GC.gc(true)
+            garbage = 0
+        end
+    end
     routeserver(c::IOConnection, garbage::Int64) = begin
-        stop = [route!(c, ext) for ext in loaded]
-        if false in stop
-            return(c.stream::String)
+        for ext in loaded
+            stop = route!(c, ext)
+            if stop == false
+                return(c.stream)::String
+            end
         end
         route!(c, c.routes)::Any
         garbage += 1
@@ -1303,28 +1358,7 @@ function generate_router(mod::Module, ip::IP4)
         end
         c.stream::String
     end
-    routeserver(http::HTTP.Stream) = begin
-        host, port = Sockets.getpeername(http)
-        c::AbstractConnection = Connection(http, data, mod.routes, string(host))
-        stop = [route!(c, ext) for ext in loaded]
-        if false in stop
-            return
-        end
-        route!(c, c.routes)::Any
-        mod.routes = c.routes
-        garbage += 1
-        if garbage == 25
-            GC.gc()
-        elseif garbage == 50
-            GC.gc()
-        elseif garbage == 75
-            GC.gc()
-        elseif garbage == 100
-            GC.gc(true)
-            garbage = 0
-        end
-    end
-    return(routeserver, pman)
+    return(routeserver)
 end
 
 function start!(routes::Vector{<:AbstractRoute}, extensions::Vector{<:AbstractExtension}; ip::IP4 = "127.0.0.1":8000)

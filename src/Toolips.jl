@@ -136,7 +136,7 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
-export IP4, route, mount, Connection, AbstractConnection, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
+export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 include("extensions.jl")
 
@@ -192,14 +192,13 @@ end
 
 """
 ```julia
-new_app(name::String) -> ::Nothing
-new_app(template::Symbol, name::String) -> ::Nothing
-new_app(template::Symbol, name::String) -> ::Nothing
+new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Nothing
 ```
 ---
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
-from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `:webserver`, server 
+from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
 templates are used as a base to start a server from default files.
+##### example
 ```example
 using Toolips
 Toolips.new_app("ToolipsApp")
@@ -211,12 +210,7 @@ Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ---
 - **see also:** `Toolips`, `route`, `start!`, `Connection`
 """
-function new_app end
-
-new_app(symb::Symbol, nname::String) = new_app(ServerTemplate{symb}, nname)
-
-new_app(name::String) = new_app(:webserver, name)
-function new_app(ws::Type{ServerTemplate{:webserver}}, name::String)
+function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)
     create_serverdeps(name)
     servername = name * "Server"
     open(name * "/dev.jl", "w") do io

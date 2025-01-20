@@ -1200,11 +1200,11 @@ function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main
 end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && length(0:maximum(router_threads)) > 0
         if Threads.nthreads() < threads
@@ -1262,7 +1262,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     pm::ProcessManager
 end
 
-function generate_router(mod::Module, ip::IP4)
+router_name(t::Type{Vector{<:Any}}) = "unnamed custom router"
+
+router_name(t::Type{Vector{AbstractRoute}}) = "toolips http target router"
+
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     # Load Extensions, routes, and data.
     server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
@@ -1280,11 +1284,10 @@ function generate_router(mod::Module, ip::IP4)
         T = nothing
     end
     server_ns = nothing
-    mod.routes = [r for r in mod.routes]
-    router_T = typeof(mod.routes)
-    if router_T == Vector{Route{AbstractConnection}} || router_T == Vector{Route{Connection}}
-        mod.routes = Vector{AbstractRoute}(mod.routes)
-        router_T = "http target router"
+    if RT == Vector{AbstractRoute}
+        mod.routes = [r for r in mod.routes]
+    else
+        mod.routes = Vector{RT}([r for r in mod.routes])
     end
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
     if isnothing(logger_check)
@@ -1292,6 +1295,7 @@ function generate_router(mod::Module, ip::IP4)
         logger_check = length(loaded)
     end
     logger = loaded[logger_check]
+    router_T = router_name(typeof(mod.routes))
     log(logger, "loaded router type: $(router_T)", 2)
     router_T = nothing
     log(logger, "server listening at http://$(string(ip))")
@@ -1313,6 +1317,7 @@ function generate_router(mod::Module, ip::IP4)
     routeserver = make_routers(garbage, mod.routes, loaded, data)
     return(routeserver, pman)
 end
+
 function make_routers(garbage::Integer, routes::Vector{<:AbstractRoute}, loaded::Vector{<:Any}, data)
     routeserver(http::HTTP.Stream) = begin
         host, port = Sockets.getpeername(http)

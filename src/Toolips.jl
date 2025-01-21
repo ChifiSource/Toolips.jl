@@ -101,7 +101,7 @@ using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
 using Pkg
-import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
+import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
 
 const Components = ToolipsServables

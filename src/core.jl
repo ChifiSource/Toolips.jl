@@ -1011,8 +1011,7 @@ function setindex!(vec::Vector{<:AbstractRoute}, r::AbstractRoute, path::String)
 end
 
 function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
-    rt = findfirst(newrr::AbstractRoute -> newr.path == path, vec)
-    println(vec)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
     if ~(isnothing(rt))
         vec[rt].page = f
         return
@@ -1020,6 +1019,14 @@ function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
     throw(KeyError(path))
 end
 
+function delete!(vec::Vector{<:AbstractRoute}, path::String)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
+    if ~(isnothing(rt))
+        deleteat!(vec, rt)
+        return
+    end
+    throw(KeyError(path))
+end
 
 # extensions
 """
@@ -1262,9 +1269,9 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     pm::ProcessManager
 end
 
-router_name(t::Type{Vector{<:Any}}) = "unnamed custom router"
+router_name(t::Any) = "unnamed custom router"
 
-router_name(t::Type{Vector{AbstractRoute}}) = "toolips http target router"
+router_name(t::Type{AbstractRoute}) = "toolips http target router"
 
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     # Load Extensions, routes, and data.
@@ -1284,7 +1291,7 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
         T = nothing
     end
     server_ns = nothing
-    if RT == Vector{AbstractRoute}
+    if RT != Vector{AbstractRoute}
         mod.routes = [r for r in mod.routes]
     else
         mod.routes = Vector{RT}([r for r in mod.routes])
@@ -1295,7 +1302,7 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
         logger_check = length(loaded)
     end
     logger = loaded[logger_check]
-    router_T = router_name(typeof(mod.routes))
+    router_T = router_name(typeof(mod.routes).parameters[1])
     log(logger, "loaded router type: $(router_T)", 2)
     router_T = nothing
     log(logger, "server listening at http://$(string(ip))")

@@ -145,6 +145,16 @@ might not always be the case. The canonical route provided by `Toolips` is `Rout
 """
 abstract type AbstractRoute end
 
+"""
+```julia
+abstract type AbstractHTTPRoute
+```
+
+---
+- See also: `route`, `route!`, `Connection`, `AbstractConnection`
+"""
+abstract type AbstractHTTPRoute <: AbstractRoute end
+
 function in(t::String, v::Vector{<:AbstractRoute})
     found = findfirst(x -> x.path == t, v)
     if ~(isnothing(found))
@@ -709,7 +719,7 @@ export home
 end
 ```
 """
-mutable struct Route{T <: AbstractConnection} <: AbstractRoute
+mutable struct Route{T <: AbstractConnection} <: AbstractHTTPRoute
     path::String
     page::Function
     function Route(path::String, f::Function)
@@ -1270,17 +1280,17 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     pm::ProcessManager
 end
 
-router_name(t::Any) = "unnamed custom router"
+router_name(t::Any) = "unnamed custom router ($(t))"
 
-router_name(t::Type{AbstractRoute}) = "toolips http target router"
+router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     # Load Extensions, routes, and data.
     server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
-    loaded = []
+    loaded::Vector{Any} = []
     for name in server_ns
-        f = getfield(mod, name)
+        f::Any = getfield(mod, name)
         T = typeof(f)
         if T <: AbstractExtension
             push!(loaded, f)
@@ -1298,15 +1308,14 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
         mod.routes = Vector{RT}([r for r in mod.routes])
     end
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
-    if isnothing(logger_check)
-        push!(loaded, Logger())
-        logger_check = length(loaded)
+    if ~(isnothing(logger_check))
+        logger::Logger = loaded[logger_check]
+        router_T = router_name(typeof(mod.routes).parameters[1])
+        log(logger, "loaded router type: $(router_T)", 2)
+        router_T = nothing
+        print(Crayon(foreground = :white), "\n \n")
+        log(logger, "server listening at http://$(string(ip))")
     end
-    logger = loaded[logger_check]
-    router_T = router_name(typeof(mod.routes).parameters[1])
-    log(logger, "loaded router type: $(router_T)", 2)
-    router_T = nothing
-    log(logger, "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
     push!(data, :Logger => logger)

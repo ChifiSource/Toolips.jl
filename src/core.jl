@@ -1098,23 +1098,20 @@ kill!(Toolips)
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
 function kill!(mod::Module)
-    try
-        getfield(mod, :server)
-    catch e
-        throw("trying to `kill!` inactive server: $mod")
-    end
     server_names::Vector{Symbol} = names(mod, all = true)
     if :server in server_names
+        close(mod.server)
+        if typeof(mod.procs) == ProcessManager
+            @info mod.procs
+            close(mod.procs)
+        end
         mod.server = nothing
         mod.routes = nothing
-        close(mod.server)
-        if :data in server_names
-            close(mod.data[:procs])
-          #  mod.data = nothing
-        end
         GC.gc(true)
         Pkg.gc()
         @info "server $mod successfully closed"
+    else
+        @warn "could not stop server $mod. (Inactive server?)"
     end
 end
 

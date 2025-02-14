@@ -158,10 +158,10 @@ function create_serverdeps(name::String)
     dir::String = pwd() * "/"
     src::String = dir * name * "/src"
     @info "generating toolips project..."
-    Pkg.add("Toolips")
-    Pkg.add("Revise")
     Pkg.generate(name)
     Pkg.activate(name)
+    Pkg.add("Toolips")
+    Pkg.add("Revise")
     touch(name * "/dev.jl")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")

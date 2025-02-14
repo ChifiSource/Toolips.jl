@@ -3,6 +3,26 @@ using Toolips
 using Toolips.Pkg
 
 wd = @__DIR__
+module TestApp
+using Toolips
+# using Toolips.Components
+
+# extensions
+logger = Toolips.Logger()
+
+mainf(c::AbstractConnection) = begin
+    if ~(:clients in c)
+        c[:clients] = 0
+    end
+    c[:clients] += 1
+    client_number = string(c[:clients])
+    log(logger, "served client " * client_number)
+    write!(c, "hello client #" * client_number)
+end
+main = route(mainf, "/")
+# make sure to export!
+export main, default_404, logger
+end # - module TestApp <3
 module ToolipsTestServer
 using Toolips
 using Toolips.Components: div
@@ -47,7 +67,7 @@ end
 
 using Main.ToolipsTestServer
 Pkg.activate(wd * "/TestApp")
-using TestApp
+using Main.TestApp
 @testset "toolips servers" verbose = true begin
     @testset "server creation" begin
         @test length(Main.ToolipsTestServer.mounted_dir) > 1

@@ -13,7 +13,7 @@ MobileConnection <: AbstractConnection
 - data**::Dict{Symbol, Any}**
 - ret**::Any**
 
-A `MobileConnection` is used with multi-route, and will be created when an incoming `Connection` is mobile. 
+A `MobileConnection` is used with multi-route and will be created when an incoming `Connection` is mobile. 
 This is done by simply annotating your `Function`'s `Connection` argument when calling `route`. To create one 
 page for both of these routes, we then use `route` to combine them.
 ```julia
@@ -84,13 +84,10 @@ Logger <: Toolips.AbstractExtension
 - `write`**::Bool**
 - `writeat`**::Int64**
 - `prefix_crayon`**::Crayon**
-
-
 ```julia
 Logger(prefix::String = "🌷 toolips> ", crayons::Crayon ...; dir::String = "logs.txt", write::Bool = false, 
 writeat::Int64, prefix_crayon::Crayon = Crayon(foreground  = :blue, bold = true))
 ```
-###### example
 ```example
 module ExampleServer
 using Toolips
@@ -140,10 +137,8 @@ end
 ```julia
 log(c::Connection, message::String, at::Int64 = 1) -> ::Nothing
 ```
----
 `log` will print the message with your `Logger` using the crayon `at`. `Logger` 
 will give a lot more information on this.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -165,12 +160,10 @@ log(c::AbstractConnection, args ...) = log(c[:Logger], args ...)
 ```julia
 mount(fpair::Pair{String, String}) -> ::Route{Connection}/::Vector{Route{Connection}}
 ```
----
 `mount` will create a route that serves a file or a all files in a directory. 
 The first part of `fpair` is the target route path, e.g. `/` would be home. If 
 the provided path is as directory, the Function will return a `Vector{AbstractRoute}`. For 
 a single file, this will be a route.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -206,6 +199,27 @@ function mount(fpair::Pair{String, String})
     end for path in route_from_dir(fpath)]::Vector{<:AbstractRoute}
 end
 
+"""
+```julia
+route_from_dir(path::String) -> ::Vector{String}
+```
+This is a (mostly) internal (but also handy) function that reads a directory, and 
+    then recursively appends all of the paths in its underlying tree structure. This 
+    is used for file mounting in `Toolips`.
+```example
+module MyServer
+using Toolips
+
+logger = Toolips.Logger()
+
+filemount::Route{Connection} = mount("/" => "templates/home.html")
+
+dirmount::Vector{<:AbstractRoute} = mount("/files" => "public")
+
+export filemount, dirmount, logger
+end
+```
+"""
 function route_from_dir(path::String)
     dirs::Vector{String} = readdir(path)
     routes::Vector{String} = []

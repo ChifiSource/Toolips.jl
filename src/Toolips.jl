@@ -101,7 +101,7 @@ using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
 using Pkg
-import Base: getindex, setindex!, push!, get,string, write, show, display, (:)
+import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
 
 const Components = ToolipsServables
@@ -147,58 +147,57 @@ Project API
 ```julia
 create_serverdeps(name::String) -> _
 ```
----
-Creates a `Toolips` app template with a corresponding `Project.toml` environment and `dev.jl` 
-file to quickly get started.
-#### example
+Creates the base server file-system for a `Toolips` app.
 ```example
 create_serverdeps("ToolipsApp")
 ```
 """
 function create_serverdeps(name::String)
+    err::Pipe = Pipe()
+    std::Pipe = Pipe()
+    dir::String = pwd() * "/"
+    src::String = dir * name * "/src"
+    @info "generating toolips project..."
     Pkg.generate(name)
     Pkg.activate(name)
     Pkg.add("Toolips")
     Pkg.add("Revise")
-    dir = pwd() * "/"
-    src::String = dir * name * "/src"
     touch(name * "/dev.jl")
     rm(src * "/$name.jl")
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
-    write(io, 
-    """module $name
-    using Toolips
-    # using Toolips.Components
-
-    # extensions
-    logger = Toolips.Logger()
+        write(io, 
+            """module $name
+        using Toolips
+        # using Toolips.Components
     
-    main = route("/") do c::Toolips.AbstractConnection
-        if ~(:clients in c)
-            push!(c.data, :clients => 0)
+        # extensions
+        logger = Toolips.Logger()
+        
+        main = route("/") do c::Toolips.AbstractConnection
+            if ~(:clients in c)
+                push!(c.data, :clients => 0)
+            end
+            c[:clients] += 1
+            client_number = string(c[:clients])
+            log(logger, "served client " * client_number)
+            write!(c, "hello client #" * client_number)
         end
-        c[:clients] += 1
-        client_number = string(c[:clients])
-        log(logger, "served client " * client_number)
-        write!(c, "hello client #" * client_number)
+    
+        # make sure to export!
+        export main, default_404, logger
+        end # - module $name <3""")
     end
-
-    # make sure to export!
-    export main, default_404, logger
-    end # - module $name <3""")
-    end
+    @info "project `$name` created!"
 end
 
 """
 ```julia
 new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Nothing
 ```
----
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
 from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
 templates are used as a base to start a server from default files.
-##### example
 ```example
 using Toolips
 Toolips.new_app("ToolipsApp")
@@ -207,7 +206,6 @@ Toolips.new_app("ToolipsApp")
 using Toolips
 Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
----
 - **see also:** `Toolips`, `route`, `start!`, `Connection`
 """
 function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)

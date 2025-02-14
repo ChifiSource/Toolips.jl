@@ -21,9 +21,9 @@
 Toolips is able to create ...
 - Endpoints
 - File servers
-- Fullstack web applications
-- Other HTTP/HTTPS servers (e.g. Proxy server)
-- UDP servers and services (e.g. Data-base cursors, DNS servers)
+- Interactive fullstack web applications
+- Other HTTP/HTTPS servers (e.g. Proxy server, data-base cursor)
+- UDP servers and services (e.g. Systems servers, DNS servers)
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```

@@ -22,10 +22,6 @@ abstract type Identifier
 ```
 An `Identifier` is a structure that represents a client, a client's data, 
 or the server itself.
-- All servables have a `name`.
-- All servables are dispatched to `string`.
-- `Servables` (?Servables) can be indexed using a `String` corresponding to `name`.
----
 - See also: `IP4`, `start!`, `Toolips`
 """
 abstract type Identifier end
@@ -76,7 +72,6 @@ get(url::String) -> ::String
 get(url::IP4) -> ::String
 ```
 Performs a `GET` request from Julia.
----
 ```example
 response = Toolips.get("https://github.com/ChifiSource")
 ```
@@ -86,14 +81,13 @@ function get(url::String)
     string(r.body)::String
 end
 
-get(url::IP4) = get("http://$(url.ip):$(url.port)")
+get(url::IP4) = get("http://$(url.ip):$(url.port)")::String
 
 """
 ```julia
 post(url::String, body::String) -> ::String
 post(url::IP4, body::String) -> ::String
 ```
----
 Performs a `POST` request from Julia.
 ```example
 module Server
@@ -128,7 +122,6 @@ An `AbstractConnection` is how a server interacts with each client on an individ
 Variations of the `Connection` are passed to routes as their only argument. The `Connection`
 - Can be written to with `write!`
 - Contains client data accessible with *getter* functions, such as `get_ip`.
----
 - See also: `start!`, `route`, `route!`, `Connection`, `get_ip`, `get_args`
 """
 abstract type AbstractConnection end
@@ -140,10 +133,19 @@ abstract type AbstractRoute
 An `AbstractRoute` holds a `path`, a target which navigates the user throughout the webpage, 
 as well as some way to generate that page. Typically, these are created using `route`, though this 
 might not always be the case. The canonical route provided by `Toolips` is `Route{<:Any}`.
----
 - See also: `route`, `route!`, `Connection`, `AbstractConnection`
 """
 abstract type AbstractRoute end
+
+"""
+```julia
+abstract type AbstractHTTPRoute
+```
+An `AbstractHTTPRoute` is a route that is designed for the `Toolips` HTTP target router.
+---
+- See also: `route`, `route!`, `Connection`, `AbstractConnection`
+"""
+abstract type AbstractHTTPRoute <: AbstractRoute end
 
 function in(t::String, v::Vector{<:AbstractRoute})
     found = findfirst(x -> x.path == t, v)
@@ -180,7 +182,6 @@ end
 ```julia
 Routes{T} (Type Alias for Vector{T} where T <:AbstractRoute)
 ```
----
 `Routes` are simple one-dimensional vectors of routes. Using multiple dispatch, these 
 vectors effectively become routers and can be extended using multiple dispatch. 
 To change individual `Route` functionality, view `Route` and `MultiRoute`, dispatching `Routes{T <: Any}` 
@@ -276,8 +277,6 @@ IOConnection <: AbstractIOConnection
 - `routes`**::Vector{<:AbstractRoute}**
 - `system`**::String**
 
-
-###### example
 A `Connection` is provided directly to your route's handler `Function` as its only argument. 
 When we create a `Route` with `route`, we will be passed a `Connection` which we can 
 then use with `write!` to respond.
@@ -335,12 +334,12 @@ end
 
 get_args(c::AbstractIOConnection) = c.args
 get_post(c::AbstractIOConnection) = c.post
+
 """
 ```julia
 get_ip(c::AbstractConnection) -> ::String
 ```
----
-Retrieves the IP address of the current client in `String` form.
+Retrieves the IP address of the current client in `String` form. 
 """
 get_ip(c::AbstractConnection) = c.ip
 
@@ -362,9 +361,7 @@ write!(c::AbstractIOConnection, any::Any ...) = c.stream = c.stream * join(strin
 ```julia
 get_args(c::AbstractConnection) -> ::Dict{Symbol, String}
 ```
----
 Returns the `GET` arguments of the current `Connection` in a `Dict{Symbol, String}`.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -398,9 +395,7 @@ end
 ```julia
 get_heading(c::AbstractConnection) -> ::String
 ```
----
 Gets the markdown heading of `c`. 
-#### example
 ```example
 module MyServer
 using Toolips
@@ -433,9 +428,7 @@ end
 ```julia
 get_post(c::AbstractConnection) -> ::String
 ```
----
 Returns the `POST` body of the current `Connection`.
-#### example
 ```example
 module Server
 using Toolips
@@ -459,9 +452,7 @@ get_post(c::AbstractConnection) = string(read(c.stream))::String
 ```julia
 download!(c::AbstractConnection, uri::String) -> ::Nothing
 ```
----
 Downloads the file stored at `uri` on the server machine to the client machine.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -489,7 +480,6 @@ proxy_pass!(c::AbstractConnection, url::String) -> ::Nothing
 ---
 Performs a *proxy pass* -- redirecting the client to another server without 
 performing a request, using the current server as a *proxy* to serve the other server.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -518,10 +508,8 @@ startread!(c::AbstractConnection) = startread(c.stream)
 ```julia
 get_route(c::AbstractConnection) -> ::String
 ```
----
 Gets the current target of an incoming `Connection`. (This `Function` is used 
 by the router to direct  incoming connections to your routes.)
-#### example
 ```example
 module MyServer
 using Toolips
@@ -543,10 +531,8 @@ get_route(c::AbstractConnection) = string(split(c.stream.message.target, '?')[1]
 ```julia
 get_method(c::AbstractConnection) -> ::String
 ```
----
 Gets the `METHOD` of the incoming `HTTP` request. The *METHOD* is what type of 
 HTTP request the client is trying to send; `POST` or `GET`. 
-#### example
 ```example
 module MyServer
 using Toolips
@@ -567,9 +553,7 @@ get_method(c::AbstractConnection) = string(c.stream.message.method)::String
 ```julia
 get_host(c::AbstractConnection) -> ::String
 ```
----
 Gets the host (domain name and TLD) the client is currently requesting.
-#### example
 The example below is pulled directly from 
 [`ChiProxy`](https://github.com/ChifiSource/ChiProxy.jl). This is a `Toolips`-based 
 proxy server, which uses a router based on the hostname, rather than the target. 
@@ -598,9 +582,7 @@ get_host(c::AbstractConnection) = string(c.stream.message["Host"])::String
 ```julia
 get_parent(c::AbstractConnection) -> ::String
 ```
----
 Returns the `parent`, which might reference where a browser is navigating from.
-#### example
 ```example
 module MyServer
 using Toolips
@@ -623,12 +605,10 @@ end
 ```julia
 get_client_system(c::AbstractConnection) -> (::String, ::Bool)
 ```
----
 `get_client_system` will return the operating system of the client. 
 If it is unknown, (OpenBSD or similar,) `Toolips` will count this as `Linux`. 
 The `Function` will return a `String`, the systems name, and a `Bool` -- whether or not 
 this is a mobile operating system.
-#### example
 ```julia
 module ClientSystem
 using Toolips
@@ -676,7 +656,7 @@ Route{T <: AbstractConnection} <: AbstractRoute
 ```
 - path**::String**
 - page**::Function**
----
+
 The `Route` is the most basic form of `AbstractRoute`. This constructor will likely *not* be called directly, 
 instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
 ```julia
@@ -709,7 +689,7 @@ export home
 end
 ```
 """
-mutable struct Route{T <: AbstractConnection} <: AbstractRoute
+mutable struct Route{T <: AbstractConnection} <: AbstractHTTPRoute
     path::String
     page::Function
     function Route(path::String, f::Function)
@@ -737,7 +717,6 @@ the default multi-route type is `MultiRoute`. This allows us to route multiple
 paths from the same path.
 - has the field `path`, like other routes.
 - Has a binding to `multiroute!`
----
 - See also: `route`, `route!`, `Connection`, `multiroute!`, `MultiRoute`
 """
 abstract type AbstractMultiRoute <: AbstractRoute end
@@ -810,7 +789,6 @@ end
 ```julia
 convert(c::Connection, routes::Routes, into::Type{<:AbstractConnection}) -> ::Bool
 ```
----
 `convert` is a `Function` designed to be extended by import. This `Function` 
 simply asks if `c` should be turned into the type `into`. The return should be a 
     boolean.
@@ -912,12 +890,10 @@ route(r::Route{<:AbstractConnection}...) = MultiRoute(r ...)
 route!(c::AbstractConnection, r::AbstractRoute) -> ::Nothing
 route!(c::Connection, tr::Routes{<:AbstractRoute}) -> ::Nothing
 ```
----
 The `route!` `Function` is used by the router twice; once when the entire 
 `Vector` of routes is routed (the second method listed above,) and again 
 on the `Route` that is routed to. Considering this, it is possible to create a new 
 router by extending `route!(c::Connection, tr::Routes{<:AbstractRoute})`
-#### example
 The following example is pulled from [`ChiProxy`](https://github.com/ChifiSource/ChiProxy.jl), 
 this example creates a router based on hostname, and also changes route functionality 
 to perform a proxy pass.
@@ -965,11 +941,11 @@ end
 ```julia
 route!(c::AbstractConnection, vec::Routes, r::AbstractMultiRoute) -> ::Nothing
 ```
----
 This `route!` dispatch allows for another router to exist underneath the `route!`-based router. This `Function` 
     is called whenever a multi-route is routed. This is designed to be **imported** and 
     extended. For this, simply create your own `<:AbstractMultiRoute` based on `MultiRoute`, 
-    and then write this `Method` for that type.
+    and then write this `Method` for that type. The default `Toolips.MultiRoute`, for example, routes the 
+        `Route{<:AbstractConnection}` according to the type of incoming `Connection`.
 - See also: `Route`, `Routes`, `Connection`, `AbstractConnection`, `MultiRoute`
 """
 function route!(c::AbstractConnection, mr::AbstractMultiRoute)
@@ -1011,8 +987,7 @@ function setindex!(vec::Vector{<:AbstractRoute}, r::AbstractRoute, path::String)
 end
 
 function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
-    rt = findfirst(newrr::AbstractRoute -> newr.path == path, vec)
-    println(vec)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
     if ~(isnothing(rt))
         vec[rt].page = f
         return
@@ -1020,13 +995,20 @@ function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
     throw(KeyError(path))
 end
 
+function delete!(vec::Vector{<:AbstractRoute}, path::String)
+    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
+    if ~(isnothing(rt))
+        deleteat!(vec, rt)
+        return
+    end
+    throw(KeyError(path))
+end
 
 # extensions
 """
 ```julia
 abstract type AbstractExtension
 ```
----
 An `AbstractExtension` is the top-level abstraction for a `Toolips` server extension. 
 `Toolips` provides one `AbstractExtension`, the `Logger`. If the functions exist, an 
 extension will call its `on_start` `Method` when the server starts and its `route!` 
@@ -1040,7 +1022,6 @@ abstract type AbstractExtension end
 ```julia
 route!(c::AbstractConnection, e::AbstractExtension) -> ::Nothing
 ```
----
 This `route!` binding is called each time the `Connection` is created for each exported `AbstractExtension` 
 with a `route!` `Method`. This `Function` is designed to be imported and extended.
 ```julia
@@ -1077,7 +1058,6 @@ end
 ```julia
 on_start(ext::AbstractExtension, data::Dict{Symbol, Any}, routes::Vector{<:AbstractRoute}) -> ::Nothing
 ```
----
 The `on_start` binding is called for each exported extension with this `Method` when the server starts.
 ```julia
 module ClientCount
@@ -1110,7 +1090,6 @@ end
 ```julia
 kill!(mod::Module) -> ::Nothing
 ```
----
 `kill!` will stop an active `Toolips` server.
 ```julia
 pm::Toolips.ProcessManager = start!(Toolips, "127.0.0.1":8000)
@@ -1119,18 +1098,21 @@ kill!(Toolips)
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
 function kill!(mod::Module)
-    try
-        getfield(mod, :server)
-    catch e
-        throw("trying to `kill!` inactive server: $mod")
+    server_names::Vector{Symbol} = names(mod, all = true)
+    if :server in server_names
+        close(mod.server)
+        if typeof(mod.procs) == ProcessManager
+            @info mod.procs
+            close(mod.procs)
+        end
+        mod.server = nothing
+        mod.routes = nothing
+        GC.gc(true)
+        Pkg.gc()
+        @info "server $mod successfully closed"
+    else
+        @warn "could not stop server $mod. (Inactive server?)"
     end
-    close(mod.data[:procs])
-    close(mod.server)
-    mod.server = nothing
-    mod.routes = nothing
-    mod.data = nothing
-    GC.gc(true)
-    Pkg.gc()
 end
 
 mutable struct StartError <: Exception
@@ -1200,11 +1182,12 @@ function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main
 end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
+    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = nothing"))
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && length(0:maximum(router_threads)) > 0
         if Threads.nthreads() < threads
@@ -1262,13 +1245,17 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     pm::ProcessManager
 end
 
-function generate_router(mod::Module, ip::IP4)
+router_name(t::Any) = "unnamed custom router ($(t))"
+
+router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
+
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     # Load Extensions, routes, and data.
     server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
-    loaded = []
+    loaded::Vector{Any} = []
     for name in server_ns
-        f = getfield(mod, name)
+        f::Any = getfield(mod, name)
         T = typeof(f)
         if T <: AbstractExtension
             push!(loaded, f)
@@ -1280,21 +1267,20 @@ function generate_router(mod::Module, ip::IP4)
         T = nothing
     end
     server_ns = nothing
-    mod.routes = [r for r in mod.routes]
-    router_T = typeof(mod.routes)
-    if router_T == Vector{Route{AbstractConnection}} || router_T == Vector{Route{Connection}}
-        mod.routes = Vector{AbstractRoute}(mod.routes)
-        router_T = "http target router"
+    if RT != Vector{AbstractRoute}
+        mod.routes = [r for r in mod.routes]
+    else
+        mod.routes = Vector{RT}([r for r in mod.routes])
     end
     logger_check = findfirst(t -> typeof(t) == Logger, loaded)
-    if isnothing(logger_check)
-        push!(loaded, Logger())
-        logger_check = length(loaded)
+    if ~(isnothing(logger_check))
+        logger::Logger = loaded[logger_check]
+        router_T = router_name(typeof(mod.routes).parameters[1])
+        log(logger, "loaded router type: $(router_T)", 2)
+        router_T = nothing
+        print(Crayon(foreground = :white), "\n \n")
+        log(logger, "server listening at http://$(string(ip))")
     end
-    logger = loaded[logger_check]
-    log(logger, "loaded router type: $(router_T)", 2)
-    router_T = nothing
-    log(logger, "server listening at http://$(string(ip))")
     logger_check = nothing
     data = Dict{Symbol, Any}()
     push!(data, :Logger => logger)
@@ -1313,6 +1299,7 @@ function generate_router(mod::Module, ip::IP4)
     routeserver = make_routers(garbage, mod.routes, loaded, data)
     return(routeserver, pman)
 end
+
 function make_routers(garbage::Integer, routes::Vector{<:AbstractRoute}, loaded::Vector{<:Any}, data)
     routeserver(http::HTTP.Stream) = begin
         host, port = Sockets.getpeername(http)

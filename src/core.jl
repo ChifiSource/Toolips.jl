@@ -1278,7 +1278,7 @@ router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     # Load Extensions, routes, and data.
-    server_ns::Vector{Symbol} = names(mod)
+    server_ns = names(mod)
     mod.routes = Vector{AbstractRoute}()
     loaded::Vector{Any} = []
     for name in server_ns

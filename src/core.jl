@@ -1283,7 +1283,6 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     end
     logger_check = nothing
     data = Dict{Symbol, Any}()
-    push!(data, :Logger => logger)
     for ext in loaded
         on_start(ext, data, mod.routes) 
     end

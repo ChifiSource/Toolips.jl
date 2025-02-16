@@ -1192,7 +1192,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     async::Bool = true)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = nothing"))
+    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
@@ -1200,10 +1200,15 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
-        log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
+        has_logger = haskey(mod.data, :Logger)
+        if has_logger
+            log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
+        end
         add_workers!(pm, threads)
         pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
-        log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
+        if has_logger
+            log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
+        end
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Toolips
             using $mod
@@ -1313,6 +1318,7 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     for ext in loaded
         on_start(ext, data, mod.routes) 
     end
+    mod.data = data
     allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
     filter!(ext -> typeof(ext) in allparams, loaded)
     # process manager Routing func (async)

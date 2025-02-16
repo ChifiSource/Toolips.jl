@@ -236,3 +236,19 @@ function route_from_dir(path::String)
     end for directory in dirs]
     routes::Vector{String}
 end
+
+function generate_doc_preview()
+
+end
+
+function generate_doc()
+
+end
+
+documentation = route("/docs") do c::AbstractConnection
+    args::Dict{Symbol, String} = get_args(c)
+    if haskey(args, :select)
+        return
+    end
+
+end

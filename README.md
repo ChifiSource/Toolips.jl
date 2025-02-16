@@ -13,17 +13,20 @@
 `Toolips` is an extensible web and server-development framework for the Julia programming language.
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
-- **Declarative** and **composable** files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
-- **Modular** servers -- toolips applications are **regular Julia Modules**.
+- **Hyper-Dynamic Multiple-Dispatch Routing** -- The `Toolips` router can be completely reworked with extensions to offer completely new and exceedingly versatile functionality.
+- **Declarative** and **composable** -- files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
+- **Modular** servers -- toolips applications are **regular Julia Modules**, making them easier to migrate and deploy.
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to simple endpoints.
 - **Parallel Computing** -- *Declarative* process management provided by [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl).
-
-Toolips is able to create ...
+- **Optionally Asynchronous** -- the `Toolips.start!` function provides several different modes to start the server in, including asynchronous, single-threaded, and multi-threaded.
+- **Multi-Threaded** -- `Toolips` has support for multi-threading through the `ParametricProcesses` `Module`
+###### Toolips is able to create ...
 - Endpoints
 - File servers
 - Interactive fullstack web applications
 - Other HTTP/HTTPS servers (e.g. Proxy server, data-base cursor)
 - UDP servers and services (e.g. Systems servers, DNS servers)
+---
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```

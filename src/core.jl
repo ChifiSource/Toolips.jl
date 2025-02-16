@@ -230,7 +230,6 @@ get_client_system(c::AbstractConnection)
 ```julia
 proxy_pass!(c::Connection, url::String)
 ```
-###### example
 A `Connection` is provided directly to your route's handler `Function` as its only argument. 
 When we create a `Route` with `route`, we will be passed a `Connection` which we can 
 then use with `write!` to respond.
@@ -291,7 +290,8 @@ end
 export home, start!
 end
 ```
-`Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`.
+`Servables` are also binded to `write!`, so a `Connection` can easily serve `Components`, the `File` `Servable`, 
+as well as text and more.
 - See also: `Connection`, `route`, `AbstractConnection`, `route!`, `write!`, `start!`, `Components`
 """
 mutable struct IOConnection <: AbstractIOConnection
@@ -477,7 +477,6 @@ end
 ```julia
 proxy_pass!(c::AbstractConnection, url::String) -> ::Nothing
 ```
----
 Performs a *proxy pass* -- redirecting the client to another server without 
 performing a request, using the current server as a *proxy* to serve the other server.
 ```example
@@ -652,12 +651,13 @@ end
 
 """
 ```julia
-Route{T <: AbstractConnection} <: AbstractRoute
+Route{T <: AbstractConnection} <: AbstractHTTPRoute
 ```
 - path**::String**
 - page**::Function**
 
-The `Route` is the most basic form of `AbstractRoute`. This constructor will likely *not* be called directly, 
+The `Route` is the most basic form of `AbstractRoute` -- the `AbstractHTTPRoute` that comes with `Toolips` and 
+fills the role of basic routing for the framework. This constructor will likely *not* be called directly, 
 instead use `route("/") do c::Connection` (or) `route(::Function, ::String)` to create routes.
 ```julia
 using Toolips
@@ -792,8 +792,8 @@ convert(c::Connection, routes::Routes, into::Type{<:AbstractConnection}) -> ::Bo
 `convert` is a `Function` designed to be extended by import. This `Function` 
 simply asks if `c` should be turned into the type `into`. The return should be a 
     boolean.
-#### example
-The following example is the **entire** `MobileConnection` implementation.
+
+- The following example is the **entire** `MobileConnection` implementation:
 ```example
 using Toolips
 import Toolips: convert!, convert, AbstractConnection
@@ -811,6 +811,7 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 ```
+- See also: `MultiRoute`, `convert!`, `Route`, `convert`, `Connection`, `AbstractConnection`
 """
 convert(c::AbstractConnection, r::Vector{<:AbstractRoute}, into::Type{<:AbstractConnection}) = false::Bool
 
@@ -818,11 +819,9 @@ convert(c::AbstractConnection, r::Vector{<:AbstractRoute}, into::Type{<:Abstract
 ```julia
 convert!(c::Connection, routes::Routes, into::Type{<:AbstractConnection})
 ```
----
 `convert` is a `Function` designed to be extended by import. This `Function` 
 is called after `convert` confirms that the `Connection` should be converted. 
 This `Function` converts `c` into the type `into`.
-#### example
 The following example is the **entire** `MobileConnection` implementation.
 ```example
 using Toolips
@@ -841,6 +840,7 @@ function convert!(c::Connection, routes::Routes, into::Type{MobileConnection})
     MobileConnection(c.stream, c.data, routes)::MobileConnection
 end
 ```
+- See also: `multiroute!`, `route!`, `Route`, `convert`, `Connection`, `AbstractConnection`, `start!`
 """
 function convert! end
 
@@ -1145,15 +1145,19 @@ end
 """
 - start a standard WebServer:
 ```julia
-start!(mod::Module = server_cli(Main.ARGS), ip::IP4 = ip4_cli(Main.ARGS), from::Type{<:ServerTemplate}; threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads) -> ::ParametricProcesses.ProcessManager
+start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute, 
+    async::Bool = true)
 ```
 - for extended servers:
 ```julia
 start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
 ```
----
-`start!` is used on a `Toolips` server `Module` to start a new server. Providing `threads` sets the total amount of threads to spawn for the accompanying `ProcessManager`. `router_threads` will determine how the router handles threads. 
-Every thread in this range until `0` will be the base thread, so `-2:threads` -- for example -- will serve 3 clients with the base threads, -2, -1, 0, and then move onto the first thread with 1, moving onto 2, and so-forth.
+`start!` is used on a `Toolips` server `Module` to start a new server. Providing `threads` sets 
+the total amount of threads to spawn for the accompanying `ProcessManager`. `router_threads` will 
+    determine how the router handles threads.  Every thread in this range until `0` will be the base
+     thread, so `-2:threads` -- for example -- will serve 3 clients with the base threads, -2, -1, 0, 
+     and then move onto the first thread with 1, moving onto 2, and so-forth.
 ```julia
 module MyExampleServer
 using Toolips
@@ -1177,12 +1181,15 @@ struct ServerTemplate{T} <: AbstractServerTemplate end
 
 WebServer = ServerTemplate{:webserver}
 
+start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{st}(), mod, args ...; keyargs ...)
+
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute)
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute, 
+    async::Bool = true)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = nothing"))
@@ -1239,12 +1246,32 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         w.active = true
         return(pm::ProcessManager)
     end
-    serve_router = @async HTTP.listen(routeserver, ip.ip, ip.port, server = server)
-    w.task = serve_router
-    w.active = true
-    pm::ProcessManager
+    if async
+        serve_router = @async HTTP.listen(routeserver, ip.ip, ip.port, server = server)
+        w.task = serve_router
+        w.active = true
+        pm::ProcessManager
+    else
+        serve_router = HTTP.listen(routeserver, ip.ip, ip.port, server = server)
+        w.task = serve_router
+        w.active = true
+        pm::ProcessManager
+    end
 end
 
+"""
+```julia
+router_name(t::Any) -> ::String
+```
+`router_name` is used to name your router by the `Type` of the router's routes. 
+For example, the dispatch that names the `HTTP` router is for `Type{<:AbstractHTTPRoute}`.
+```julia
+import Toolips: router_name
+
+router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
+```
+- See also: `route!`, `start!`, `Route`, `Connection`, `Toolips`
+"""
 router_name(t::Any) = "unnamed custom router ($(t))"
 
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
@@ -1283,7 +1310,6 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     end
     logger_check = nothing
     data = Dict{Symbol, Any}()
-    push!(data, :Logger => logger)
     for ext in loaded
         on_start(ext, data, mod.routes) 
     end

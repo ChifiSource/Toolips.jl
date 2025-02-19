@@ -710,16 +710,19 @@ end
 
 """
 ```julia
-abstract type AbstractMultiRoute <: AbstractRoute
+abstract type AbstractMultiRoute <: AbstractHTTPRoute
 ```
-An `AbstractMultiRoute` is essentially a router beneath the router. 
-the default multi-route type is `MultiRoute`. This allows us to route multiple 
-paths from the same path.
+An `AbstractMultiRoute` is a router beneath the router. 
+the default multi-route type is `MultiRoute`. This allows us to route an incoming 
+client according to `Connection` conditions with multiple dispatch. Creating your 
+own multi-route allows for the creation of a new routing step without writing in 
+an entirely new custom router.
+
 - has the field `path`, like other routes.
 - Has a binding to `multiroute!`
 - See also: `route`, `route!`, `Connection`, `multiroute!`, `MultiRoute`
 """
-abstract type AbstractMultiRoute <: AbstractRoute end
+abstract type AbstractMultiRoute <: AbstractHTTPRoute end
 
 """
 ```julia
@@ -1256,6 +1259,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     end
 end
 
+
 """
 ```julia
 router_name(t::Any) -> ::String
@@ -1334,9 +1338,6 @@ function make_routers(routes, loaded, data)
     return routeserver
 end
 
-function start!(routes::Vector{<:AbstractRoute}, extensions::Vector{<:AbstractExtension}; ip::IP4 = "127.0.0.1":8000)
-
-end
 
 display(ts::ServerTemplate) = show(ts)
 

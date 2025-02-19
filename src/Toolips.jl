@@ -13,10 +13,7 @@ map
 - Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
 
-Toolips is an **extensible** and **declarative** web-development framework for the julia programming language. 
-The intention with this framework is to *fill most web-development needs well.* While there are lighter options for 
-APIs and heavier options for web-apps, `Toolips` presents a plethora of capabilities for both of these contexts -- as well as many more!
-
+Toolips is an **extensible**, *declarative*, and **versatile** web-development framework for the Julia programming language.
 ```example
 module MyServer
 using Toolips

@@ -164,7 +164,7 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, 
-            """module $name
+        """module $name
         using Toolips
         # using Toolips.Components
     
@@ -180,9 +180,13 @@ function create_serverdeps(name::String)
             log(logger, "served client " * client_number)
             write!(c, "hello client #" * client_number)
         end
-    
+        
+        # make your own documentation: (/docs/toolips && /docs/toolipsservables)
+        toolips_docs = Toolips.make_docroute(Toolips)
+        # components_docs = Toolips.make_docroute(Toolips.Components)
+
         # make sure to export!
-        export main, default_404, logger
+        export start!, main, default_404, logger, toolips_docs, # components_docs
         end # - module $name <3""")
     end
     @info "project `$name` created!"
@@ -203,7 +207,7 @@ Toolips.new_app("ToolipsApp")
 using Toolips
 Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
-- **see also:** `Toolips`, `route`, `start!`, `Connection`
+- **see also:** `Toolips`, `route`, `start!`, `Connection`, `make_docroute`
 """
 function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)
     create_serverdeps(name)
@@ -243,6 +247,27 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     write!(c, mainbod)
 end 
 
+"""
+```julia
+make_docroute(mod::Module) -> ::Route{Connection}
+```
+`make_docroute` automatically creates a simple web-based documentation browser for **any module**. 
+Simply provide the `Module` and export the `Route` that comes as a return.
+```julia
+module DocServer
+using Toolips
+
+base_docs = Toolips.make_docroute(Base)
+toolips_docs = Toolips.make_docroute(Toolips)
+components_docs = Toolips.make_docroute(Toolips.Components)
+
+export base_docs, toolips_docs, component_docs, start!
+end
+
+using DocServer; start!(DocServer)
+```
+- **see also:** `Toolips`, `route`, `start!`, `Connection`, `new_app`
+"""
 function make_docroute(mod::Module)
     function build_doc_page(name::String, docstring::String, value::Any)
         name_label = Components.h2("$name-label", text = name)
@@ -289,7 +314,6 @@ function make_docroute(mod::Module)
                         push!(docbuttons, doc_button)
                         page
                     catch e
-                        throw(e)
                         nothing
                     end
                 end

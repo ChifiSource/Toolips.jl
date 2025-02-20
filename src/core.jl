@@ -1097,7 +1097,6 @@ function kill!(mod::Module)
     if :server in server_names
         close(mod.server)
         if typeof(mod.procs) == ProcessManager
-            @info mod.procs
             close(mod.procs)
         end
         mod.server = nothing

@@ -171,6 +171,7 @@ function create_serverdeps(name::String)
         # extensions
         logger = Toolips.Logger()
         
+        # routes
         main = route("/") do c::Toolips.AbstractConnection
             if ~(:clients in c)
                 push!(c.data, :clients => 0)
@@ -182,6 +183,7 @@ function create_serverdeps(name::String)
         end
         
         # make your own documentation: (/docs/toolips && /docs/toolipsservables)
+        # (this works with any module)
         toolips_docs = Toolips.make_docroute(Toolips)
         # components_docs = Toolips.make_docroute(Toolips.Components)
 

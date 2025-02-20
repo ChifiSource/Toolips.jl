@@ -1280,7 +1280,6 @@ router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
     mod.routes = Vector{RT}()
     loaded = AbstractExtension[]
-
     for name in names(mod)
         f = getfield(mod, name)
         if f isa AbstractExtension
@@ -1327,15 +1326,18 @@ function make_routers(routes, loaded, data)
             end
         end
         route!(c, c.routes)
-
         garbage += 1
-        if garbage % 25 == 0
-            GC.gc(garbage == 100)
-            garbage = 0
+        if garbage % 5000 = 0
+            if garbage == 15000
+                GC.gc(true)
+                garbage = 0
+            else
+                GC.gc()
+            end
         end
-        c.stream
+        c.stream::String
     end
-    return routeserver
+    return(routeserver)::Function
 end
 
 

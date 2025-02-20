@@ -243,6 +243,36 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     write!(c, mainbod)
 end
 
+documentation = route("/docs") do c::AbstractConnection
+    args::Dict{Symbol, String} = get_args(c)
+    if ~("/toolips03.png" in c.routes)
+        dir::String = @__DIR__ 
+        mount_r::Route = mount("/toolips03.png" => dir * "/toolips03.png")
+        c.routes = vcat(c.routes, mount_r)
+    end
+    mainbod = body("mainbody", align = "center")
+    tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
+    if ~(:doc in c)
+        Dict(begin
+            T = Any 
+            try
+                value = getfield(Toolips, name)
+
+            catch
+                
+            end
+
+        end for name in filter(n -> contains(string(n), "#"), names(Toolips, all = true)))
+    end
+    if haskey(args, :select)
+        return
+    end
+    tl_button = button("toolipsdoc", text = "Toolips")
+    ts_button = button("componentsdoc", text = "Components")
+    push!(mainbod, tltop, tl_button, ts_button)
+end
+
+
 export default_404
 
 end # Toolips c:

@@ -246,24 +246,27 @@ end
 function make_docroute(mod::Module)
     function build_doc_page(name::String, docstring::String, value::Any)
         name_label = Components.h2("$name-label", text = name)
+        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "white")
         type_label = Components.h4("$name-type", text = string(typeof(value)))
+        style!(type_label, "color" => "#dbac4d")
         docstring = Components.tmd("docstring-$name", docstring)
         page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
-        style!(page_container, "background-color" => "#333333", "padding" => "30px")
+        style!(page_container, "background-color" => "#141e33", "padding" => "30px")
         page_container
     end
     function build_doc_page(name::String, docstring::String, value::Function)
         name_label = Components.h2("$name-label", text = name)
+        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "lightblue")
         type_label = Components.h4("$name-type", text = "Function")
+        style!(type_label, "color" => "#dbac4d")
         docstring = Components.tmd("docstring-$name", docstring)
         page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
-        style!(page_container, "background-color" => "#333333", "padding" => "30px")
+        style!(page_container, "background-color" => "#141e33", "padding" => "30px")
         page_container
     end
     modname = lowercase(string(mod))
     route("/docs/$modname") do c::AbstractConnection
         args::Dict{Symbol, String} = get_args(c)
-        
         if ~(Symbol("doc$modname") in c)
             docbuttons = Vector{AbstractComponent}()
             docs = Vector{AbstractComponent}(filter!(k -> ~(isnothing(k)), [begin
@@ -274,19 +277,45 @@ function make_docroute(mod::Module)
                         value = nothing
                         value = getfield(mod, name)
                         docstring = string(mod.eval(Meta.parse("@doc($name)")))
-                        build_doc_page(string(name), docstring, value)
+                        page = build_doc_page(string(name), docstring, value)
+                        doc_button = Components.div("docbutton$name", children = [page[:children]["$name-label"], 
+                        Components.br(), page[:children]["$name-type"]])
+                        style!(doc_button, "cursor" => "pointer", "width" => "35%", "height" => "15%", 
+                        "display" => "inline-flex", "border-radius" => "3px", "border" => "3px solid #333333", 
+                        "background-color" => "#141e33", "padding" => "5px")
+                        Components.on(doc_button, "dblclick") do cl::ClientModifier
+                            Components.redirect!(cl, "/docs/$modname?select=$name")
+                        end
+                        push!(docbuttons, doc_button)
+                        page
                     catch e
+                        throw(e)
                         nothing
                     end
                 end
             end for name in names(mod, all = true)]))
-            push!(c.data, Symbol("doc$(modname)") => docs)
+            push!(c.data, Symbol("doc$(modname)") => docs, Symbol("doc$(modname)buttons") => docbuttons)
         end
         if haskey(args, :select)
-            write!(c, c[Symbol("doc$modname")][args[:select]])
+            post_style = Components.style("p", "color" => "white")
+            h1_style = Components.style("h1", "color" => "white")
+            h2_style = Components.style("h2", "color" => "pink")
+            h3_style = Components.style("h3", "color" => "white")
+            h4_style = Components.style("h4", "color" => "white")
+            h5_style = Components.style("h5", "color" => "white")
+            a_style = Components.style("a", "color" => "lightblue")
+            code_style = Components.style("code", "background-color" => "white", "padding" => "1px", 
+            "border-radius" => "4px", "color" => "black")
+            li_style = Components.style("li", "padding" => "4px", "color" => "white")
+            write!(c, post_style, h1_style, h2_style, h3_style, h4_style, h5_style, a_style, code_style, 
+            li_style)
+            mainbod = body("mainbody", children = c[Symbol("doc$modname")][args[:select]])
+            style!(mainbod, "background-color" => "#9bb0b0")
+            write!(c, mainbod)
             return
         end
-        mainbod = body("mainbody", align = "center")
+        mainbod = body("mainbody", align = "center", children = c[Symbol("doc$(modname)buttons")])
+        style!(mainbod, "background-color" => "#9bb0b0")
         write!(c, mainbod)
     end
 end

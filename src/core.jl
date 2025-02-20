@@ -1327,7 +1327,7 @@ function make_routers(routes, loaded, data)
         end
         route!(c, c.routes)
         garbage += 1
-        if garbage % 5000 = 0
+        if garbage % 5000 == 0
             if garbage == 15000
                 GC.gc(true)
                 garbage = 0

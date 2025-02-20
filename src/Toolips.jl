@@ -301,6 +301,7 @@ function make_docroute(mod::Module)
                     nothing
                 else
                    try
+                        
                         value = nothing
                         value = getfield(mod, name)
                         docstring = string(mod.eval(Meta.parse("@doc($name)")))
@@ -310,6 +311,7 @@ function make_docroute(mod::Module)
                         style!(doc_button, "cursor" => "pointer", "width" => "35%", "height" => "15%", 
                         "display" => "inline-flex", "border-radius" => "3px", "border" => "3px solid #333333", 
                         "background-color" => "#141e33", "padding" => "5px")
+                        name = replace(string(name), "!" => "EXPL", "@" => "MACR")
                         Components.on(doc_button, "dblclick") do cl::ClientModifier
                             Components.redirect!(cl, "/docs/$modname?select=$name")
                         end
@@ -335,7 +337,7 @@ function make_docroute(mod::Module)
             li_style = Components.style("li", "padding" => "4px", "color" => "white")
             write!(c, post_style, h1_style, h2_style, h3_style, h4_style, h5_style, a_style, code_style, 
             li_style)
-            mainbod = body("mainbody", children = c[Symbol("doc$modname")][args[:select]])
+            mainbod = body("mainbody", children = c[Symbol("doc$modname")][replace(args[:select], "!" => "EXPL", "@" => "MACR")])
             style!(mainbod, "background-color" => "#9bb0b0")
             write!(c, mainbod)
             return

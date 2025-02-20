@@ -241,36 +241,57 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     end
     push!(mainbod, tltop, notfound, uphead, Components.br(), messg, exported_footer, scr)
     write!(c, mainbod)
+end 
+
+function make_docroute(mod::Module)
+    function build_doc_page(name::String, docstring::String, value::Any)
+        name_label = Components.h2("$name-label", text = name)
+        type_label = Components.h4("$name-type", text = string(typeof(value)))
+        docstring = Components.tmd("docstring-$name", docstring)
+        page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
+        style!(page_container, "background-color" => "#333333", "padding" => "30px")
+        page_container
+    end
+    function build_doc_page(name::String, docstring::String, value::Function)
+        name_label = Components.h2("$name-label", text = name)
+        type_label = Components.h4("$name-type", text = "Function")
+        docstring = Components.tmd("docstring-$name", docstring)
+        page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
+        style!(page_container, "background-color" => "#333333", "padding" => "30px")
+        page_container
+    end
+    modname = lowercase(string(mod))
+    route("/docs/$modname") do c::AbstractConnection
+        args::Dict{Symbol, String} = get_args(c)
+        
+        if ~(Symbol("doc$modname") in c)
+            docbuttons = Vector{AbstractComponent}()
+            docs = Vector{AbstractComponent}(filter!(k -> ~(isnothing(k)), [begin
+                if contains(string(name), "#")
+                    nothing
+                else
+                   try
+                        value = nothing
+                        value = getfield(mod, name)
+                        docstring = string(mod.eval(Meta.parse("@doc($name)")))
+                        build_doc_page(string(name), docstring, value)
+                    catch e
+                        nothing
+                    end
+                end
+            end for name in names(mod, all = true)]))
+            push!(c.data, Symbol("doc$(modname)") => docs)
+        end
+        if haskey(args, :select)
+            write!(c, c[Symbol("doc$modname")][args[:select]])
+            return
+        end
+        mainbod = body("mainbody", align = "center")
+        write!(c, mainbod)
+    end
 end
 
-documentation = route("/docs") do c::AbstractConnection
-    args::Dict{Symbol, String} = get_args(c)
-    if ~("/toolips03.png" in c.routes)
-        dir::String = @__DIR__ 
-        mount_r::Route = mount("/toolips03.png" => dir * "/toolips03.png")
-        c.routes = vcat(c.routes, mount_r)
-    end
-    mainbod = body("mainbody", align = "center")
-    tltop = img("tl", "src" => "/toolips03.png", width = 150, align = "center")
-    if ~(:doc in c)
-        Dict(begin
-            T = Any 
-            try
-                value = getfield(Toolips, name)
 
-            catch
-                
-            end
-
-        end for name in filter(n -> contains(string(n), "#"), names(Toolips, all = true)))
-    end
-    if haskey(args, :select)
-        return
-    end
-    tl_button = button("toolipsdoc", text = "Toolips")
-    ts_button = button("componentsdoc", text = "Components")
-    push!(mainbod, tltop, tl_button, ts_button)
-end
 
 
 export default_404

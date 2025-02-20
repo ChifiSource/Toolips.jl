@@ -19,7 +19,7 @@
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to simple endpoints.
 - **Parallel Computing** -- *Declarative* process management provided by [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl).
 - **Optionally Asynchronous** -- the `Toolips.start!` function provides several different modes to start the server in, including asynchronous, single-threaded, and multi-threaded.
-- **Multi-Threaded** -- `Toolips` has support for multi-threading through the `ParametricProcesses` `Module`
+- **Multi-Threaded** -- `Toolips` has support for high-level multi-threading through the `ParametricProcesses` `Module`
 ###### Toolips is able to create ...
 - Endpoints
 - File servers

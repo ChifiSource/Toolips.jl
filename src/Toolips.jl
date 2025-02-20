@@ -82,7 +82,6 @@ end # module
   - `kill!`
   - `start!`
 - **extensions**
-  - interpolate!
   - `MobileConnection`
   - `Logger`
   - `log(::AbstractConnection, ::String, ::Int64)`
@@ -274,7 +273,7 @@ function make_docroute(mod::Module)
     function build_doc_page(name::String, docstring::String, value::Any)
         name_label = Components.h2("$name-label", text = name)
         style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "white")
-        type_label = Components.h4("$name-type", text = string(typeof(value)))
+        type_label = Components.h4("$name-type", text = "    " * string(typeof(value)))
         style!(type_label, "color" => "#dbac4d")
         docstring = Components.tmd("docstring-$name", docstring)
         page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
@@ -282,8 +281,8 @@ function make_docroute(mod::Module)
         page_container
     end
     function build_doc_page(name::String, docstring::String, value::Function)
-        name_label = Components.h2("$name-label", text = name)
-        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "lightblue")
+        name_label = Components.h2("$name-label", text = replace(name, "macr_" => "@", "expl_" => "!"))
+        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "lightblue", "display" => "auto")
         type_label = Components.h4("$name-type", text = "Function")
         style!(type_label, "color" => "#dbac4d")
         docstring = Components.tmd("docstring-$name", docstring)
@@ -301,17 +300,17 @@ function make_docroute(mod::Module)
                     nothing
                 else
                    try
-                        
                         value = nothing
                         value = getfield(mod, name)
                         docstring = string(mod.eval(Meta.parse("@doc($name)")))
+                        name = replace(string(name), "!" => "expl_", "@" => "macr_")
                         page = build_doc_page(string(name), docstring, value)
+                        
                         doc_button = Components.div("docbutton$name", children = [page[:children]["$name-label"], 
                         Components.br(), page[:children]["$name-type"]])
-                        style!(doc_button, "cursor" => "pointer", "width" => "35%", "height" => "15%", 
+                        style!(doc_button, "cursor" => "pointer", "width" => "35%", "height" => "10%", 
                         "display" => "inline-flex", "border-radius" => "3px", "border" => "3px solid #333333", 
                         "background-color" => "#141e33", "padding" => "5px")
-                        name = replace(string(name), "!" => "EXPL", "@" => "MACR")
                         Components.on(doc_button, "dblclick") do cl::ClientModifier
                             Components.redirect!(cl, "/docs/$modname?select=$name")
                         end
@@ -335,9 +334,16 @@ function make_docroute(mod::Module)
             code_style = Components.style("code", "background-color" => "white", "padding" => "1px", 
             "border-radius" => "4px", "color" => "black")
             li_style = Components.style("li", "padding" => "4px", "color" => "white")
+            back_button = div("backb", text = "<- back")
+            style!(back_button, "padding" => "7px", "background-color" => "white", "color" => "#333333", 
+            "font-weight" => "bold", "font-size" => "14pt", "cursor" => "pointer", 
+            "border-top" => "2px solid #1e1e1e", "border-right" => "2px solid #1e1e1e", "border-left" => "2px solid #1e1e1e")
+            Components.on(back_button, "click") do cl::ClientModifier
+                Components.redirect!(cl, "/docs/$modname")
+            end
             write!(c, post_style, h1_style, h2_style, h3_style, h4_style, h5_style, a_style, code_style, 
             li_style)
-            mainbod = body("mainbody", children = c[Symbol("doc$modname")][replace(args[:select], "!" => "EXPL", "@" => "MACR")])
+            mainbod = body("mainbody", children = [back_button, c[Symbol("doc$modname")][args[:select]]])
             style!(mainbod, "background-color" => "#9bb0b0")
             write!(c, mainbod)
             return

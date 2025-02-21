@@ -1015,6 +1015,29 @@ abstract type AbstractExtension end
 
 """
 ```julia
+struct QuickExtension{T <: Any} <: Toolips.AbstractExtension
+```
+- (this type contains no fields)
+
+The `QuickExtension` is a convenient way to *quickly* load new functionality into a 
+`Toolips` server. These can be used identically to other sub-types of `AbstractExtension` 
+and are symbolic in nature. This avoids us having to create a new extension for something simple.
+```julia
+QuickExtension{T}
+```
+```julia
+function on_start(ext::Toolips.QuickExtension{:clients}, data::Dict{Symbol, Any}, 
+    routes::Vector{<:AbstractRoute})
+    push!(data, :clients => Vector{ClientComputer}())
+end
+```
+- See also: `AbstractExtension`, `route!`, `on_start!`, `AbstractConnection`
+"""
+
+struct QuickExtension{T} <: AbstractExtension end
+
+"""
+```julia
 route!(c::AbstractConnection, e::AbstractExtension) -> ::Nothing
 ```
 This `route!` binding is called each time the `Connection` is created for each exported `AbstractExtension` 

@@ -262,10 +262,10 @@ base_docs = Toolips.make_docroute(Base)
 toolips_docs = Toolips.make_docroute(Toolips)
 components_docs = Toolips.make_docroute(Toolips.Components)
 
-export base_docs, toolips_docs, component_docs, start!
+export base_docs, toolips_docs, components_docs, start!
 end
 
-using DocServer; start!(DocServer)
+using Main.DocServer; start!(Main.DocServer)
 ```
 - **see also:** `Toolips`, `route`, `start!`, `Connection`, `new_app`
 """

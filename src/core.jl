@@ -710,16 +710,19 @@ end
 
 """
 ```julia
-abstract type AbstractMultiRoute <: AbstractRoute
+abstract type AbstractMultiRoute <: AbstractHTTPRoute
 ```
-An `AbstractMultiRoute` is essentially a router beneath the router. 
-the default multi-route type is `MultiRoute`. This allows us to route multiple 
-paths from the same path.
+An `AbstractMultiRoute` is a router beneath the router. 
+the default multi-route type is `MultiRoute`. This allows us to route an incoming 
+client according to `Connection` conditions with multiple dispatch. Creating your 
+own multi-route allows for the creation of a new routing step without writing in 
+an entirely new custom router.
+
 - has the field `path`, like other routes.
 - Has a binding to `multiroute!`
 - See also: `route`, `route!`, `Connection`, `multiroute!`, `MultiRoute`
 """
-abstract type AbstractMultiRoute <: AbstractRoute end
+abstract type AbstractMultiRoute <: AbstractHTTPRoute end
 
 """
 ```julia
@@ -950,58 +953,50 @@ This `route!` dispatch allows for another router to exist underneath the `route!
 """
 function route!(c::AbstractConnection, mr::AbstractMultiRoute)
     met = findfirst(r -> convert(c, mr.routes, typeof(r).parameters[1]), mr.routes)
-    if isnothing(met)
+    if met === nothing
         default = findfirst(r -> typeof(r).parameters[1] == Connection, mr.routes)
-        if ~(isnothing(default))
-            mr.routes[default].page(c)
-        else
-            mr.routes[1].page(c)
-        end
+        (default !== nothing ? mr.routes[default] : mr.routes[1]).page(c)
         return
     end
-    selected::AbstractRoute = mr.routes[met]
-    newc::AbstractConnection = convert!(c, mr.routes, typeof(selected).parameters[1])
-    mr.routes[met].page(newc)
-    if typeof(newc) <: AbstractIOConnection   
+    selected = mr.routes[met]
+    newc = convert!(c, mr.routes, typeof(selected).parameters[1])
+    selected.page(newc)
+    
+    if newc isa AbstractIOConnection   
         write!(c, newc.stream)
     end
 end
 
 function getindex(vec::Vector{<:AbstractRoute}, path::String)
-    rt = findfirst(r::AbstractRoute -> r.path == path, vec)
-    if ~(isnothing(rt))
-        selected::AbstractRoute = vec[rt]
-        return(vec[rt])::AbstractRoute
-    end
-    throw(KeyError(path))
+    rt = findfirst(r -> r.path == path, vec)
+    rt !== nothing ? vec[rt] : throw(KeyError(path))
 end
 
 function setindex!(vec::Vector{<:AbstractRoute}, r::AbstractRoute, path::String)
-    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
-    if ~(isnothing(rt))
-        deleteat!(vec, rt)
-        push!(vec, r)
-        return
+    rt = findfirst(newr -> newr.path == path, vec)
+    if rt !== nothing
+        vec[rt] = r
+    else
+        throw(KeyError(path))
     end
-    throw(KeyError(path))
 end
 
 function setindex!(vec::Vector{<:AbstractRoute}, f::Function, path::String)
-    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
-    if ~(isnothing(rt))
+    rt = findfirst(newr -> newr.path == path, vec)
+    if rt !== nothing
         vec[rt].page = f
-        return
+    else
+        throw(KeyError(path))
     end
-    throw(KeyError(path))
 end
 
 function delete!(vec::Vector{<:AbstractRoute}, path::String)
-    rt = findfirst(newr::AbstractRoute -> newr.path == path, vec)
-    if ~(isnothing(rt))
+    rt = findfirst(newr -> newr.path == path, vec)
+    if rt !== nothing
         deleteat!(vec, rt)
-        return
+    else
+        throw(KeyError(path))
     end
-    throw(KeyError(path))
 end
 
 # extensions
@@ -1017,6 +1012,29 @@ extension will call its `on_start` `Method` when the server starts and its `rout
 - See also: `Connection`, `route!`, `on_start`, `Toolips`, `Extension`
 """
 abstract type AbstractExtension end
+
+"""
+```julia
+struct QuickExtension{T <: Any} <: Toolips.AbstractExtension
+```
+- (this type contains no fields)
+
+The `QuickExtension` is a convenient way to *quickly* load new functionality into a 
+`Toolips` server. These can be used identically to other sub-types of `AbstractExtension` 
+and are symbolic in nature. This avoids us having to create a new extension for something simple.
+```julia
+QuickExtension{T}
+```
+```julia
+function on_start(ext::Toolips.QuickExtension{:clients}, data::Dict{Symbol, Any}, 
+    routes::Vector{<:AbstractRoute})
+    push!(data, :clients => Vector{ClientComputer}())
+end
+```
+- See also: `AbstractExtension`, `route!`, `on_start!`, `AbstractConnection`
+"""
+
+struct QuickExtension{T} <: AbstractExtension end
 
 """
 ```julia
@@ -1102,7 +1120,6 @@ function kill!(mod::Module)
     if :server in server_names
         close(mod.server)
         if typeof(mod.procs) == ProcessManager
-            @info mod.procs
             close(mod.procs)
         end
         mod.server = nothing
@@ -1188,11 +1205,11 @@ function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main
 end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
-    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractRoute, 
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractHTTPRoute, 
     async::Bool = true)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = nothing"))
+    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
@@ -1200,10 +1217,15 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
-        log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
+        has_logger = haskey(mod.data, :Logger)
+        if has_logger
+            log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
+        end
         add_workers!(pm, threads)
         pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
-        log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
+        if has_logger
+            log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
+        end
         Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
             using Toolips
             using $mod
@@ -1259,6 +1281,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     end
 end
 
+
 """
 ```julia
 router_name(t::Any) -> ::String
@@ -1277,106 +1300,68 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
-    # Load Extensions, routes, and data.
-    server_ns = names(mod)
-    mod.routes = Vector{AbstractRoute}()
-    loaded::Vector{Any} = []
-    for name in server_ns
-        f::Any = getfield(mod, name)
-        T = typeof(f)
-        if T <: AbstractExtension
+    mod.routes = Vector{RT}()
+    loaded = AbstractExtension[]
+    for name in names(mod)
+        f = getfield(mod, name)
+        if f isa AbstractExtension
             push!(loaded, f)
-        elseif T <: AbstractRoute
+        elseif f isa AbstractRoute
             push!(mod.routes, f)
-        elseif T <: AbstractVector{<:AbstractRoute}
-            mod.routes = vcat(mod.routes, f)
+        elseif f isa AbstractVector{<:AbstractRoute}
+            append!(mod.routes, f)
         end
-        T = nothing
     end
-    server_ns = nothing
-    if RT != Vector{AbstractRoute}
-        mod.routes = [r for r in mod.routes]
-    else
-        mod.routes = Vector{RT}([r for r in mod.routes])
+    if any(ext -> ext isa Logger, loaded)
+        logger = filter(ext -> ext isa Logger, loaded)[1]
+        log(logger, "Router type: $(router_name(typeof(mod.routes).parameters[1]))", 2)
+        log(logger, "Server listening at http://$(ip.ip):$(ip.port)")
     end
-    logger_check = findfirst(t -> typeof(t) == Logger, loaded)
-    if ~(isnothing(logger_check))
-        logger::Logger = loaded[logger_check]
-        router_T = router_name(typeof(mod.routes).parameters[1])
-        log(logger, "loaded router type: $(router_T)", 2)
-        router_T = nothing
-        print(Crayon(foreground = :white), "\n \n")
-        log(logger, "server listening at http://$(string(ip))")
-    end
-    logger_check = nothing
+
     data = Dict{Symbol, Any}()
     for ext in loaded
         on_start(ext, data, mod.routes) 
     end
-    allparams = (m.sig.parameters[3] for m in methods(route!, Any[AbstractConnection, AbstractExtension]))
-    filter!(ext -> typeof(ext) in allparams, loaded)
-    # process manager Routing func (async)
-    w::Worker{Async} = Worker{Async}("$mod router", rand(1000:3000))
-    pman::ProcessManager = ProcessManager(w)
-    push!(data, :procs => pman)
-    garbage::Int8 = UInt8(0)
-    GC.gc(true)
-    Pkg.gc()
-    routeserver = make_routers(garbage, mod.routes, loaded, data)
-    return(routeserver, pman)
-end
+    mod.data = data
 
-function make_routers(garbage::Integer, routes::Vector{<:AbstractRoute}, loaded::Vector{<:Any}, data)
-    routeserver(http::HTTP.Stream) = begin
-        host, port = Sockets.getpeername(http)
-        c::AbstractConnection = Connection(http, data, routes, string(host))
+    workers = Worker{Async}("$mod router", rand(1000:3000))
+    pman = ProcessManager(workers)
+    data[:procs] = pman
+
+    return make_routers(mod.routes, loaded, data), pman
+end
+function make_routers(routes, loaded, data)
+    function routeserver(http::HTTP.Stream)
+        host, _ = Sockets.getpeername(http)
+        c = Connection(http, data, routes, string(host))
         for ext in loaded
-            stop = route!(c, ext)
-            if stop == false
+            if route!(c, ext) === false
                 return
             end
         end
-        route!(c, c.routes)::Any
-        routes = c.routes
-        garbage += 1
-        if garbage == 25
-            GC.gc()
-        elseif garbage == 50
-            GC.gc()
-        elseif garbage == 75
-            GC.gc()
-        elseif garbage == 100
-            GC.gc(true)
-            garbage = 0
-        end
+        route!(c, c.routes)
     end
-    routeserver(c::IOConnection, garbage::Int64) = begin
+    function routeserver(c::IOConnection, garbage::Int64)
         for ext in loaded
-            stop = route!(c, ext)
-            if stop == false
-                return(c.stream)::String
+            if route!(c, ext) === false
+                return
             end
         end
-        route!(c, c.routes)::Any
+        route!(c, c.routes)
         garbage += 1
-        if garbage == 25
-            GC.gc()
-        elseif garbage == 50
-            GC.gc()
-        elseif garbage == 75
-            GC.gc()
-        elseif garbage == 100
-            GC.gc(true)
-            garbage = 0
+        if garbage % 5000 == 0
+            if garbage == 15000
+                GC.gc(true)
+                garbage = 0
+            else
+                GC.gc()
+            end
         end
         c.stream::String
     end
-    return(routeserver)
+    return(routeserver)::Function
 end
 
-function start!(routes::Vector{<:AbstractRoute}, extensions::Vector{<:AbstractExtension}; ip::IP4 = "127.0.0.1":8000)
-
-end
 
 display(ts::ServerTemplate) = show(ts)
 

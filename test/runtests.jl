@@ -65,9 +65,16 @@ end
     @test length(Toolips.gen_ref(5)) == 5
 end
 
+
+new_app("ToolipsTestServer")
+@testset "new app" begin
+    @test isdir("ToolipsTestServer")
+    @test isfile("ToolipsTestServer")
+end
+Pkg.activate(wd * "/ToolipsTestServer")
+
 using Main.ToolipsTestServer
-Pkg.activate(wd * "/TestApp")
-using Main.TestApp
+using Main.NewApp
 @testset "toolips servers" verbose = true begin
     @testset "server creation" begin
         @test length(Main.ToolipsTestServer.mounted_dir) > 1
@@ -96,7 +103,7 @@ using Main.TestApp
     if threads > 1
         @testset "multithreading" verbose = true begin
             @testset "multi-threaded start" begin
-                pm = start!(Main.TestApp, threads = threads - 1)
+                pm = start!(Main.ToolipsTestServer, threads = threads - 1)
                 @test length(pm.workers) == threads
             end
             @testset "multi-request" begin
@@ -122,6 +129,11 @@ using Main.TestApp
         end
     else
         @info "julia started with 1 thread, skipping multi-threading tests..."
+    end
+    try
+        rm("ToolipsTestServer", recursive = true)
+    catch
+        @warn "unable to perform cleanup"
     end
 end
 

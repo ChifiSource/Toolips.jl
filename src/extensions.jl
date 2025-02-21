@@ -27,7 +27,7 @@ mobile = route("/") do c::Toolips.MobileConnection
     write!(c, "this is mobile")
 end
 
-# multiroute (will call `mobile` if it is a `MobileConnection`)
+# multiroute (will call `mobile` if it is a `MobileConnection`, meaning the client is on mobile)
 home = route(main, mobile)
 
 # then we simply export the multi-route
@@ -38,7 +38,8 @@ using Toolips; Toolips.start!(ExampleServer)
 - See also: `route`, `Connection`, `route!`, `Components`, `convert`, `convert!`
 
 It is unlikely you will use this constructor unless you are calling 
-`convert!`/`convert` in your own `route!` design.
+`convert!`/`convert` in your own `route!` design. This `Connection` type is 
+primarily meant to be dispatched as it is in the example.
 ```julia
 MobileConnection(stream::HTTP.Stream, data::Dict{Symbol, Any}, routes::Vector{AbstractRoute})
 ```
@@ -235,20 +236,4 @@ function route_from_dir(path::String)
         end
     end for directory in dirs]
     routes::Vector{String}
-end
-
-function generate_doc_preview()
-
-end
-
-function generate_doc()
-
-end
-
-documentation = route("/docs") do c::AbstractConnection
-    args::Dict{Symbol, String} = get_args(c)
-    if haskey(args, :select)
-        return
-    end
-
 end

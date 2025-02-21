@@ -13,10 +13,7 @@ map
 - Created in January, 2024 by [chifi](https://github.com/orgs/ChifiSource)
 - This software is MIT-licensed.
 
-Toolips is an **extensible** and **declarative** web-development framework for the julia programming language. 
-The intention with this framework is to *fill most web-development needs well.* While there are lighter options for 
-APIs and heavier options for web-apps, `Toolips` presents a plethora of capabilities for both of these contexts -- as well as many more!
-
+Toolips is an **extensible**, *declarative*, and **versatile** web-development framework for the Julia programming language.
 ```example
 module MyServer
 using Toolips
@@ -49,6 +46,7 @@ end # module
 - `new_app`
 - `default_404`
 - `Components`
+- `make_docroute`
 - **core**
   - `IP4`
   - `get(::String)`
@@ -79,17 +77,18 @@ end # module
   - `route`
   - `route!`
   - `AbstractExtension`
+  - `QuickExtension`
   - `on_start`
   - `ServerTemplate`
   - `WebServer`
   - `kill!`
   - `start!`
 - **extensions**
-  - interpolate!
   - `MobileConnection`
   - `Logger`
   - `log(::AbstractConnection, ::String, ::Int64)`
   - `mount`
+
 """
 module Toolips
 using Crayons
@@ -167,13 +166,14 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, 
-            """module $name
+        """module $name
         using Toolips
         # using Toolips.Components
     
         # extensions
         logger = Toolips.Logger()
         
+        # routes
         main = route("/") do c::Toolips.AbstractConnection
             if ~(:clients in c)
                 push!(c.data, :clients => 0)
@@ -183,9 +183,14 @@ function create_serverdeps(name::String)
             log(logger, "served client " * client_number)
             write!(c, "hello client #" * client_number)
         end
-    
+        
+        # make your own documentation: (/docs/toolips && /docs/toolipsservables)
+        # (this works with any module)
+        toolips_docs = Toolips.make_docroute(Toolips)
+        # components_docs = Toolips.make_docroute(Toolips.Components)
+
         # make sure to export!
-        export main, default_404, logger
+        export start!, main, default_404, logger, toolips_docs, # components_docs
         end # - module $name <3""")
     end
     @info "project `$name` created!"
@@ -206,7 +211,7 @@ Toolips.new_app("ToolipsApp")
 using Toolips
 Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
-- **see also:** `Toolips`, `route`, `start!`, `Connection`
+- **see also:** `Toolips`, `route`, `start!`, `Connection`, `make_docroute`
 """
 function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)
     create_serverdeps(name)
@@ -244,7 +249,116 @@ default_404 = Toolips.route("404") do c::AbstractConnection
     end
     push!(mainbod, tltop, notfound, uphead, Components.br(), messg, exported_footer, scr)
     write!(c, mainbod)
+end 
+
+"""
+```julia
+make_docroute(mod::Module) -> ::Route{Connection}
+```
+`make_docroute` automatically creates a simple web-based documentation browser for **any module**. 
+Simply provide the `Module` and export the `Route` that comes as a return.
+```julia
+module DocServer
+using Toolips
+
+base_docs = Toolips.make_docroute(Base)
+toolips_docs = Toolips.make_docroute(Toolips)
+components_docs = Toolips.make_docroute(Toolips.Components)
+
+export base_docs, toolips_docs, components_docs, start!
 end
+
+using Main.DocServer; start!(Main.DocServer)
+```
+- **see also:** `Toolips`, `route`, `start!`, `Connection`, `new_app`
+"""
+function make_docroute(mod::Module)
+    function build_doc_page(name::String, docstring::String, value::Any)
+        name_label = Components.h2("$name-label", text = name)
+        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "white")
+        type_label = Components.h4("$name-type", text = "    " * string(typeof(value)))
+        style!(type_label, "color" => "#dbac4d")
+        docstring = Components.tmd("docstring-$name", docstring)
+        page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
+        style!(page_container, "background-color" => "#141e33", "padding" => "30px")
+        page_container
+    end
+    function build_doc_page(name::String, docstring::String, value::Function)
+        name_label = Components.h2("$name-label", text = replace(name, "macr_" => "@", "expl_" => "!"))
+        style!(name_label, "font-weight" => "bold", "font-size" => "15pt", "color" => "lightblue", "display" => "auto")
+        type_label = Components.h4("$name-type", text = "Function")
+        style!(type_label, "color" => "#dbac4d")
+        docstring = Components.tmd("docstring-$name", docstring)
+        page_container::Components.Component{:div} = Components.div("$name", children = [name_label, type_label, docstring])
+        style!(page_container, "background-color" => "#141e33", "padding" => "30px")
+        page_container
+    end
+    modname = lowercase(string(mod))
+    route("/docs/$modname") do c::AbstractConnection
+        args::Dict{Symbol, String} = get_args(c)
+        if ~(Symbol("doc$modname") in c)
+            docbuttons = Vector{AbstractComponent}()
+            docs = Vector{AbstractComponent}(filter!(k -> ~(isnothing(k)), [begin
+                if contains(string(name), "#")
+                    nothing
+                else
+                   try
+                        value = nothing
+                        value = getfield(mod, name)
+                        docstring = string(mod.eval(Meta.parse("@doc($name)")))
+                        name = replace(string(name), "!" => "expl_", "@" => "macr_")
+                        page = build_doc_page(string(name), docstring, value)
+                        
+                        doc_button = Components.div("docbutton$name", children = [page[:children]["$name-label"], 
+                        Components.br(), page[:children]["$name-type"]])
+                        style!(doc_button, "cursor" => "pointer", "width" => "35%", "height" => "10%", 
+                        "display" => "inline-flex", "border-radius" => "3px", "border" => "3px solid #333333", 
+                        "background-color" => "#141e33", "padding" => "5px")
+                        Components.on(doc_button, "dblclick") do cl::ClientModifier
+                            Components.redirect!(cl, "/docs/$modname?select=$name")
+                        end
+                        push!(docbuttons, doc_button)
+                        page
+                    catch e
+                        nothing
+                    end
+                end
+            end for name in names(mod, all = true)]))
+            push!(c.data, Symbol("doc$(modname)") => docs, Symbol("doc$(modname)buttons") => docbuttons)
+        end
+        if haskey(args, :select)
+            post_style = Components.style("p", "color" => "white")
+            h1_style = Components.style("h1", "color" => "white")
+            h2_style = Components.style("h2", "color" => "pink")
+            h3_style = Components.style("h3", "color" => "white")
+            h4_style = Components.style("h4", "color" => "white")
+            h5_style = Components.style("h5", "color" => "white")
+            a_style = Components.style("a", "color" => "lightblue")
+            code_style = Components.style("code", "background-color" => "white", "padding" => "1px", 
+            "border-radius" => "4px", "color" => "black")
+            li_style = Components.style("li", "padding" => "4px", "color" => "white")
+            back_button = div("backb", text = "<- back")
+            style!(back_button, "padding" => "7px", "background-color" => "white", "color" => "#333333", 
+            "font-weight" => "bold", "font-size" => "14pt", "cursor" => "pointer", 
+            "border-top" => "2px solid #1e1e1e", "border-right" => "2px solid #1e1e1e", "border-left" => "2px solid #1e1e1e")
+            Components.on(back_button, "click") do cl::ClientModifier
+                Components.redirect!(cl, "/docs/$modname")
+            end
+            write!(c, post_style, h1_style, h2_style, h3_style, h4_style, h5_style, a_style, code_style, 
+            li_style)
+            mainbod = body("mainbody", children = [back_button, c[Symbol("doc$modname")][args[:select]]])
+            style!(mainbod, "background-color" => "#9bb0b0")
+            write!(c, mainbod)
+            return
+        end
+        mainbod = body("mainbody", align = "center", children = c[Symbol("doc$(modname)buttons")])
+        style!(mainbod, "background-color" => "#9bb0b0")
+        write!(c, mainbod)
+    end
+end
+
+
+
 
 export default_404
 

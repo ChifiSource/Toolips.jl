@@ -115,6 +115,15 @@ using HelloWorld; start!(HelloWorld)
 using HelloWorld
 start!(HelloWorld, "127.0.0.1":8000)
 ```
+We can quickly create an entire `Toolips` project to start from by using `Toolips.new_app(::String)`. This will generate a project for the provided name. This will also generate a `dev.jl` file to automatically start your server:
+```julia
+using Toolips;  Toolips.new_app("MyServer")
+
+cd("MyServer")
+# starts your server, with `Revise` for development.
+include("dev.jl")
+```
+When running from `dev.jl`, simply use `using MyServer` (or your server name) to reload new changes without need for a server restart.
 ### routing
 ```julia
 home = route("/") do c::Connection
@@ -215,6 +224,32 @@ Extensions appear in `Toolips` in four main forms:
 - start! extensions,
 - and `Component` extensions.
 
+Server extensions are loaded by exporting a constructed server extension within your `Module`. For example, the `ToolipsSession` extension provides full-stack interactivity.
+```julia
+module FullstackServer
+using Toolips
+using Toolips.Components
+using ToolipsSession
+
+home = route("/") do c::AbstractConnection
+  new_button = button("popupbttn", text = "show popup")
+style!(new_button, "position" => "absolute", "padding" => 5px, "left" => 30percent, "top" => 25percent)
+  on(c, new_button, "click") do cm::ComponentModifier
+    dialog = div("dialog", text = "hello world!")
+    style!(dialog, "width" => 10percent, "left" => 45percent, "top" => 20percent, "position" => "absolute",
+"padding" => 13px, "border" => 13px * " solid #1e1e1e")
+    append!(cm, "mainbody", dialog)
+    remove!(cm, new_button)
+  end
+  body("mainbody", children = [new_button])
+end
+ # construct extension:
+SESSION = ToolipsSession.Session()
+
+export start!, home, SESSION
+end
+```
+There are many other ways to load and use extensions, and extensions do a lot more than extend the servers themselves.
 ## multi-threading
 `Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize. Providing `threads` will simply add additional workers to our `ProcessManager`. These workers can then be used with `distribute!` and `assign!` or `assign_open!` -- all functions extended to work with the `Connection` from `ParametricProcesses`. By default, the number of `router_threads` will be `-2`, 3 responses from the base thread, and then however many threaded workers are provided. But of course, if we provided -- say `1:1` then we would only get the threads in the `ProcessManager`.
 ```julia

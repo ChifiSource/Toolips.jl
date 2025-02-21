@@ -43,7 +43,7 @@ pkg> add Toolips
     - [routing](#routing)
     - [templating](#templating)
     - [extensions](#extensions)    
-- (**read before**)[multi-threading](#multi-threading)
+- (**read before**) [multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
 - [contributing](#contributing)
 ---

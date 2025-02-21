@@ -46,6 +46,7 @@ end # module
 - `new_app`
 - `default_404`
 - `Components`
+- `make_docroute`
 - **core**
   - `IP4`
   - `get(::String)`
@@ -76,6 +77,7 @@ end # module
   - `route`
   - `route!`
   - `AbstractExtension`
+  - `QuickExtension`
   - `on_start`
   - `ServerTemplate`
   - `WebServer`
@@ -86,6 +88,7 @@ end # module
   - `Logger`
   - `log(::AbstractConnection, ::String, ::Int64)`
   - `mount`
+
 """
 module Toolips
 using Crayons

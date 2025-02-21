@@ -40,9 +40,10 @@ pkg> add Toolips
   - [documentation](#documentation)
   - [quick start](#quick-start)
     - [projects](#projects)
-      - [routing](#routing)
-      - [extensions](#extensions)    
-- [multi-threading](#multi-threading)
+    - [routing](#routing)
+    - [templating](#templating)
+    - [extensions](#extensions)    
+- (**read before**)[multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
 - [contributing](#contributing)
 ---
@@ -86,6 +87,8 @@ end
 using Main.DocServer; start!(Main.DocServer)
 ```
 The documentation will then be available at `/docs/(modname)` -- e.g. `/docs/toolipsservables` `/docs/toolips`.
+- **Chifi Docs**: `ChifiDocs` is *close* to being released, but a lot more effort is required to completely get the project and the entire *chifi server sub-system* off the ground. The documentation is coming soon, and thank you for understanding -- for now we are relegated to primarily learning through the doc-strings.
+- **Creator**: `OliveCreator` will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively. This also *has yet to materialize*, but is in the pipeline and will be available some time after `ChifiDocs`.
 ## projects
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.

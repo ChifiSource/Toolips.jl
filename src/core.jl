@@ -469,8 +469,13 @@ end
 ```
 """
 function download!(c::AbstractConnection, uri::String)
-    write(c.stream, HTTP.Response(200, body = read(uri, String)))
-    nothing
+    file_body = read(uri, String)
+    resp = HTTP.Response(200, body = file_body)
+    push!(resp.headers, "Content-Length" => SubString(string(length(file_body))), "Transfer-Encoding" => "chunked")
+    startwrite(c.stream)
+    write(c.stream, resp)
+    stopwrite(c.stream)
+    return(resp)
 end
 
 """
@@ -645,8 +650,11 @@ function get_client_system(c::AbstractConnection)
     system, mobile
 end
 
-function respond!(c::AbstractConnection, code::Int64, body::String = "")
-    write(c.stream, HTTP.Response(code, body = body))
+function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
+    response = HTTP.Response(code, body = body)
+    @warn response.headers
+    merge!(response.headers, [headers ...])
+    write!(c, response)
 end
 
 """
@@ -929,15 +937,17 @@ route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
 function route!(c::AbstractConnection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
+    ret::Any = nothing
     if target in tr
         selected::AbstractRoute = tr[target]
-        route!(c, selected)
+        ret = route!(c, selected)
     elseif "404" in tr
         selected = tr["404"]
-        route!(c, selected)
+        ret = route!(c, selected)
     else
         route!(c, default_404)
     end
+    ret::Any
 end
 
 """

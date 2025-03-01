@@ -182,6 +182,9 @@ end
 function mount(fpair::Pair{String, String})
     fpath::String = fpair[2]
     target::String = fpair[1]
+    if fpath == "."
+        fpath = pwd()
+    end
     if ~(isdir(fpath))
         if ~(isfile(fpath))
             throw(RouteError{String}(fpair[1], "Unable to mount $(fpair[2]) (not a valid file or directory, or access denied)"))

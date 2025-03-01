@@ -166,32 +166,44 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, 
-        """module $name
-        using Toolips
-        # using Toolips.Components
+"""
+module $name
+using Toolips
+# using Toolips.Components
     
-        # extensions
-        logger = Toolips.Logger()
+# extensions
+logger = Toolips.Logger()
         
-        # routes
-        main = route("/") do c::Toolips.AbstractConnection
-            if ~(:clients in c)
-                push!(c.data, :clients => 0)
-            end
-            c[:clients] += 1
-            client_number = string(c[:clients])
-            log(logger, "served client " * client_number)
-            write!(c, "hello client #" * client_number)
-        end
-        
-        # make your own documentation: (/docs/toolips && /docs/toolipsservables)
-        # (this works with any module)
-        toolips_docs = Toolips.make_docroute(Toolips)
-        # components_docs = Toolips.make_docroute(Toolips.Components)
+load_clients = QuickExtension{:loadclients}()
 
-        # make sure to export!
-        export start!, main, default_404, logger, toolips_docs, # components_docs
-        end # - module $name <3""")
+# creating a server extension:
+import Toolips: route!, on_start
+
+function on_start(ext::Toolips.QuickExtension{:loadclients}, data::Dict{Symbol, Any}, 
+    routes::Vector{<:AbstractRoute})
+    data[:clients] = 0
+end
+
+function route!(c::AbstractConnection, ext::QuickExtension{:loadclients})
+    c[:clients] += 1
+end
+
+# routes
+
+main = route("/") do c::Toolips.AbstractConnection
+    client_number = string(c[:clients])
+    log(logger, "served client " * client_number)
+    write!(c, "hello client #" * client_number)
+end
+
+# make your own documentation: (/docs/toolips && /docs/toolipsservables)
+# (this works with any module)
+toolips_docs = Toolips.make_docroute(Toolips)
+# components_docs = Toolips.make_docroute(Toolips.Components)
+
+# make sure to export!
+export start!, main, default_404, logger, load_clients, toolips_docs #, components_docs
+end # - module $name <3""")
     end
     @info "project `$name` created!"
 end

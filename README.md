@@ -38,7 +38,7 @@ pkg> add Toolips
 ###### map
 - [get started](#get-started)
   - [documentation](#documentation)
-  - [quick start](#quick-start)
+  - [quick start](#get-started)
     - [projects](#projects)
     - [routing](#routing)
     - [templating](#templating)
@@ -48,7 +48,7 @@ pkg> add Toolips
 - [contributing](#contributing)
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
-#### get started
+# get started
 `Toolips` is available in *three* different version flavors:
 - Latest (main) -- The main working version of toolips.
 - stable (#stable) -- Faster, more frequent updates than main; stable... but some new features are not fully implemented.
@@ -70,7 +70,7 @@ Pkg.add("Toolips", rev = "0.3.x")
 - toolips primarily targets **full-stack web-development**, but does so through extensions -- the intention being to use `Toolips` for both simple APIs and complex web-apps. This being considered, it is important to look into [toolips extensions](https://github.com/ChifiSource#toolips-extensions) to realize the full capabilities of this package! [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) provides `Toolips` with full-stack callbacks, for example.
 - Check out [our toolips projects](#built-with-toolips) and [examples](#examples) for some examples of use-cases for the framework.
 - Check out [creating-extensions](#creating-extensions) for more information on building extensions.
-###### documentation
+### documentation
 - **REPL Documentation**: use `?(Toolips)` for a full list of exports.
 - **Documentation Routes**: `Toolips.make_docroute` allows us to quickly make a docstring browser for **any** Julia Module. this includes `Toolips` and `ToolipsServables`. Simply add two new routes to a server and export them.
 ```julia

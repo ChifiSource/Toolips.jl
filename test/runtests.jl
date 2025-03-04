@@ -47,8 +47,9 @@ main = route("/") do c::AbstractConnection
     end
 end
 
-mounted_dir = mount("/files/" => wd)
-mounted_file = mount("/example" => wd * "/runtests.jl")
+mounted_dir = mount("/files" => pwd())
+@info mounted_dir
+mounted_file = mount("/example" => pwd() * "/runtests.jl")
 
 export main, mounted_dir, mounted_file, default_404, logger
 end
@@ -66,18 +67,21 @@ end
 end
 
 
-new_app("ToolipsTestServer")
+Toolips.new_app("ToolipsTester")
 @testset "new app" begin
-    @test isdir("ToolipsTestServer")
-    @test isfile("ToolipsTestServer")
+    @test isdir("ToolipsTester")
+    @test isfile("ToolipsTester/src/ToolipsTester.jl")
+    @test isfile("ToolipsTester/Project.toml")
 end
-Pkg.activate(wd * "/ToolipsTestServer")
-
+Pkg.activate(wd * "/ToolipsTester")
+Pkg.develop(path = "../.")
 using Main.ToolipsTestServer
-using Main.NewApp
+using ToolipsTester
 @testset "toolips servers" verbose = true begin
     @testset "server creation" begin
-        @test length(Main.ToolipsTestServer.mounted_dir) > 1
+        @test length(Main.ToolipsTestServer.mounted_dir) > 0
+        found_path = findfirst(r -> r.path == "/files/runtests.jl", Main.ToolipsTestServer.mounted_dir)
+        @test ~(isnothing(found_path))
         @test typeof(Main.ToolipsTestServer.mounted_file) <: AbstractRoute
         pm = start!(ToolipsTestServer, "127.0.0.1":8005)
         @test length(pm.workers) == 1
@@ -101,9 +105,9 @@ using Main.NewApp
     threads = Threads.nthreads()
     @info "starting multi-threading tests ..."
     if threads > 1
+        pm = start!(Main.ToolipsTester, threads = threads - 1)
         @testset "multithreading" verbose = true begin
             @testset "multi-threaded start" begin
-                pm = start!(Main.ToolipsTestServer, threads = threads - 1)
                 @test length(pm.workers) == threads
             end
             @testset "multi-request" begin
@@ -116,8 +120,8 @@ using Main.NewApp
                 end
                 @test served
             end
-            @testset "kill! deadcheck" begin
-                kill!(TestApp)
+            @testset "kill! deadcheck (#2 multi-thread)" begin
+                kill!(ToolipsTester)
                 deadcheck = false
                 try
                     getret = Toolips.post("127.0.0.1":8000, "hello :)")
@@ -131,7 +135,7 @@ using Main.NewApp
         @info "julia started with 1 thread, skipping multi-threading tests..."
     end
     try
-        rm("ToolipsTestServer", recursive = true)
+        rm("ToolipsTester", recursive = true)
     catch
         @warn "unable to perform cleanup"
     end

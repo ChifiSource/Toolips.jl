@@ -1197,6 +1197,7 @@ function kill!(mod::Module)
         close(mod.server)
         if typeof(mod.procs) == ProcessManager
             close(mod.procs)
+            mod.procs = nothing
         end
         mod.server = nothing
         mod.routes = nothing
@@ -1218,7 +1219,7 @@ mutable struct RouteError{E <: Any} <: Exception
 end
 
 function showerror(io::IO, e::RouteError)
-    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.path) $(e.message)")
+    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.path)    $(e.message)")
 end
 
 showerror(io::IO, e::StartError) = print(io, Crayon(foreground = :blue, bold = true), "Error starting server: $(e.message)")

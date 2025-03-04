@@ -175,12 +175,14 @@ module $name
 using Toolips
 # using Toolips.Components
     
-# extensions
+#==
+extensions
+==#
 logger = Toolips.Logger()
         
-load_clients = QuickExtension{:loadclients}()
+load_clients = Toolips.QuickExtension{:loadclients}()
 
-# creating a server extension:
+# creating a server extension (QuickExtension):
 import Toolips: route!, on_start
 
 function on_start(ext::Toolips.QuickExtension{:loadclients}, data::Dict{Symbol, Any}, 
@@ -188,22 +190,49 @@ function on_start(ext::Toolips.QuickExtension{:loadclients}, data::Dict{Symbol, 
     data[:clients] = 0
 end
 
-function route!(c::AbstractConnection, ext::QuickExtension{:loadclients})
+function route!(c::AbstractConnection, ext::Toolips.QuickExtension{:loadclients})
     c[:clients] += 1
 end
 
-# routes
+#==
+routes
+==#
 
 main = route("/") do c::Toolips.AbstractConnection
+    post_data = get_post(c)
+    args = get_args(c)
     client_number = string(c[:clients])
     log(logger, "served client " * client_number)
     write!(c, "hello client #" * client_number)
 end
 
+# files:
+# public = mount("/public" => "public")
+
 # make your own documentation: (/docs/toolips && /docs/toolipsservables)
 # (this works with any module)
 toolips_docs = Toolips.make_docroute(Toolips)
 # components_docs = Toolips.make_docroute(Toolips.Components)
+
+
+#==custom router example
+==#
+# custom router? no problem!
+
+abstract type AbstractCustomRoute <: Toolips.AbstractHTTPRoute end
+
+mutable struct CustomRoute <: AbstractCustomRoute
+    path::String
+    page::Function
+end
+                        #   (can also dispatch per individual route)
+route!(c::AbstractConnection, routes::Routes{AbstractCustomRoute}) = begin
+    target = get_target(c)
+    if contains(target, "@")
+        write!(c, File("user_html/@sampleuser.html"))
+    end
+end
+
 
 # make sure to export!
 export start!, main, default_404, logger, load_clients, toolips_docs #, components_docs

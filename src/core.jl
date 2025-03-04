@@ -589,6 +589,7 @@ get_cookies(c::AbstractConnection) -> ::Vector{Cookie}
 Gets the cookies from a given `Connection`. These cookies can be stored using 
 `respond!`, see `Toolips.respond!` && `Toolips.Cookie` alongside this function.
 ```example
+module CookieServer
 using Dates
 using Toolips
 
@@ -607,6 +608,9 @@ main = route("c") do c::AbstractConnection
         the_cookie = cookies[1]
         write!(c, "you were successfully verified")
     end
+end
+
+export main
 end
 ```
 """
@@ -694,7 +698,7 @@ respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String}
 ```
 The `Vector{Cookie}` dispatch, for setting cookies on response (see `Cookie` and `get_cookies`):
 ```julia
-respond!(c::AbstractConnection, body::String = "", cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
     code::Int64 = 20)
 ```
 description of method list
@@ -711,7 +715,7 @@ function respond!(c::AbstractConnection, body::String = "", headers::Pair{String
     respond!(c, HTTP.Response(code, body = body), headers ...)
 end
 
-function respond!(c::AbstractConnection, body::String = "", cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
     code::Int64 = 20)
     response::HTTP.Response = HTTP.Response(code, body = body)
     for cookie in cookies

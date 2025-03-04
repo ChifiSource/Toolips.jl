@@ -589,17 +589,24 @@ get_cookies(c::AbstractConnection) -> ::Vector{Cookie}
 Gets the cookies from a given `Connection`. These cookies can be stored using 
 `respond!`, see `Toolips.respond!` && `Toolips.Cookie` alongside this function.
 ```example
-
 using Dates
+using Toolips
+
 main = route("c") do c::AbstractConnection
     cookies = get_cookies(c)
-    if length()
-    cookie = Toolips.Cookie(
-        name = "session_id",
-        value = "abc123",
-        path = "/",
-        httponly = true,
-        expires = now() + Day(1)  # Cookie expires in 1 day)
+    if length(cookies) == 0
+        cookie = Toolips.Cookie(
+            name = "session_id",
+            value = "abc123",
+            path = "/",
+            httponly = true,
+            expires = now() + Day(1)  # Cookie expires in 1 day)
+                                    # (must be a `Vector{Cookie}`)
+        respond!(c, "you now have a cookie.", [cookie])
+    else
+        the_cookie = cookies[1]
+        write!(c, "you were successfully verified")
+    end
 end
 ```
 """
@@ -673,6 +680,26 @@ function get_client_system(c::AbstractConnection)
     system, mobile
 end
 
+"""
+```julia
+respond!(c::AbstractConnection, args ...) -> ::Nothing
+```
+A more articulated response from a `Toolips` server, `respond!` allows us to add custom 
+headers to our HTTP response, respond with different codes, and set cookies.
+```julia
+# base method (mostly internal)
+respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
+# regular headers/code dispatch
+respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
+```
+The `Vector{Cookie}` dispatch, for setting cookies on response (see `Cookie` and `get_cookies`):
+```julia
+respond!(c::AbstractConnection, body::String = "", cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+    code::Int64 = 20)
+```
+description of method list
+- See also: `write!`, `get_target`, `Connection`, `route`, `start!`
+"""
 function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
     for header in headers
         HTTP.setheader(resp, header)
@@ -680,7 +707,7 @@ function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{Stri
     write!(c, response)
 end
 
-function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200,)
+function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
     respond!(c, HTTP.Response(code, body = body), headers ...)
 end
 

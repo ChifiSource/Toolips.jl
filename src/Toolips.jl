@@ -48,6 +48,7 @@ end # module
 - `Components`
 - `make_docroute`
 - **core**
+  - `Cookie` (see `respond!`)
   - `IP4`
   - `get(::String)`
   - `post`
@@ -70,6 +71,7 @@ end # module
   - `get_client_system`
   - `get_heading`
   - `get_parent`
+  - `get_cookies`
   - `download!`
   - `proxy_pass!`
   - `respond!`
@@ -99,6 +101,7 @@ import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, Fi
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
+import HTTP: Cookie
 using Pkg
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
@@ -137,6 +140,7 @@ end
 include("core.jl")
 export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
+export get_cookies
 include("extensions.jl")
 
 #==

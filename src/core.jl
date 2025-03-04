@@ -584,6 +584,29 @@ get_host(c::AbstractConnection) = string(c.stream.message["Host"])::String
 
 """
 ```julia
+get_cookies(c::AbstractConnection) -> ::Vector{Cookie}
+```
+Gets the cookies from a given `Connection`. These cookies can be stored using 
+`respond!`, see `Toolips.respond!` && `Toolips.Cookie` alongside this function.
+```example
+
+using Dates
+main = route("c") do c::AbstractConnection
+    cookies = get_cookies(c)
+    if length()
+    cookie = Toolips.Cookie(
+        name = "session_id",
+        value = "abc123",
+        path = "/",
+        httponly = true,
+        expires = now() + Day(1)  # Cookie expires in 1 day)
+end
+```
+"""
+get_cookies(c::AbstractConnection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+
+"""
+```julia
 get_parent(c::AbstractConnection) -> ::String
 ```
 Returns the `parent`, which might reference where a browser is navigating from.
@@ -650,11 +673,23 @@ function get_client_system(c::AbstractConnection)
     system, mobile
 end
 
-function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
-    response = HTTP.Response(code, body = body)
-    @warn response.headers
-    merge!(response.headers, [headers ...])
+function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
+    for header in headers
+        HTTP.setheader(resp, header)
+    end
     write!(c, response)
+end
+
+function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200,)
+    respond!(c, HTTP.Response(code, body = body), headers ...)
+end
+
+function respond!(c::AbstractConnection, body::String = "", cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+    code::Int64 = 20)
+    response::HTTP.Response = HTTP.Response(code, body = body)
+    for cookie in cookies
+        HTTP.addcookie!(response, cookie)
+    end
 end
 
 """

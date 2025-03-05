@@ -469,8 +469,13 @@ end
 ```
 """
 function download!(c::AbstractConnection, uri::String)
-    write(c.stream, HTTP.Response(200, body = read(uri, String)))
-    nothing
+    file_body = read(uri, String)
+    resp = HTTP.Response(200, body = file_body)
+    push!(resp.headers, "Content-Length" => SubString(string(length(file_body))), "Transfer-Encoding" => "chunked")
+    startwrite(c.stream)
+    write(c.stream, resp)
+    stopwrite(c.stream)
+    return(resp)
 end
 
 """
@@ -579,6 +584,40 @@ get_host(c::AbstractConnection) = string(c.stream.message["Host"])::String
 
 """
 ```julia
+get_cookies(c::AbstractConnection) -> ::Vector{Cookie}
+```
+Gets the cookies from a given `Connection`. These cookies can be stored using 
+`respond!`, see `Toolips.respond!` && `Toolips.Cookie` alongside this function.
+```example
+module CookieServer
+using Dates
+using Toolips
+
+main = route("c") do c::AbstractConnection
+    cookies = get_cookies(c)
+    if length(cookies) == 0
+        cookie = Toolips.Cookie(
+            name = "session_id",
+            value = "abc123",
+            path = "/",
+            httponly = true,
+            expires = now() + Day(1)  # Cookie expires in 1 day)
+                                    # (must be a `Vector{Cookie}`)
+        respond!(c, "you now have a cookie.", [cookie])
+    else
+        the_cookie = cookies[1]
+        write!(c, "you were successfully verified")
+    end
+end
+
+export main
+end
+```
+"""
+get_cookies(c::AbstractConnection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+
+"""
+```julia
 get_parent(c::AbstractConnection) -> ::String
 ```
 Returns the `parent`, which might reference where a browser is navigating from.
@@ -645,8 +684,43 @@ function get_client_system(c::AbstractConnection)
     system, mobile
 end
 
-function respond!(c::AbstractConnection, code::Int64, body::String = "")
-    write(c.stream, HTTP.Response(code, body = body))
+"""
+```julia
+respond!(c::AbstractConnection, args ...) -> ::Nothing
+```
+A more articulated response from a `Toolips` server, `respond!` allows us to add custom 
+headers to our HTTP response, respond with different codes, and set cookies.
+```julia
+# base method (mostly internal)
+respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
+# regular headers/code dispatch
+respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
+```
+The `Vector{Cookie}` dispatch, for setting cookies on response (see `Cookie` and `get_cookies`):
+```julia
+respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+    code::Int64 = 20)
+```
+description of method list
+- See also: `write!`, `get_target`, `Connection`, `route`, `start!`
+"""
+function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
+    for header in headers
+        HTTP.setheader(resp, header)
+    end
+    write!(c, response)
+end
+
+function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
+    respond!(c, HTTP.Response(code, body = body), headers ...)
+end
+
+function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+    code::Int64 = 20)
+    response::HTTP.Response = HTTP.Response(code, body = body)
+    for cookie in cookies
+        HTTP.addcookie!(response, cookie)
+    end
 end
 
 """
@@ -929,15 +1003,17 @@ route!(c::AbstractConnection, r::AbstractRoute) = r.page(c)
 
 function route!(c::AbstractConnection, tr::Routes{<:AbstractRoute})
     target::String = get_route(c)
+    ret::Any = nothing
     if target in tr
         selected::AbstractRoute = tr[target]
-        route!(c, selected)
+        ret = route!(c, selected)
     elseif "404" in tr
         selected = tr["404"]
-        route!(c, selected)
+        ret = route!(c, selected)
     else
         route!(c, default_404)
     end
+    ret::Any
 end
 
 """
@@ -1121,6 +1197,7 @@ function kill!(mod::Module)
         close(mod.server)
         if typeof(mod.procs) == ProcessManager
             close(mod.procs)
+            mod.procs = nothing
         end
         mod.server = nothing
         mod.routes = nothing
@@ -1142,7 +1219,7 @@ mutable struct RouteError{E <: Any} <: Exception
 end
 
 function showerror(io::IO, e::RouteError)
-    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.path) $(e.message)")
+    print(io, Crayon(foreground = :yellow), "ERROR ON ROUTE: $(e.path)    $(e.message)")
 end
 
 showerror(io::IO, e::StartError) = print(io, Crayon(foreground = :blue, bold = true), "Error starting server: $(e.message)")

@@ -48,6 +48,7 @@ end # module
 - `Components`
 - `make_docroute`
 - **core**
+  - `Cookie` (see `respond!`)
   - `IP4`
   - `get(::String)`
   - `post`
@@ -70,6 +71,7 @@ end # module
   - `get_client_system`
   - `get_heading`
   - `get_parent`
+  - `get_cookies`
   - `download!`
   - `proxy_pass!`
   - `respond!`
@@ -99,6 +101,7 @@ import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, Fi
 using ParametricProcesses
 import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
 using HTTP
+import HTTP: Cookie
 using Pkg
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
@@ -137,6 +140,7 @@ end
 include("core.jl")
 export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
+export get_cookies
 include("extensions.jl")
 
 #==
@@ -166,32 +170,73 @@ function create_serverdeps(name::String)
     touch(src * "/$name.jl")
     open(src * "/$name.jl", "w") do io
         write(io, 
-        """module $name
-        using Toolips
-        # using Toolips.Components
+"""
+module $name
+using Toolips
+# using Toolips.Components
     
-        # extensions
-        logger = Toolips.Logger()
+#==
+extensions
+==#
+logger = Toolips.Logger()
         
-        # routes
-        main = route("/") do c::Toolips.AbstractConnection
-            if ~(:clients in c)
-                push!(c.data, :clients => 0)
-            end
-            c[:clients] += 1
-            client_number = string(c[:clients])
-            log(logger, "served client " * client_number)
-            write!(c, "hello client #" * client_number)
-        end
-        
-        # make your own documentation: (/docs/toolips && /docs/toolipsservables)
-        # (this works with any module)
-        toolips_docs = Toolips.make_docroute(Toolips)
-        # components_docs = Toolips.make_docroute(Toolips.Components)
+load_clients = Toolips.QuickExtension{:loadclients}()
 
-        # make sure to export!
-        export start!, main, default_404, logger, toolips_docs, # components_docs
-        end # - module $name <3""")
+# creating a server extension (QuickExtension):
+import Toolips: route!, on_start
+
+function on_start(ext::Toolips.QuickExtension{:loadclients}, data::Dict{Symbol, Any}, 
+    routes::Vector{<:AbstractRoute})
+    data[:clients] = 0
+end
+
+function route!(c::AbstractConnection, ext::Toolips.QuickExtension{:loadclients})
+    c[:clients] += 1
+end
+
+#==
+routes
+==#
+
+main = route("/") do c::Toolips.AbstractConnection
+    post_data = get_post(c)
+    args = get_args(c)
+    client_number = string(c[:clients])
+    log(logger, "served client " * client_number)
+    write!(c, "hello client #" * client_number)
+end
+
+# files:
+# public = mount("/public" => "public")
+
+# make your own documentation: (/docs/toolips && /docs/toolipsservables)
+# (this works with any module)
+toolips_docs = Toolips.make_docroute(Toolips)
+# components_docs = Toolips.make_docroute(Toolips.Components)
+
+
+#==custom router example
+==#
+# custom router? no problem!
+
+abstract type AbstractCustomRoute <: Toolips.AbstractHTTPRoute end
+
+mutable struct CustomRoute <: AbstractCustomRoute
+    path::String
+    page::Function
+end
+                        #   (can also dispatch per individual route)
+route!(c::AbstractConnection, routes::Routes{AbstractCustomRoute}) = begin
+    target = get_target(c)
+    if contains(target, "@")
+        write!(c, File("user_html/@sampleuser.html"))
+    end
+end
+
+
+# make sure to export!
+export start!, main, default_404, logger, load_clients, toolips_docs #, components_docs
+end # - module $name <3""")
     end
     @info "project `$name` created!"
 end

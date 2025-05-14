@@ -1275,10 +1275,18 @@ struct ServerTemplate{T} <: AbstractServerTemplate end
 
 WebServer = ServerTemplate{:webserver}
 
-start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{st}(), mod, args ...; keyargs ...)
-
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
+end
+
+function start!(st::ServerTemplate{:tcp}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1)
+    IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
+    server::Sockets.TCPServer = Sockets.listen(IP)
+    while true
+		client = accept(server)
+		@async handle_client(client)
+	end
 end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);

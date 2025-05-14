@@ -4,6 +4,7 @@ map
 - additional connections
 - logger
 - mount
+- TCP servers
 ==#
 """
 ```julia
@@ -239,4 +240,24 @@ function route_from_dir(path::String)
         end
     end for directory in dirs]
     routes::Vector{String}
+end
+
+abstract type AbstractHandler <: AbstractRoute end
+
+mutable struct TCPHandler
+    f::Function
+end
+
+mutable struct SocketConnection <: AbstractConnection
+    stream::Sockets.SocketStream
+end
+
+function start!(st::ServerTemplate{:tcp}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1)
+    IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
+    server::Sockets.TCPServer = Sockets.listen(IP)
+    while true
+		client = accept(server)
+		@async handle_client(client)
+	end
 end

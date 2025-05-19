@@ -448,6 +448,11 @@ start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
 """
 get_post(c::AbstractConnection) = string(read(c.stream))::String
 
+
+read(c::AbstractConnection) = read(c.stream)
+
+readavailable(c::AbstractConnection) = readavailable(c.stream)
+
 """
 ```julia
 download!(c::AbstractConnection, uri::String) -> ::Nothing

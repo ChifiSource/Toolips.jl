@@ -105,7 +105,7 @@ using HTTP
 import HTTP: Cookie
 using Pkg
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
-import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
+import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log, readavailable
 
 const Components = ToolipsServables
 

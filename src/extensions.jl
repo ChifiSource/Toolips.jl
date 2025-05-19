@@ -249,6 +249,7 @@ mutable struct TCPHandler
 end
 
 write!(str::Sockets.TCPSocket, a::Any ...) = write(str, a ...)
+
 mutable struct SocketConnection <: AbstractConnection
     stream::Sockets.TCPSocket
 end

@@ -258,10 +258,10 @@ read(s::SocketConnection) = readavailable(s.stream)
 
 function get_ip4(c::SocketConnection)
     ip_p = Sockets.getpeername(c.stream)
-    IP4(string(ip_p[1]), parse(Int64, ip_p[2]))
+    IP4(string(ip_p[1]), ip_p[2])
 end
 
-function get_ip(c::SocketConnection, port::Integer = 0)
+function get_ip(c::SocketConnection)
     string(Sockets.getpeername(c.stream)[1])
 end
 

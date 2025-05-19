@@ -95,6 +95,7 @@ end # module
 module Toolips
 using Crayons
 using Sockets
+import Sockets: connect
 import ToolipsServables
 using ToolipsServables.Markdown
 import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, gen_ref, p, percent, img, body, interpolate!
@@ -138,9 +139,12 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
+
+connect(ip::IP4) = connect(ip.ip, ip.port)
+
 export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
-export get_cookies
+export get_cookies, connect
 include("extensions.jl")
 
 #==

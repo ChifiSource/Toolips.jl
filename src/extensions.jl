@@ -249,15 +249,32 @@ mutable struct TCPHandler
 end
 
 mutable struct SocketConnection <: AbstractConnection
-    stream::Sockets.SocketStream
+    stream::Sockets.TCPSocket
 end
 
-function start!(st::ServerTemplate{:tcp}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
-    threads::Int64 = 1)
+function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1, async::Bool = false)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    while true
+    handler = nothing
+    for name in names(mod)
+        f = getfield(mod, name)
+        if f isa TCPHandler
+            handler = f
+            break
+        end
+    end
+    if ~(async)
+        while true
+		    client = accept(server)
+		    conn = SocketConnection(client)
+            handler.f(conn)
+	    end
+        return
+    end
+    @async while true
 		client = accept(server)
-		@async handle_client(client)
+		conn = SocketConnection(client)
+        handler.f(conn)
 	end
 end

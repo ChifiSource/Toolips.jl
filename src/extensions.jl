@@ -254,6 +254,17 @@ mutable struct SocketConnection <: AbstractConnection
     stream::Sockets.TCPSocket
 end
 
+read(s::SocketConnection) = readavailable(s.stream)
+
+function get_ip4(c::SocketConnection)
+    ip_p = Sockets.getpeername(c.stream)
+    IP4(string(ip_p[1]), parse(Int64, ip_p[2]))
+end
+
+function get_ip(c::SocketConnection, port::Integer = 0)
+    string(Sockets.getpeername(c.stream)[1])
+end
+
 function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
     threads::Int64 = 1, async::Bool = false)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)

@@ -1214,6 +1214,8 @@ function kill!(mod::Module)
     end
 end
 
+kill!(sock::Sockets.TCPSocket) = close(sock)
+
 mutable struct StartError <: Exception
     message::String
 end
@@ -1284,7 +1286,6 @@ start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{s
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end
-
 
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);

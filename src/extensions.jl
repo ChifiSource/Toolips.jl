@@ -244,7 +244,7 @@ end
 
 abstract type AbstractHandler <: AbstractRoute end
 
-mutable struct TCPHandler
+mutable struct TCPHandler <: AbstractHandler
     f::Function
 end
 

@@ -713,7 +713,7 @@ function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{Stri
     for header in headers
         HTTP.setheader(resp, header)
     end
-    write!(c, response)
+    write!(c, resp)
 end
 
 function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)

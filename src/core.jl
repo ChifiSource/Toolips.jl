@@ -1418,6 +1418,11 @@ end
 function make_routers(routes, loaded, data)
     function routeserver(http::HTTP.Stream)
         host, _ = Sockets.getpeername(http)
+        headers = c.stream.message.headers
+	    if haskey(headers, "X-Forwarded-For")
+		    # Could be a comma-separated list: take the first IP
+		    host = split(headers["X-Forwarded-For"], ",")[1] |> strip
+        end
         c = Connection(http, data, routes, string(host))
         for ext in loaded
             if route!(c, ext) === false

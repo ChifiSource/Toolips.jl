@@ -1421,10 +1421,9 @@ function make_routers(routes, loaded, data)
         headers = Dict(http.message.headers)
         f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
 	    if ~(isnothing(f))
-		    # Could be a comma-separated list: take the first IP
-		    host = split(headers[f], ",")[1] |> strip
-        else
-            @info headers
+            if ~(contains(headers[f], "127.0.0.1"))
+		        host = split(headers[f], ",")[1] |> strip
+            end
         end
         c = Connection(http, data, routes, string(host))
         for ext in loaded

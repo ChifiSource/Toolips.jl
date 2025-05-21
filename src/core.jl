@@ -1419,7 +1419,7 @@ function make_routers(routes, loaded, data)
     function routeserver(http::HTTP.Stream)
         host, _ = Sockets.getpeername(http)
         headers = Dict(http.message.headers)
-        f = findfirst(h -> h[1] == "X-Forwarded-For")
+        f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
 	    if ~(isnothing(f))
 		    # Could be a comma-separated list: take the first IP
 		    host = split(headers[f], ",")[1] |> strip

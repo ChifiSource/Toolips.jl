@@ -1421,9 +1421,7 @@ function make_routers(routes, loaded, data)
         headers = http.message.headers
         f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
 	    if ~(isnothing(f))
-            if ~(contains(headers[f], "127.0.0.1"))
-		        host = split(headers[f], ",")[1] |> strip
-            end
+		    host = split(headers[f][2], ",")[1] |> strip
         end
         c = Connection(http, data, routes, string(host))
         for ext in loaded

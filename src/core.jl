@@ -1422,6 +1422,8 @@ function make_routers(routes, loaded, data)
 	    if haskey(headers, "X-Forwarded-For")
 		    # Could be a comma-separated list: take the first IP
 		    host = split(headers["X-Forwarded-For"], ",")[1] |> strip
+        else
+            @info headers
         end
         c = Connection(http, data, routes, string(host))
         for ext in loaded

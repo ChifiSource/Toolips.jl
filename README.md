@@ -6,7 +6,7 @@
 [![pkgeval](https://juliahub.com/docs/General/Toolips/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/Toolips)
 </br>
 
-[documentation](https://documentation.c/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
+[documentation](https://chifidocs.com/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
 
 </div>
 

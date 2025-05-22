@@ -393,6 +393,29 @@ end
 
 """
 ```julia
+get_headers(c::Connection) -> ::Vector{Pair{String, String}}
+```
+Returns the *headers* of a given `Connection` in the form of a `Vector{Pair{String, String}}`. 
+These headers can be changed in a larger variety of ways using `respond!`.
+```julia
+route("/forwardheader") do c::AbstractConnection
+    headers = get_headers(c)
+    f = findfirst(h -> contains(h[1], "X-Forwarded-For"), headers)
+    if ~(isnothing(f))
+        deleteat!(headers, f)
+    end
+    push!(headers, "X-Forwarded-For" => client_ip)
+end
+```
+- See also: `get_ip`, `get_ip4`, `route!`, `Connection`, `AbstractConnection`
+"""
+function get_headers(c::Connection)
+    
+    headers = http.message.headers::Vector{Pair{String, String}}
+end
+
+"""
+```julia
 get_heading(c::AbstractConnection) -> ::String
 ```
 Gets the markdown heading of `c`. 
@@ -1253,6 +1276,12 @@ start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
 - for extended servers:
 ```julia
 start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
+start!(st::Symbol, mod::Module, args ...; keyargs ...)
+```
+- (extension) for a `TCP` server (no HTTP):
+```julia
+start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1, async::Bool = false)
 ```
 `start!` is used on a `Toolips` server `Module` to start a new server. Providing `threads` sets 
 the total amount of threads to spawn for the accompanying `ProcessManager`. `router_threads` will 

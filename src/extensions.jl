@@ -291,6 +291,36 @@ struct Handler <: AbstractHandler
     f::Function
 end
 
+"""
+```julia
+handler(f::Function, args ...) -> ::AbstractHandler
+```
+The `handler` function is a basic API for constructing varieties of `AbstractHandler` 
+types. Base `Toolips` (as of `0.3.9`) only includes the regular `Handler`. Handlers 
+replace *routes* (`AbstractRoute`) for low-level servers without an HTTP header and 
+a regular `Connection`. A handler's provided function will take the `Connection` type 
+for that server. For a `TCP` server, this is the `SocketConnection`.
+```julia
+module TCPServer
+using Toolips
+
+main_handler = handler() do c::SocketConnection
+    ip_and_port = get_ip4(c)
+    write!(c, "connected from" * string(ip_and_port))
+end
+
+export main_handler
+end
+```
+Keep in mind that these servers also need to be started with their appropriate `start!` 
+binding, by providing their starting `Symbol`. `Toolips` only includes `:TCP` 
+(in addition to the default `WebServer` binding) in its base but extensions are 
+able to provide more.
+```julia
+start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1, async::Bool = false)
+```
+"""
 function handler end
 
 handler(f::Function) = Handler(f)
@@ -338,13 +368,19 @@ get_ip4(c::AbstractConnection) -> ::IP4
 ```
 Gets the IP *and* port of an active `Connection` in the form of an `IP4`. Note 
 that this function is not used for web-servers (which always run on port 80,) for 
-    a web-server (or for only the IP,) see `get_ip`
+    a web-server (or for only the IP,) see `get_ip`. 
+
+(This will not work with normal HTTP Connection types)
 ```julia
 get_ip4(c::SocketConnection)
 ```
 - See also: `get_ip`, `SocketConnection`, `get_headers`, `get_target`, `Connection`, `handler`
 """
 function get_ip4 end
+
+function get_ip4(c::AbstractConnection)
+    throw("`get_ip4` is not used for HTTP Connections! Use `get_ip`")
+end
 
 function get_ip4(c::SocketConnection)
     ip_p = Sockets.getpeername(c.stream)
@@ -357,6 +393,9 @@ end
 
 function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
     threads::Int64 = 1, async::Bool = false)
+    if threads > 1
+        @warn "threading for TCP servers not yet implemented, this will be a 0.4+ feature."
+    end
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     handler = nothing

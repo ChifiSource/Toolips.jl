@@ -63,6 +63,7 @@ end # module
   - `write!`
   - `IOConnection`
   - `get_ip`
+  - `get_ip4`
   - `get_args`
   - `get_post`
   - `get_method`
@@ -70,6 +71,7 @@ end # module
   - `get_host`
   - `get_client_system`
   - `get_heading`
+  - `get_headers`
   - `get_parent`
   - `get_cookies`
   - `download!`
@@ -85,6 +87,7 @@ end # module
   - `WebServer`
   - `kill!`
   - `start!`
+  - `connect`
 - **extensions**
   - `MobileConnection`
   - `Logger`

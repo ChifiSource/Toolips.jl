@@ -360,7 +360,7 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
   - Using: `Toolips`
 - [ChiNS](https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
   - Using: [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl)
-- [EmsComputer](https://github.com/ChifiSource/EmsComputer.jl) `EmsComputer` is emma's full-stack web-app that serves several applications inside of one single-page app.
+- [EmsComputer](https://github.com/emmaccode/EmsComputer.jl) `EmsComputer` is emma's full-stack web-app that serves several applications inside of one single-page app.
   - Using: `Toolips`, `ToolipsServables`, `ToolipsSession`
 
 - **want your project here?**

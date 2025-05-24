@@ -410,7 +410,6 @@ end
 - See also: `get_ip`, `get_ip4`, `route!`, `Connection`, `AbstractConnection`
 """
 function get_headers(c::Connection)
-    
     headers = http.message.headers::Vector{Pair{String, String}}
 end
 
@@ -642,7 +641,20 @@ export main
 end
 ```
 """
-get_cookies(c::AbstractConnection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+get_cookies(c::Connection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+
+function in(key::String, cooks::Vector{Cookie})
+    f = findfirst(cook::Cookie -> cook.name == key, cooks)
+    ~(isnothing(f))
+end
+
+function getindex(cooks::Vector{Cookie}, key::String)
+    f = findfirst(cook::Cookie -> cook.name == key, cooks)
+    if isnothing(f)
+        throw(BoundsError())
+    end
+    cooks[f]
+end
 
 """
 ```julia
@@ -736,7 +748,11 @@ function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{Stri
     for header in headers
         HTTP.setheader(resp, header)
     end
-    write!(c, resp)
+    for header in resp.headers
+        HTTP.setheader(c.stream, header)
+    end
+    HTTP.setstatus(c.stream, resp.status)
+    write!(c, String(resp.body))
 end
 
 function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
@@ -744,11 +760,12 @@ function respond!(c::AbstractConnection, body::String = "", headers::Pair{String
 end
 
 function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
-    code::Int64 = 20)
+    code::Int64 = 200)
     response::HTTP.Response = HTTP.Response(code, body = body)
     for cookie in cookies
         HTTP.addcookie!(response, cookie)
     end
+    respond!(c, response, headers ...)
 end
 
 """
@@ -1326,7 +1343,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     mod.server = server
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
-    if threads > 1 && length(0:maximum(router_threads)) > 0
+    if threads > 1 && maximum(router_threads) > 1
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
@@ -1343,7 +1360,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             using Toolips
             using $mod
         end"""))
-        put!(pm, pids, routeserver)
+        for pid in router_threads
+            if pid > 1
+                put!(pm, pid, routeserver)
+            end
+        end
         garbage::Int64 = 0
         put!(pm, pids, garbage)
         selected::Int8 = Int8(minimum(router_threads))
@@ -1387,9 +1408,9 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         w.active = true
         pm::ProcessManager
     else
+        w.active = true
         serve_router = HTTP.listen(routeserver, ip.ip, ip.port, server = server)
         w.task = serve_router
-        w.active = true
         pm::ProcessManager
     end
 end

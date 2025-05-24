@@ -379,7 +379,7 @@ get_ip4(c::SocketConnection)
 function get_ip4 end
 
 function get_ip4(c::AbstractConnection)
-    throw("`get_ip4` is not used for HTTP Connections! Use `get_ip`")
+    throw("`get_ip4` is not used for HTTP Connections! Use `get_ip` -> ::String")
 end
 
 function get_ip4(c::SocketConnection)

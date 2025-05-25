@@ -393,6 +393,28 @@ end
 
 """
 ```julia
+get_headers(c::Connection) -> ::Vector{Pair{String, String}}
+```
+Returns the *headers* of a given `Connection` in the form of a `Vector{Pair{String, String}}`. 
+These headers can be changed in a larger variety of ways using `respond!`.
+```julia
+route("/forwardheader") do c::AbstractConnection
+    headers = get_headers(c)
+    f = findfirst(h -> contains(h[1], "X-Forwarded-For"), headers)
+    if ~(isnothing(f))
+        deleteat!(headers, f)
+    end
+    push!(headers, "X-Forwarded-For" => client_ip)
+end
+```
+- See also: `get_ip`, `get_ip4`, `route!`, `Connection`, `AbstractConnection`
+"""
+function get_headers(c::Connection)
+    headers = http.message.headers::Vector{Pair{String, String}}
+end
+
+"""
+```julia
 get_heading(c::AbstractConnection) -> ::String
 ```
 Gets the markdown heading of `c`. 
@@ -447,6 +469,11 @@ start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
 ```
 """
 get_post(c::AbstractConnection) = string(read(c.stream))::String
+
+
+read(c::AbstractConnection) = read(c.stream)
+
+readavailable(c::AbstractConnection) = readavailable(c.stream)
 
 """
 ```julia
@@ -614,7 +641,20 @@ export main
 end
 ```
 """
-get_cookies(c::AbstractConnection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+get_cookies(c::Connection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+
+function in(key::String, cooks::Vector{Cookie})
+    f = findfirst(cook::Cookie -> cook.name == key, cooks)
+    ~(isnothing(f))
+end
+
+function getindex(cooks::Vector{Cookie}, key::String)
+    f = findfirst(cook::Cookie -> cook.name == key, cooks)
+    if isnothing(f)
+        throw(BoundsError())
+    end
+    cooks[f]
+end
 
 """
 ```julia
@@ -708,7 +748,11 @@ function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{Stri
     for header in headers
         HTTP.setheader(resp, header)
     end
-    write!(c, response)
+    for header in resp.headers
+        HTTP.setheader(c.stream, header)
+    end
+    HTTP.setstatus(c.stream, resp.status)
+    write!(c, String(resp.body))
 end
 
 function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
@@ -716,11 +760,12 @@ function respond!(c::AbstractConnection, body::String = "", headers::Pair{String
 end
 
 function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
-    code::Int64 = 20)
+    code::Int64 = 200)
     response::HTTP.Response = HTTP.Response(code, body = body)
     for cookie in cookies
         HTTP.addcookie!(response, cookie)
     end
+    respond!(c, response, headers ...)
 end
 
 """
@@ -1209,6 +1254,8 @@ function kill!(mod::Module)
     end
 end
 
+kill!(sock::Sockets.TCPSocket) = close(sock)
+
 mutable struct StartError <: Exception
     message::String
 end
@@ -1246,6 +1293,12 @@ start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
 - for extended servers:
 ```julia
 start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
+start!(st::Symbol, mod::Module, args ...; keyargs ...)
+```
+- (extension) for a `TCP` server (no HTTP):
+```julia
+start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+    threads::Int64 = 1, async::Bool = false)
 ```
 `start!` is used on a `Toolips` server `Module` to start a new server. Providing `threads` sets 
 the total amount of threads to spawn for the accompanying `ProcessManager`. `router_threads` will 
@@ -1274,12 +1327,12 @@ abstract type AbstractServerTemplate end
 struct ServerTemplate{T} <: AbstractServerTemplate end
 
 WebServer = ServerTemplate{:webserver}
-
 start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{st}(), mod, args ...; keyargs ...)
 
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end
+
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractHTTPRoute, 
@@ -1290,7 +1343,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     mod.server = server
     routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
     w::Worker{Async} = pm["$mod router"]
-    if threads > 1 && length(0:maximum(router_threads)) > 0
+    if threads > 1 && maximum(router_threads) > 1
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
@@ -1307,7 +1360,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             using Toolips
             using $mod
         end"""))
-        put!(pm, pids, routeserver)
+        for pid in router_threads
+            if pid > 1
+                put!(pm, pid, routeserver)
+            end
+        end
         garbage::Int64 = 0
         put!(pm, pids, garbage)
         selected::Int8 = Int8(minimum(router_threads))
@@ -1351,9 +1408,9 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         w.active = true
         pm::ProcessManager
     else
+        w.active = true
         serve_router = HTTP.listen(routeserver, ip.ip, ip.port, server = server)
         w.task = serve_router
-        w.active = true
         pm::ProcessManager
     end
 end
@@ -1407,9 +1464,15 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
 
     return make_routers(mod.routes, loaded, data), pman
 end
+
 function make_routers(routes, loaded, data)
     function routeserver(http::HTTP.Stream)
         host, _ = Sockets.getpeername(http)
+        headers = http.message.headers
+        f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
+	    if ~(isnothing(f))
+		    host = split(headers[f][2], ",")[1] |> strip
+        end
         c = Connection(http, data, routes, string(host))
         for ext in loaded
             if route!(c, ext) === false

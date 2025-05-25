@@ -63,6 +63,7 @@ end # module
   - `write!`
   - `IOConnection`
   - `get_ip`
+  - `get_ip4`
   - `get_args`
   - `get_post`
   - `get_method`
@@ -70,6 +71,7 @@ end # module
   - `get_host`
   - `get_client_system`
   - `get_heading`
+  - `get_headers`
   - `get_parent`
   - `get_cookies`
   - `download!`
@@ -85,6 +87,7 @@ end # module
   - `WebServer`
   - `kill!`
   - `start!`
+  - `connect`
 - **extensions**
   - `MobileConnection`
   - `Logger`
@@ -95,6 +98,7 @@ end # module
 module Toolips
 using Crayons
 using Sockets
+import Sockets: connect
 import ToolipsServables
 using ToolipsServables.Markdown
 import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, gen_ref, p, percent, img, body, interpolate!
@@ -104,7 +108,7 @@ using HTTP
 import HTTP: Cookie
 using Pkg
 import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
-import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log
+import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log, readavailable
 
 const Components = ToolipsServables
 
@@ -138,9 +142,12 @@ function show(io::IO, pm::ProcessManager)
 end
 
 include("core.jl")
+
+connect(ip::IP4) = connect(ip.ip, ip.port)
+
 export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
-export get_cookies
+export get_cookies, connect, respond!
 include("extensions.jl")
 
 #==
@@ -401,9 +408,6 @@ function make_docroute(mod::Module)
         write!(c, mainbod)
     end
 end
-
-
-
 
 export default_404
 

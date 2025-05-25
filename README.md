@@ -6,7 +6,7 @@
 [![pkgeval](https://juliahub.com/docs/General/Toolips/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/Toolips)
 </br>
 
-[documentation](https://documentation.c/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
+[documentation](https://chifidocs.com/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
 
 </div>
 
@@ -87,8 +87,8 @@ end
 using Main.DocServer; start!(Main.DocServer)
 ```
 The documentation will then be available at `/docs/(modname)` -- e.g. `/docs/toolipsservables` `/docs/toolips`.
-- **Chifi Docs**: `ChifiDocs` is *close* to being released, but a lot more effort is required to completely get the project and the entire *chifi server sub-system* off the ground. The documentation is coming soon, and thank you for understanding -- for now we are relegated to primarily learning through the doc-strings.
-- **Creator**: `OliveCreator` will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively. This also *has yet to materialize*, but is in the pipeline and will be available some time after `ChifiDocs`.
+- **Chifi Docs**: [toolips](https://chifidocs.com/toolips/Toolips) [ecosystem](https://chifidocs.com/toolips) [source](https://github.com/ChifiSource/ChifiDocs.jl)
+- **Creator**: [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl) will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively. This also *has yet to materialize*, but is in the pipeline and will be available some time after `ChifiDocs`.
 ## projects
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
@@ -360,7 +360,7 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
   - Using: `Toolips`
 - [ChiNS](https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
   - Using: [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl)
-- [EmsComputer](https://github.com/ChifiSource/EmsComputer.jl) `EmsComputer` is a full-stack web-app that emulates an operating system with several applications inside of a website. 
+- [EmsComputer](https://github.com/emmaccode/EmsComputer.jl) `EmsComputer` is emma's full-stack web-app that serves several applications inside of one single-page app.
   - Using: `Toolips`, `ToolipsServables`, `ToolipsSession`
 
 - **want your project here?**

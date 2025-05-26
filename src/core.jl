@@ -1341,9 +1341,13 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type, threads)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && maximum(router_threads) > 1
+        if async == false
+            @warn "cannot run synchronous server with router threads"
+            @warn "starting asynchronously... (remove `async = false` to stop this warning)"
+        end
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
@@ -1351,18 +1355,13 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         if has_logger
             log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
         end
-        add_workers!(pm, threads)
-        pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
+        pids::Vector{Int64} = worker_pids(pm, Threaded)
         if has_logger
             log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
         end
-        Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
-            using Toolips
-            using $mod
-        end"""))
         for pid in router_threads
             if pid > 1
-                put!(pm, pid, routeserver)
+                put!(pid, pm, routeserver)
             end
         end
         garbage::Int64 = 0
@@ -1433,13 +1432,25 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
-function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1)
     mod.routes = Vector{RT}()
+    data = Dict{Symbol, Any}()
+    workers = Worker{Async}("$mod router", rand(1000:3000))
+    pman = ProcessManager(workers)
+    if threads > 1
+        add_workers!(pman, threads - 1)
+                Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+            using Toolips
+            using $mod
+        end"""))
+    end
+    data[:procs] = pman
     loaded = AbstractExtension[]
     for name in names(mod)
         f = getfield(mod, name)
         if f isa AbstractExtension
             push!(loaded, f)
+            on_start(f, data, mod.routes)
         elseif f isa AbstractRoute
             push!(mod.routes, f)
         elseif f isa AbstractVector{<:AbstractRoute}
@@ -1451,17 +1462,7 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
         log(logger, "Router type: $(router_name(typeof(mod.routes).parameters[1]))", 2)
         log(logger, "Server listening at http://$(ip.ip):$(ip.port)")
     end
-
-    data = Dict{Symbol, Any}()
-    for ext in loaded
-        on_start(ext, data, mod.routes) 
-    end
     mod.data = data
-
-    workers = Worker{Async}("$mod router", rand(1000:3000))
-    pman = ProcessManager(workers)
-    data[:procs] = pman
-
     return make_routers(mod.routes, loaded, data), pman
 end
 

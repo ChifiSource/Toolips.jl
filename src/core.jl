@@ -410,7 +410,7 @@ end
 - See also: `get_ip`, `get_ip4`, `route!`, `Connection`, `AbstractConnection`
 """
 function get_headers(c::Connection)
-    headers = http.message.headers::Vector{Pair{String, String}}
+    headers = c.stream.message.headers::Vector
 end
 
 """
@@ -1456,6 +1456,9 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, thread
         elseif f isa AbstractVector{<:AbstractRoute}
             append!(mod.routes, f)
         end
+    end
+    if RT == AbstractHTTPRoute
+        mod.routes = [r for r in mod.routes]
     end
     if any(ext -> ext isa Logger, loaded)
         logger = filter(ext -> ext isa Logger, loaded)[1]

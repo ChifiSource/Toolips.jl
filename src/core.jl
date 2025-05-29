@@ -470,7 +470,6 @@ start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
 """
 get_post(c::AbstractConnection) = string(read(c.stream))::String
 
-
 read(c::AbstractConnection) = read(c.stream)
 
 readavailable(c::AbstractConnection) = readavailable(c.stream)
@@ -1469,39 +1468,47 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, thread
     return make_routers(mod.routes, loaded, data), pman
 end
 
+function internal_http_route(http::HTTP.Stream, routes::Vector{<:AbstractRoute}, loaded::Vector, data::Dict)
+    host, _ = Sockets.getpeername(http)
+    headers = http.message.headers
+    f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
+	if ~(isnothing(f))
+		host = split(headers[f][2], ",")[1] |> strip
+    end
+    c = Connection(http, data, routes, string(host))
+    for ext in loaded
+        if route!(c, ext) === false
+            return
+        end
+    end
+    route!(c, c.routes)
+end
+
+function internal_ioc_route(c::AbstractConnection, garbage::Int64)
+    for ext in loaded
+        if route!(c, ext) === false
+            return
+        end
+    end
+    route!(c, c.routes)
+    garbage += 1
+    if garbage % 5000 == 0
+        if garbage == 15000
+            GC.gc(true)
+            garbage = 0
+        else
+            GC.gc()
+        end
+    end
+    c.stream::String
+end
+
 function make_routers(routes, loaded, data)
     function routeserver(http::HTTP.Stream)
-        host, _ = Sockets.getpeername(http)
-        headers = http.message.headers
-        f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
-	    if ~(isnothing(f))
-		    host = split(headers[f][2], ",")[1] |> strip
-        end
-        c = Connection(http, data, routes, string(host))
-        for ext in loaded
-            if route!(c, ext) === false
-                return
-            end
-        end
-        route!(c, c.routes)
+        internal_http_route(http, routes, loaded, data)
     end
     function routeserver(c::IOConnection, garbage::Int64)
-        for ext in loaded
-            if route!(c, ext) === false
-                return
-            end
-        end
-        route!(c, c.routes)
-        garbage += 1
-        if garbage % 5000 == 0
-            if garbage == 15000
-                GC.gc(true)
-                garbage = 0
-            else
-                GC.gc()
-            end
-        end
-        c.stream::String
+        internal_ioc_route(c, garbage)
     end
     return(routeserver)::Function
 end

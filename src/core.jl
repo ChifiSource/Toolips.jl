@@ -410,7 +410,7 @@ end
 - See also: `get_ip`, `get_ip4`, `route!`, `Connection`, `AbstractConnection`
 """
 function get_headers(c::Connection)
-    headers = http.message.headers::Vector{Pair{String, String}}
+    headers = c.stream.message.headers::Vector
 end
 
 """
@@ -469,7 +469,6 @@ start!(Server); println(Toolips.post("127.0.0.1":8000, "emmy"))
 ```
 """
 get_post(c::AbstractConnection) = string(read(c.stream))::String
-
 
 read(c::AbstractConnection) = read(c.stream)
 
@@ -642,6 +641,45 @@ end
 ```
 """
 get_cookies(c::Connection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
+
+function add_cookies!(con::AbstractConnection, namevals::Pair{String, String} ...; attrs...)
+    for nameval in namevals
+	    cookie = "$(nameval[1])=$(nameval[2])"
+	    for (attr_name, attr_val) in attrs
+		    if attr_val === true
+			    cookie *= "; $attr_name"
+		    else
+			    cookie *= "; $attr_name=$attr_val"
+		    end
+	    end
+        HTTP.setheader(con.stream, "Set-Cookie" => cookie)
+    end
+end
+
+add_cookies!(con::AbstractConnection, cookies::Cookie ...; at ...) = add_cookies!(con, [cookie.name => cookie.value for cookie in cookies] ...; att ...)
+
+
+function clear_cookies!(con::AbstractConnection)
+    HTTP.removeheader(con.stream.message, "Cookie")
+    HTTP.removeheader(con.stream.message, "Cookies")
+    HTTP.removeheader(con.stream.message, "Set-Cookie")
+end
+
+function remove_cookie!(con::AbstractConnection, name::String)
+	old = HTTP.header(con.stream, "Set-Cookie")
+	cookies = isa(old, String) ? [old] : (old === nothing ? String[] : copy(old))
+
+	name_eq = name * "="
+	filtered = [c for c in cookies if !startswith(c, name_eq)]
+
+	if isempty(filtered)
+		HTTP.setheader(con.stream, "Set-Cookie" => nothing)
+	else
+        for cook in filtered
+		    HTTP.setheader(con.stream, "Set-Cookie" => filtered)
+        end
+	end
+end
 
 function in(key::String, cooks::Vector{Cookie})
     f = findfirst(cook::Cookie -> cook.name == key, cooks)
@@ -1341,9 +1379,13 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type, threads)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && maximum(router_threads) > 1
+        if async == false
+            @warn "cannot run synchronous server with router threads"
+            @warn "starting asynchronously... (remove `async = false` to stop this warning)"
+        end
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
         end
@@ -1351,18 +1393,13 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         if has_logger
             log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
         end
-        add_workers!(pm, threads)
-        pids::Vector{Int64} = [work.pid for work in filter(w -> typeof(w) != Worker{ParametricProcesses.Async}, pm.workers)]
+        pids::Vector{Int64} = worker_pids(pm, Threaded)
         if has_logger
             log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
         end
-        Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
-            using Toolips
-            using $mod
-        end"""))
         for pid in router_threads
             if pid > 1
-                put!(pm, pid, routeserver)
+                put!(pid, pm, routeserver)
             end
         end
         garbage::Int64 = 0
@@ -1433,71 +1470,84 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
-function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute})
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1)
     mod.routes = Vector{RT}()
+    data = Dict{Symbol, Any}()
+    workers = Worker{Async}("$mod router", rand(1000:3000))
+    pman = ProcessManager(workers)
+    if threads > 1
+        add_workers!(pman, threads - 1)
+                Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin
+            using Toolips
+            using $mod
+        end"""))
+    end
+    data[:procs] = pman
     loaded = AbstractExtension[]
     for name in names(mod)
         f = getfield(mod, name)
         if f isa AbstractExtension
             push!(loaded, f)
+            on_start(f, data, mod.routes)
         elseif f isa AbstractRoute
             push!(mod.routes, f)
         elseif f isa AbstractVector{<:AbstractRoute}
             append!(mod.routes, f)
         end
     end
+    if RT == AbstractHTTPRoute
+        mod.routes = [r for r in mod.routes]
+    end
     if any(ext -> ext isa Logger, loaded)
         logger = filter(ext -> ext isa Logger, loaded)[1]
         log(logger, "Router type: $(router_name(typeof(mod.routes).parameters[1]))", 2)
         log(logger, "Server listening at http://$(ip.ip):$(ip.port)")
     end
-
-    data = Dict{Symbol, Any}()
-    for ext in loaded
-        on_start(ext, data, mod.routes) 
-    end
     mod.data = data
-
-    workers = Worker{Async}("$mod router", rand(1000:3000))
-    pman = ProcessManager(workers)
-    data[:procs] = pman
-
     return make_routers(mod.routes, loaded, data), pman
+end
+
+function internal_http_route(http::HTTP.Stream, routes::Vector{<:AbstractRoute}, loaded::Vector, data::Dict)
+    host, _ = Sockets.getpeername(http)
+    headers = http.message.headers
+    f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
+	if ~(isnothing(f))
+		host = split(headers[f][2], ",")[1] |> strip
+    end
+    c = Connection(http, data, routes, string(host))
+    for ext in loaded
+        if route!(c, ext) === false
+            return
+        end
+    end
+    route!(c, c.routes)
+end
+
+function internal_ioc_route(c::AbstractConnection, garbage::Int64)
+    for ext in loaded
+        if route!(c, ext) === false
+            return
+        end
+    end
+    route!(c, c.routes)
+    garbage += 1
+    if garbage % 5000 == 0
+        if garbage == 15000
+            GC.gc(true)
+            garbage = 0
+        else
+            GC.gc()
+        end
+    end
+    c.stream::String
 end
 
 function make_routers(routes, loaded, data)
     function routeserver(http::HTTP.Stream)
-        host, _ = Sockets.getpeername(http)
-        headers = http.message.headers
-        f = findfirst(h -> h[1] == "X-Forwarded-For", headers)
-	    if ~(isnothing(f))
-		    host = split(headers[f][2], ",")[1] |> strip
-        end
-        c = Connection(http, data, routes, string(host))
-        for ext in loaded
-            if route!(c, ext) === false
-                return
-            end
-        end
-        route!(c, c.routes)
+        internal_http_route(http, routes, loaded, data)
     end
     function routeserver(c::IOConnection, garbage::Int64)
-        for ext in loaded
-            if route!(c, ext) === false
-                return
-            end
-        end
-        route!(c, c.routes)
-        garbage += 1
-        if garbage % 5000 == 0
-            if garbage == 15000
-                GC.gc(true)
-                garbage = 0
-            else
-                GC.gc()
-            end
-        end
-        c.stream::String
+        internal_ioc_route(c, garbage)
     end
     return(routeserver)::Function
 end

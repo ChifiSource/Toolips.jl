@@ -422,3 +422,24 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
     main_worker = Worker{Async}("$mod router", rand(1000:3000))
     ProcessManager(main_worker)::ProcessManager
 end
+
+function read_all(c::SocketConnection)
+    sock = c.stream
+    buffer = IOBuffer()
+	try
+		while isopen(sock)
+			n = bytesavailable(sock)
+			if n > 0
+				data = read(sock, n)
+				write(buffer, data)
+			else
+				yield()
+			end
+		end
+	catch e
+		@warn "Error handling connection: $e"
+	finally
+		close(sock)
+	end
+    String(take!(buffer))::String
+end

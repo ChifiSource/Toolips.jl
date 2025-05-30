@@ -642,6 +642,45 @@ end
 """
 get_cookies(c::Connection) = HTTP.cookies(c.stream.message)::Vector{Cookie}
 
+function add_cookies!(con::AbstractConnection, namevals::Pair{String, String}; attrs...)
+    for nameval in namevals
+	    cookie = "$(nameval[1])=$(nameval[2])"
+	    for (attr_name, attr_val) in attrs
+		    if attr_val === true
+			    cookie *= "; $attr_name"
+		    else
+			    cookie *= "; $attr_name=$attr_val"
+		    end
+	    end
+        HTTP.setheader(con.stream, "Set-Cookie" => cookie)
+        HTTP.setheader(con.stream, "Cookie" => cookie)
+        HTTP.setheader(con.stream, "Cookies" => cookie)
+    end
+end
+
+
+function clear_cookies!(con::AbstractConnection)
+    HTTP.removeheader(con.stream.message, "Cookie")
+    HTTP.removeheader(con.stream.message, "Cookies")
+    HTTP.removeheader(con.stream.message, "Set-Cookie")
+end
+
+function remove_cookie!(con::AbstractConnection, name::String)
+	old = HTTP.header(con.stream, "Set-Cookie")
+	cookies = isa(old, String) ? [old] : (old === nothing ? String[] : copy(old))
+
+	name_eq = name * "="
+	filtered = [c for c in cookies if !startswith(c, name_eq)]
+
+	if isempty(filtered)
+		HTTP.setheader(con.stream, "Set-Cookie" => nothing)
+	else
+		# ⚠️ Do NOT join them
+		HTTP.setheader(con.stream, "Set-Cookie" => filtered)
+	end
+end
+
+
 function in(key::String, cooks::Vector{Cookie})
     f = findfirst(cook::Cookie -> cook.name == key, cooks)
     ~(isnothing(f))

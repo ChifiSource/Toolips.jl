@@ -358,9 +358,22 @@ using Toolips; start!(:TCP, MyServer)
 """
 mutable struct SocketConnection <: AbstractConnection
     stream::Sockets.TCPSocket
+    handlers::Vector{AbstractUDPHandler}
+    data::Dict{Symbol, Any}
+    server::Sockets.TCPSocket
 end
 
 read(s::SocketConnection) = readavailable(s.stream)
+
+abstract type SocketServerExtension  <: AbstractExtension end
+
+mutable struct TCPIOConnection <: AbstractConnection
+    ip::IP4
+    packet::String
+    handlers::Vector{AbstractUDPHandler}
+    data::Dict{Symbol, Any}
+    stream::String
+end
 
 """
 ```julia
@@ -398,25 +411,32 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
     end
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    handler = nothing
+    handlers = []
+    extensions = Vector{SocketServerExtension}()
     for name in names(mod)
+        if ~(isdefined(mod, name))
+            continue
+        end
         f = getfield(mod, name)
-        if typeof(f) <: AbstractHandler
-            handler = f
-            break
+        T = typeof(f)
+        if T <: AbstractHandler
+            push!(handlers, f)
+        elseif T <: SocketServerExtension
+            push!(extensions, f)
         end
     end
+    handlers = [handlers ...]
     if ~(async)
         while true
 		    client = accept(server)
-		    conn = SocketConnection(client)
+		    conn = SocketConnection(client, handlers, data, server)
             handler.f(conn)
 	    end
         return
     end
     t = @async while true
 		client = accept(server)
-		conn = SocketConnection(client)
+		conn = SocketConnection(client, handlers, data, server)
         handler.f(conn)
 	end
     main_worker = Worker{Async}("$mod router", rand(1000:3000))

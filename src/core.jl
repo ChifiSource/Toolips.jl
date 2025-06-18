@@ -1486,6 +1486,9 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, thread
     loaded = AbstractExtension[]
     for name in names(mod)
         f = getfield(mod, name)
+        if ~(isdefined(mod, name))
+            continue
+        end
         if f isa AbstractExtension
             push!(loaded, f)
             on_start(f, data, mod.routes)

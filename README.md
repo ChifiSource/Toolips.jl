@@ -6,17 +6,27 @@
 [![pkgeval](https://juliahub.com/docs/General/Toolips/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/Toolips)
 </br>
 
-[documentation](https://documentation.c/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
+[documentation](https://chifidocs.com/toolips) **|** [extensions](https://github.com/ChifiSource#toolips-extensions) **|** [examples](https://github.com/ChifiSource/OliveNotebooks.jl/tree/main/toolips)
 
 </div>
 
-`toolips` is an **asynchronous**, **low-overhead** web-development framework for Julia. Toolips.jl in a nutshell:
+`Toolips` is an extensible web and server-development framework for the Julia programming language.
 - **HTTPS capable** Can be deployed with SSL.
 - **Extensible** server platform.
-- **Declarative** and **composable** files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
-- **Modular** servers -- toolips applications are **regular Julia Modules**.
+- **Hyper-Dynamic Multiple-Dispatch Routing** -- The `Toolips` router can be completely reworked with extensions to offer completely new and exceedingly versatile functionality.
+- **Declarative** and **composable** -- files, html, Javascript, *and* CSS templating syntax provided by [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl).
+- **Modular** servers -- toolips applications are **regular Julia Modules**, making them easier to migrate and deploy.
 - **Versatilility** -- toolips can be used for *all* use-cases, from full-stack web-development to simple endpoints.
 - **Parallel Computing** -- *Declarative* process management provided by [parametric processes](https://github.com/ChifiSource/ParametricProcesses.jl).
+- **Optionally Asynchronous** -- the `Toolips.start!` function provides several different modes to start the server in, including asynchronous, single-threaded, and multi-threaded.
+- **Multi-Threaded** -- `Toolips` has support for high-level multi-threading through the `ParametricProcesses` `Module`
+###### Toolips is able to create ...
+- Endpoints
+- File servers
+- Interactive fullstack web applications (using the [ToolipSession](https://github.com/ChifiSource/ToolipsSession.jl) extension)
+- Other HTTP/HTTPS servers (e.g. Proxy server, data-base cursor)
+- UDP servers and services (e.g. Systems servers, DNS servers)
+---
 ```julia
 using Pkg; Pkg.add("Toolips")
 ```
@@ -28,25 +38,17 @@ pkg> add Toolips
 ###### map
 - [get started](#get-started)
   - [documentation](#documentation)
-  - [quick start](#quick-start)
+  - [quick start](#get-started)
     - [projects](#projects)
-      - [routing](#routing)
-      - [extensions](#extensions)
-    - [responses](#responses)
-      - [files](#files)
-      - [components](#components)
-      - [templating](#templating)
-- [creating extensions](#creating-extensions)
-  - [connection extensions](#connection-extensions)
-  - [routing extensions](#routing-extensions)
-  - [server extensions](#server-extensions)
-  - [component extensions](#component-extensions)
-- [multi-threading](#multi-threading)
+    - [routing](#routing)
+    - [templating](#templating)
+    - [extensions](#extensions)    
+- (**read before**) [multi-threading](#multi-threading)
 - [built with toolips](#built-with-toolips)
 - [contributing](#contributing)
 ---
 - **toolips requires [julia](https://julialang.org/). [julia installation instructions](https://julialang.org/downloads/platform/)**
-#### get started
+# get started
 `Toolips` is available in *three* different version flavors:
 - Latest (main) -- The main working version of toolips.
 - stable (#stable) -- Faster, more frequent updates than main; stable... but some new features are not fully implemented.
@@ -68,35 +70,36 @@ Pkg.add("Toolips", rev = "0.3.x")
 - toolips primarily targets **full-stack web-development**, but does so through extensions -- the intention being to use `Toolips` for both simple APIs and complex web-apps. This being considered, it is important to look into [toolips extensions](https://github.com/ChifiSource#toolips-extensions) to realize the full capabilities of this package! [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) provides `Toolips` with full-stack callbacks, for example.
 - Check out [our toolips projects](#built-with-toolips) and [examples](#examples) for some examples of use-cases for the framework.
 - Check out [creating-extensions](#creating-extensions) for more information on building extensions.
-###### documentation
-*Awesome documentation website coming soon*
-- For now, you can use `?Toolips` to see a full list of exports.
-#### quick start
-Getting started with `Toolips` starts by creating a new `Module` To get started with `Toolips`, we can we may either use `Toolips.new_app(name::String)` (*ideal to build a project*)or we can simply create a `Module` (*ideal to try things out*).
+### documentation
+- **REPL Documentation**: use `?(Toolips)` for a full list of exports.
+- **Documentation Routes**: `Toolips.make_docroute` allows us to quickly make a docstring browser for **any** Julia Module. this includes `Toolips` and `ToolipsServables`. Simply add two new routes to a server and export them.
 ```julia
+module DocServer
 using Toolips
-Toolips.new_app("ToolipsApp")
+
+base_docs = Toolips.make_docroute(Base)
+toolips_docs = Toolips.make_docroute(Toolips)
+components_docs = Toolips.make_docroute(Toolips.Components)
+
+export base_docs, toolips_docs, components_docs, start!
+end
+
+using Main.DocServer; start!(Main.DocServer)
 ```
-We may also add a `ServerTemplate` to `new_app` to construct from a specific template. `Toolips` base includes only the `WebServer`, which is also the default.
-```julia
-Toolips.new_app("Example", Toolips.WebServer)
-```
-This is primarily used for extensions, for example; [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl):
-```julia
-using ToolipsUDP
-ToolipsUDP.new_app("Example", ToolipsUDP.UDPServer)
-```
+The documentation will then be available at `/docs/(modname)` -- e.g. `/docs/toolipsservables` `/docs/toolips`.
+- **Chifi Docs**: [toolips](https://chifidocs.com/toolips/Toolips) [ecosystem](https://chifidocs.com/toolips) [source](https://github.com/ChifiSource/ChifiDocs.jl)
+- **Creator**: [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl) will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively.
 ## projects
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
 - Any sub-type of `Extension`.
 - or a `Vector{<:AbstractRoute}`
 
-To quickly create a project from a template, you may use `new_app(::String)`, but the code to create a server is also pretty easy to do quickly if needed.
+Here is a simple " hello world" project. 
 ```julia
 module HelloWorld
 using Toolips
-
+# hello world in toolips
 home = route("/") do c::Connection
     write!(c, "hello world")
 end
@@ -104,6 +107,7 @@ end
 export start!, home
 end
 ```
+Here we use `route` to create a `Route{Connection}`, `home`. `home` is then exported, along with `start!` -- which is used to start our server.
 ```julia
 # starts our server:
 using HelloWorld; start!(HelloWorld)
@@ -111,6 +115,15 @@ using HelloWorld; start!(HelloWorld)
 using HelloWorld
 start!(HelloWorld, "127.0.0.1":8000)
 ```
+We can quickly create an entire `Toolips` project to start from by using `Toolips.new_app(::String)`. This will generate a project for the provided name. This will also generate a `dev.jl` file to automatically start your server:
+```julia
+using Toolips;  Toolips.new_app("MyServer")
+
+cd("MyServer")
+# starts your server, with `Revise` for development.
+include("dev.jl")
+```
+When running from `dev.jl`, simply use `using MyServer` (or your server name) to reload new changes without need for a server restart.
 ### routing
 ```julia
 home = route("/") do c::Connection
@@ -157,9 +170,6 @@ end
 export default_404, home
 end
 ```
-Data can also be stored in the `Connection`, and this includes some extensions.
-```julia
-```
 There are several "getter" methods associated with the `Connection`, here is a comprehensive list:
 ```julia
 get_args
@@ -170,6 +180,9 @@ get_method
 get_post
 get_parent
 get_client_system
+get_cookies
+read_all (for TCP servers)
+get_ip4
 ```
 All of these take a `Connection` and are pretty self explanatory with the exception of `get_client_system`. This will provide the system of the client, but also whether or not the client is on a mobile system. Note that the operating system is given as the request header gives it, of course.
 ```julia
@@ -180,6 +193,7 @@ There's also
 proxy_pass!(c::Connection, url::String)
 startread!(c::AbstractConnection)
 download!(c::AbstractConnection, uri::String)
+respond!(c::AbstractConnection, args ...)
 ```
 Routes can be exported as any `Vector{<:AbstractRoute}` or `AbstractRoute`. Only routes which are exported will be loaded, exporting names which do not actually exist in the project will break the server. The following functions/methods may be used to create new routes with base `Toolips`:
 ```julia
@@ -195,250 +209,67 @@ module ServerSample
   route()
 end
 ```
+Files in `Toolips` can either be built manually with the `File` constructor or can be directly mounted to a route with `mount`. `mount` takes a `Vector{Pair{String, String}}`, and will return a `Route` or a `Vector{<:AbstractRoute}` -- depending on whether or not the provided path is a file or a directory. A directory will be recursively routed, creating a route for each file in each sub-directory below it...
+
+When created manually, a `File` is able to be written with `write!`, like normal. This also gives us the ability to use `interpolate!`, which will interpolate `Components` by `name` or interpolate values by using `interpolate!` in place of `write!`.
+```julia
+interpolate!(c::AbstractConnection, f::File{<:Any}, components::AbstractComponent ...; args ...)
+```
+### templating
+For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl). This `Module` includes the `File` type for easily serving parametrically files by path and `AbstractComponent` types for high-level parametric HTML and CSS templating. This templating framework also binds easily to `ToolipsSession`, the full-stack extension for `Toolips`. These components may then be written with `write!` or turned into a `String` with `string`. For more information, visit
+- [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl)
+- [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) (adds more callback actions **and** full-stack callbacks)
 ### extensions
 Extensions appear in `Toolips` in four main forms:
 - `Connection` extensions,
 - routing extensions,
 - server extensions,
+- start! extensions,
 - and `Component` extensions.
 
-`Connection` extensions allow us to utilize `MultiRoute` with new multiple dispatch `Connection` configurations. Routing extensions allow us to change the functionality of the `Toolips` router in different instances. Server extensions allow us to add autoloaded data, or perform actions alongside before our routes whenever a `Connection` is served. Finally, `Component` extensions give us more composable `Component` types to work with, and more high-level web-development capabilities.
-
-`Connection` extensions are typically used through `MultiRoute`. This is done by providing multiple routes to `route`, which will call different routes depending on the incoming client `Connection`. For example, the `MobileConnection` is the quintessential `Connection` extension provided by `Toolips`.
+Server extensions are loaded by exporting a constructed server extension within your `Module`. For example, the `ToolipsSession` extension provides full-stack interactivity.
 ```julia
-module Sample
+module FullstackServer
 using Toolips
-
-desktop = route("/") do c::Connection
-    write!(c, "this page is only served to mobile users")
-end
-
-mob = route("/") do c::MobileConnection
-    write!(c, "this page is only served to mobile users")
-end
-
-# make multiroute
-mult_rt = route(desktop, mob)
-
-export mult_rt, start!
-end
-```
-- [creating connection extensions](#connection-extensions)
-
-## responses
-Like most web-development frameworks, creating websites or APIs with `Toolips` primarily revolves around creating a response. In the case of an API, this is actually pretty simple. `write!` will convert any provided type to a `String` and then write it to the incoming `Connection` stream. 
-```julia
-module Multiply
-using Toolips
-
-home = route("/") do c::Connection
-    args = get_args(c)
-    arg_keys = keys(args)
-    if ~(:y in arg_keys) || ~(:x in arg_keys)
-        write!(c, "you have not provided `x` or `y`.")
-    end
-    write!(c, string(x * y))
-end
-```
-- Note the use of `get_args`, `get_post` *might* also be important for APIs.
-```julia
-module Crystals
-using Toolips
-import Base: getindex, in
-
-mutable struct APIClient
-    ip::String
-    requests::Int64
-    max::Int64
-    name::String
-end
-
-getindex(apc::Vector{APIClient}, ip::String) = begin
-    found_client = findfirst(c::APIClient -> c.ip == ip, apc)
-    if isnothing(found_client)
-        throw(KeyError(ip))
-    end
-    apc[found_client]
-end
-end
-
-in(ip::String, apc::Vector{APIClient}) = begin
-  found_client = findfirst(c::APIClient -> c.ip == ip, apc)
-  ~(isnothing(found_client))
-end
-
-clients = Vector{APIClient}()
-
-verify = route("/") do c::AbstractConnection
-  nm = get_post(c)
-  allnames = [client.name for client in clients]
-  if length(nm) > 3 && replace(nm, " " => "") != "" && ~(nm in allnames)
-     write!(c, "you are verified, $nm ! Have fun with the crystal API!"
-     push!(clients, APIClient(get_ip(c), 1, 50, nm))
-  end
-end
-
-crystals_api = route("/crystals") do c::AbstractConnection
-    args = get_args(c)
-    arg_keys = keys(args)
-    if ~(get_ip(c) in clients)
-        write!(c, "You are not verified! Please POST your name to our home-page to identify yourself.")
-    end
-end
-
-export crystals_api
-end
-```
-For more detailed websites, we might be building a more complicated response. `Toolips` provides the `Components` `Module`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl). This `Module` includes the `File` type for easily serving parametrically files by path and `AbstractComponent` types for high-level parametric HTML and CSS templating.
-#### files
-Files in `Toolips` can either be built manually with the `File` constructor or can be directly mounted to a route with `mount`. `mount` takes a `Vector{Pair{String, String}}`, and will return a `Route` or a `Vector{<:AbstractRoute}` -- depending on whether or not the provided path is a file or a directory. A directory will be recursively routed, creating a route for each file in each sub-directory below it...
-```julia
-```
-When created manually, a `File` is able to be written with `write!`, like normal. This also gives us the ability to use `interpolate!`, which will interpolate `Components` by `name` or interpolate values by using `interpolate!` in place of `write!`.
-```julia
-function interpolate!(c::AbstractConnection, f::File{<:Any}, components::AbstractComponent ...; args ...)
-```
-For example, using this `Method` to interpolate HTML with components and values...
-```html
-<body>
-<div>
-<h2>hello client</h2>
-<a>your ip address is $ip</a>
-<h4>would you like to name yourself?</h4>
-$namebutton
-</div>
-```
-```julia
-
-```
-```julia
-```
-This example interpolates HTML -- but is the *catchall*, or top-level function (binded to `File{<:Any}` -- meaning you could also write different methods to change behavior depending on file type.
-```julia
-function interpolate!(c::AbstractConnection, f::File{:md}, components::AbstractComponent ...; args ...)
-    raw::String = string(f)
-    interp_positions = findall("```", raw)
-    ...
-end
-```
-#### components
-```julia
-```
-This package also allows us to create callbacks for these components...
-```julia
-```
-And [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl) expands on this by providing server-side callbacks and some pretty extreme fullstack capabilities.
-```julia
-```
-#### templating
-As demonstrated in this `README` thus far, `Toolips` has a diverse set of a capabilities when it comes to templating. Templating in `Toolips` is done by constructing and composing components into a `body` and then writing it to the `Connection`, or interpolating a file via the `interpolate!` function.
-## creating extensions
-###### connection extensions
-A `Connection` extension creates a new `Connection` which can be used with multi-route, or otherwise with a new router. The running example of this inside `Toolips` is the `MobileConnection`.
-```julia
-mutable struct MobileConnection{T} <: AbstractConnection
-    stream::Any
-    data::Dict{Symbol, Any}
-    routes::Vector{AbstractRoute}
-    MobileConnection(stream::Any, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
-        new{typeof(stream)}(stream, data, routes)
-    end
-end
-```
-The `MobileConnection` is created whenever an incoming client is on mobile. This is determined by `get_client_system`. Two functions are used for this; `convert` and `convert!`. `convert` is called on the `Connection` to see if the `Connection` should convert. If it should convert, then `convert!` is called.
-```julia
-function convert(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
-    get_client_system(c)[2]::Bool
-end
-
-function convert!(c::AbstractConnection, routes::Routes, into::Type{MobileConnection})
-    MobileConnection(c.stream, c.data, routes)::MobileConnection{typeof(c.stream)}
-end
-
-# for IO Connection specifically...
-function convert!(c::IOConnection, routes::Routes, into::Type{MobileConnection})
-    stream = Dict{Symbol, String}(:stream => c.stream, :args => get_args(c), :post => get_post(c), 
-    :ip => get_ip(c), :method => get_method(c), :target => get_target(c), :host => get_host(c))
-    MobileConnection(stream, c.data, routes)::MobileConnection{Dict{Symbol, String}}
-end
-```
-Note that the `MobileConnection` is actually a `MobileConnection{<:Any}`. We build a data dictionary in order to turn the `IOConnection` into a `MobileConnection`, whereas in the case of the `Connection` we are provided the standard `HTTP.Stream` directly. This simple system facilitates both types. Beyond this, you are free to extend other `Connection` functions to enhance your interface if they are not compatible with your current `Connection`. Not implementing this will mean that the `Connection` will not work with multi-threading.
-```julia
-get_ip(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:ip]
-get_method(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:method]
-get_args(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:args]
-get_target(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:target]
-get_host(c::MobileConnection{Dict{Symbol, String}}) = c.stream[:host]
-write!(c::MobileConnection{Dict{Symbol, String}}, a::Any ...) = c.stream[:stream] = c.stream[:stream] * join(string(obj) for obj in a)
-```
-Let's implement a `PostConnection` in order to demonstrate this:
-```julia
-module PostConnections
-using Toolips
-import Toolips: AbstractConnection, convert, convert!
-mutable struct PostConnection{T} <: AbstractConnection
-    stream::Any
-    data::Dict{Symbol, Any}
-    routes::Vector{AbstractRoute}
-    PostConnection(stream::Any, data::Dict{Symbol, <:Any}, routes::Vector{<:AbstractRoute}) = begin
-        new{typeof(stream)}(stream, data, routes)
-    end
-end
-
-function convert(c::AbstractConnection, routes::Routes, into::Type{PostConnection})
-    get_method(c) == "POST"
-end
-
-function convert!(c::AbstractConnection, routes::Routes, into::Type{PostConnection})
-    PostConnection(c.stream, c.data, routes)::PostConnection{typeof(c.stream)}
-end
-
-function convert!(c::IOConnection, routes::Routes, into::Type{PostConnection})
-    stream = Dict{Symbol, String}(:stream => c.stream, :args => get_args(c), :post => get_post(c), 
-    :ip => get_ip(c), :method => get_method(c), :target => get_target(c), :host => get_host(c))
-    PostConnection(stream, c.data, routes)::PostConnection{Dict{Symbol, String}}
-end
-```
-Now let's use it:
-```julia
-module PostSample
-using Toolips
-using Main.PostConnections
 using Toolips.Components
+using ToolipsSession
 
-# regular `GET`
-home_main = route("/") do c::Connection
-    write!(c, h2("main", text = "you landed!", align = "center"))
+home = route("/") do c::AbstractConnection
+  new_button = button("popupbttn", text = "show popup")
+style!(new_button, "position" => "absolute", "padding" => 5px, "left" => 30percent, "top" => 25percent)
+  on(c, new_button, "click") do cm::ComponentModifier
+    dialog = div("dialog", text = "hello world!")
+    style!(dialog, "width" => 10percent, "left" => 45percent, "top" => 20percent, "position" => "absolute",
+"padding" => 13px, "border" => 13px * " solid #1e1e1e")
+    append!(cm, "mainbody", dialog)
+    remove!(cm, new_button)
+  end
+  body("mainbody", children = [new_button])
 end
+ # construct extension:
+SESSION = ToolipsSession.Session()
 
-home_post = route("/") do c::PostConnection
-    write!(c, "welcome to the API :)")
-end
-
-home = route(home_main, home_post)
-
-export home_main, home_post, home
+export start!, home, SESSION
 end
 ```
-###### routing extensions
-Another type of extension that can be created for toolips is the routing extension. Routing extensions are created by extending the `route!` function. This function may be extended by adding new methods for `Route` types (`<:AbstractRoute`), `Connection` types (`<:AbstractConnection`), a `Vector` with `<:AbstractRoute` as its type parameter, or extension types (`<:AbstractExtension`).
-- on an incoming `Connection`, `route!` is initially called on each extension using `route!(c, ::AbstractExtension)` (only if the binding exists) before the main routing process begins -- giving extensions the first oppurtunity to `write!` to the `Connection`.
-- `route!` is called twice during the routing process, first on the `Connection` and the `Vector{<:AbstractRoute}` that holds the routes. This is where the startup printout of `Toolips` comes to relevance:
-```julia
-julia> Toolips.start!(Sample)
-🌷 toolips> loaded router type: Vector{Toolips.Route{Connection}}
-🌷 toolips> server listening at http://127.0.0.1:8000
-
-```
-- `route!` is also called **again** on a `MultiRoute` if a `MultiRoute` is being used. In the binding for the quintessential `MultiRoute` type, for example, the incoming `Connection` checks for conversion into any of the dispatched functions.
-
-All of these considered, there are a lot of ways to extend the routing of `Toolips`.
-###### server extensions
-###### component extensions
-
+There are many other ways to load and use extensions, and extensions do a lot more than extend the servers themselves.
 ## multi-threading
-`Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize.
+`Toolips` includes a distributed computing implementation built atop [ParametricProcesses](https://github.com/ChifiSource/ParametricProcesses.jl). This implementation of multi-threading allows us to serve each incoming connection on a different thread simply by providing the number of threads to utilize. Providing `threads` will simply add additional workers to our `ProcessManager`. These workers can then be used with `distribute!` and `assign!` or `assign_open!` -- all functions extended to work with the `Connection` from `ParametricProcesses`. By default, the number of `router_threads` will be `-2`, 3 responses from the base thread, and then however many threaded workers are provided. But of course, if we provided -- say `1:1` then we would only get the threads in the `ProcessManager`.
 ```julia
+start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads)
+```
+```julia
+module MySampleServer
+using Toolips
+home = route("/") do c::Connection
+    write!(c, "hello")
+end
+
+export home, start!
+end
+
+using MySampleServer; start!(MySampleServer, router_threads
 ```
 For the most part, this is straightforward -- but there are some things to be aware of...
 - When a server is multi-threaded, its routes will be passed an `IOConnection` -- not a regular `Connection`. Routes will need to be annotated as an `AbstractConnection` (to work with single or multiple threads,) an `IOConnection` (to work with multi-threaded servers only,) or an `AbstractConnection` to work with multi-threaded servers.
@@ -530,6 +361,29 @@ Because `Tooips` was built primarily to drive other [chifi](https://github.com/C
   - Using: `Toolips`, [ToolipsServables](https://github.com/ChifiSource/ToolipsServables.jl), [ToolipsSession](https://github.com/ChifiSource/ToolipsSession.jl)
 - [ChiProxy](https://github.com/ChifiSource/ChiProxy.jl) `ChiProxy` is a `Toolips`-bound proxy server for Julia. This proxy server demonstrates replacing the `Toolips` router by extending functions, allowing for routes to be routed by host rather than just `target` -- as well as a plethora of other special capabilities.
   - Using: `Toolips`
-- [ChiNS](#https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
+- [ChiNS](https://github.com/ChifiSource/ChiNS.jl) `ChiNS` is a Domain Name Server built with `Toolips`. This project provides a running example of `ToolipsUDP`, as well as a pretty nice demonstration of how to create a DNS server.
   - Using: [ToolipsUDP](https://github.com/ChifiSource/ToolipsUDP.jl)
+- [EmsComputer](https://github.com/emmaccode/EmsComputer.jl) `EmsComputer` is emma's full-stack web-app that serves several applications inside of one single-page app.
+  - Using: `Toolips`, `ToolipsServables`, `ToolipsSession`
+
+- **want your project here?**
+
+If you would like to share your project as a `Toolips` example, please open an issue!
 ### contributing
+`Toolips` is a *totally* awesome project, and with more contributors becomes even better even better. You may contribute to this project by...
+- using Toolips in your own project 🌷
+- creating extensions for the toolips ecosystem 💐
+- forking this project [contributing guidelines](#guidelines)
+- submitting issues
+- contributing to other [chifi](https://github.com/ChifiSource) projects
+- supporting chifi creators
+
+I thank you for all of your help with our project, or just for considering contributing! I want to stress further that we are not picky -- allowing us all to express ourselves in different ways is part of the key methodology behind the entire [chifi](https://github.com/ChifiSource) ecosystem. Feel free to contribute, we would **love** to see your art! Issues marked with `good first issue` might be a great place to start!
+#### guidelines
+When submitting issues or pull-requests for `Toolips`, it is important to make sure of a few things. We are not super strict, but making sure of these few things will be helpful for maintainers!
+1. You have replicated the issue on **Unstable**
+2. The issue does not currently exist... or does not have a planned implementation different to your own. In these cases, please collaborate on the issue, express your idea and we will select the best choice.
+3. **Pull Request TO UNSTABLE**
+4. Be **specific** about your issue -- if you are experiencing multiple issues, open multiple issues. It is better to have a high quantity of issues that specifically describe things than a low quantity of issues that describe multiple things.
+5. If you have a new issue, **open a new issue**. It is not best to comment your issue under an unrelated issue; even a case where you are experiencing that issue, if you want to mention **another issue**, open a **new issue**.
+6. Questions are fine, but **not** questions answered inside of this `README`.

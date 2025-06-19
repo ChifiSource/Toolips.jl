@@ -622,11 +622,11 @@ export main_handler, second_step
 end
 ```
 """
-function set_handler!(c::UDPConnection, name::String)
+function set_handler!(c::AbstractSocketConnection, name::String)
     c[:MultiHandler].clients[get_ip4(c)] = name
 end
 
-function set_handler!(c::UDPConnection, ip4::IP4, name::String)
+function set_handler!(c::AbstractSocketConnection, ip4::IP4, name::String)
     c[:MultiHandler].clients[ip4] = name
 end
 
@@ -666,7 +666,7 @@ end
 # this server will continuously switch between response 1 and response 2.
 ```
 """
-remove_handler!(c::UDPConnection) = delete!(c[:MultiHandler].clients, get_ip4(c))
+remove_handler!(c::AbstractSocketConnection) = delete!(c[:MultiHandler].clients, get_ip4(c))
 
 function read_all(c::SocketConnection)
     sock = c.stream
@@ -687,4 +687,30 @@ function read_all(c::SocketConnection)
 		close(sock)
 	end
     String(take!(buffer))::String
+end
+
+function new_app(st::Type{ServerTemplate{:tcp}}, name::String)
+    create_serverdeps(name)
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Revise
+        using Toolips
+        using $name
+        toolips_process = start!(:TCP, $name)
+        """)
+    end
+    open(name * "/src/" * "$name.jl", "w") do o::IOStream
+        write(o, 
+        """module $name
+        using Toolips
+        
+        main_handler = handler() do c::Toolips.SocketConnection
+            query = read_all(c)
+            write!(c, "hello client!")
+        end
+        
+        export main_handler, start!
+        end""")
+    end
 end

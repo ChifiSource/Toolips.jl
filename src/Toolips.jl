@@ -265,9 +265,8 @@ Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
 - **see also:** `Toolips`, `route`, `start!`, `Connection`, `make_docroute`
 """
-function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebServer)
+function new_app(name::String)
     create_serverdeps(name)
-    servername = name * "Server"
     open(name * "/dev.jl", "w") do io
         write(io, """
         using Pkg; Pkg.activate(".")
@@ -279,7 +278,7 @@ function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebSer
     end
 end
 
-function new_app
+new_app(st::Symbol, args ...; keyargs ...) = new_app(ServerTemplate{st}, args ...; keyargs ...)
 
 default_404 = Toolips.route("404") do c::AbstractConnection
     if ~("/toolips03.png" in c.routes)

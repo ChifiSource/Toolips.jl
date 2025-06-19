@@ -279,6 +279,8 @@ function new_app(name::String, template::Type{<:AbstractServerTemplate} = WebSer
     end
 end
 
+function new_app
+
 default_404 = Toolips.route("404") do c::AbstractConnection
     if ~("/toolips03.png" in c.routes)
         dir::String = @__DIR__ 

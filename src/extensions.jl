@@ -293,6 +293,60 @@ end
 
 """
 ```julia
+NamedHandler <: AbstractHandler
+```
+- f**::Function*
+- name**::String**
+
+A `NamedHandler` is a named version of a `UDPHandler`. This naming allows 
+for handlers to be set. We create this by providing a `String` as an 
+    argument to the `handler` `Function`. This is primarily intended to be 
+used with the `MultiHandler` extension, where we are able to 
+set the current handler for a future incoming request.
+
+- See also: `handler`, `UDPConnection`, `start!`, `respond!`, `UDPHandler`, `set_handler!`, `remove_handler!`, `MultiHandler`
+```julia
+NamedHandler(f::Function, name::String)
+```
+```example
+module NewUDPServer
+using ToolipsUDP
+password = "123"
+
+main_handler = handler() do c::AbstractUDPConnection
+    if c.packet == password
+        set_handler!(c, "private_message")
+        respond!(c, "you are confirmed")
+        return
+    end
+    respond!(c, "you are denied")
+end
+
+ #  vvv NamedHandler
+private_msg = handler("private_message") do c::AbstractUDPConnection
+    respond!(c, "this is my private message")
+    set_handler!(c, "sendback")
+end
+
+welcome_message = handler("sendback") do c::AbstractUDPConnection
+    respond!(c, "ok, you're locked out again.")
+    remove_handler!(c)
+end
+
+new_handler = MultiHandler()
+
+export start!, UDP, main_handler, new_handler
+export private_msg
+end
+```
+"""
+struct NamedHandler <: AbstractUDPHandler
+    f::Function
+    name::String
+end
+
+"""
+```julia
 handler(f::Function, args ...) -> ::AbstractHandler
 ```
 The `handler` function is a basic API for constructing varieties of `AbstractHandler` 
@@ -325,7 +379,11 @@ function handler end
 
 handler(f::Function) = Handler(f)
 
+handler(f::Function, name::String) = NamedHandler(f, name)
+
 write!(str::Sockets.TCPSocket, a::Any ...) = write(str, a ...)
+
+abstract type AbstractSocketConnection <: AbstractConnection end
 
 """
 ```julia
@@ -356,9 +414,9 @@ using Toolips; start!(:TCP, MyServer)
 ```
 - See also: `handler`, `AbstractHandler`, `write!`, `get_ip4`, `start!`
 """
-mutable struct SocketConnection <: AbstractConnection
+mutable struct SocketConnection <: AbstractSocketConnection
     stream::Sockets.TCPSocket
-    handlers::Vector{AbstractUDPHandler}
+    handlers::Vector{AbstractHandler}
     data::Dict{Symbol, Any}
     server::Sockets.TCPSocket
 end
@@ -370,7 +428,7 @@ abstract type SocketServerExtension  <: AbstractExtension end
 mutable struct TCPIOConnection <: AbstractConnection
     ip::IP4
     packet::String
-    handlers::Vector{AbstractUDPHandler}
+    handlers::Vector{AbstractHandler}
     data::Dict{Symbol, Any}
     stream::String
 end
@@ -425,23 +483,190 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
             push!(extensions, f)
         end
     end
+    for ext in extensions
+        on_start(data, ext)
+    end
     handlers = [handlers ...]
     if ~(async)
         while true
 		    client = accept(server)
 		    conn = SocketConnection(client, handlers, data, server)
+            stop = [route!(conn, ext) for ext in extensions]
+            f = findfirst(x -> x == false, stop)
+            if ~(isnothing(f))
+                continue
+            end
             handler.f(conn)
+            try
+                handlers[1].f(con)
+            catch e
+                throw(e)
+            end
 	    end
         return
     end
     t = @async while true
 		client = accept(server)
 		conn = SocketConnection(client, handlers, data, server)
+        stop = [route!(conn, ext) for ext in extensions]
+        f = findfirst(x -> x == false, stop)
+        if ~(isnothing(f))
+            continue
+        end
         handler.f(conn)
+        try
+            handlers[1].f(con)
+        catch e
+            throw(e)
+        end
 	end
     main_worker = Worker{Async}("$mod router", rand(1000:3000))
     ProcessManager(main_worker)::ProcessManager
 end
+
+"""
+```julia
+MultiHandler <: SocketServerExtension
+```
+- `main_handler`**::UDPHandler**
+- `clients`**::Dict{IP4, String}**
+
+The `MultiHandler` is a type created to route a client to multiple 
+named handlers using `set_handler!`. We provide our `MultiHandler` 
+with a main handler. This main handler acts as the first response, 
+subsequent responses can then be done through `NamedHandler`s.
+
+- See also: `set_handler!`, `NamedHandler`, `remove_handler!`
+```julia
+MultiHandler(hand::UDPHandler)
+MultiHandler(f::Function)
+```
+```julia
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    respond!(c, "you made it to the second screen!")
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+
+# a multi-handler can also be passed a `Function` to automatically make the main handler.
+multi_handler = MultiHandler() do c::AbstractUDPConnection
+
+end
+```
+"""
+mutable struct MultiHandler <: SocketServerExtension
+    main_handler::Handler
+    clients::Dict{IP4, String}
+    MultiHandler(hand::Handler) = new(hand, Dict{IP4, String}())
+    MultiHandler(f::Function) = new(Handler(f), Dict{IP4, String}())
+end
+
+function route!(c::AbstractSocketConnection, mh::MultiHandler)
+    ip = get_ip4(c)
+    if ip in keys(mh.clients)
+        handler_name::String = mh.clients[ip]
+        f = findfirst(r -> typeof(r) == NamedHandler && r.name == handler_name, c.handlers)
+        c.handlers[f].f(c)
+        return(false)::Bool
+    else
+        mh.main_handler.f(c)
+        return(false)
+    end
+end
+
+"""
+```julia
+set_handler!(c::UDPConnection, args ...) -> ::Nothing
+```
+Sets a `NamedHandler` for a `MultiHandler` for the client 
+    currently being served by `c`.
+```julia
+# for current client
+set_handler!(c::UDPConnection, name::String)
+# for other clients
+set_handler!(c::UDPConnection, ip4::IP4, name::String)
+```
+```example
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    respond!(c, "you made it to the second screen!")
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+```
+"""
+function set_handler!(c::UDPConnection, name::String)
+    c[:MultiHandler].clients[get_ip4(c)] = name
+end
+
+function set_handler!(c::UDPConnection, ip4::IP4, name::String)
+    c[:MultiHandler].clients[ip4] = name
+end
+
+"""
+```julia
+remove_handler!(c::UDPConnection) -> ::Nothing
+```
+Removes a currently selected `NamedHandler`, returning the client 
+to the `main_handler` provided to the `MultiHandler`.
+```julia
+# for current client
+set_handler!(c::UDPConnection, name::String)
+# for other clients
+set_handler!(c::UDPConnection, ip4::IP4, name::String)
+```
+```example
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    remove_hanlder!(c)
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+
+# this server will continuously switch between response 1 and response 2.
+```
+"""
+remove_handler!(c::UDPConnection) = delete!(c[:MultiHandler].clients, get_ip4(c))
 
 function read_all(c::SocketConnection)
     sock = c.stream

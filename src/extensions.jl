@@ -340,7 +340,7 @@ export private_msg
 end
 ```
 """
-struct NamedHandler <: AbstractUDPHandler
+struct NamedHandler <: AbstractHandler
     f::Function
     name::String
 end
@@ -418,7 +418,7 @@ mutable struct SocketConnection <: AbstractSocketConnection
     stream::Sockets.TCPSocket
     handlers::Vector{AbstractHandler}
     data::Dict{Symbol, Any}
-    server::Sockets.TCPSocket
+    server::Sockets.TCPServer
 end
 
 read(s::SocketConnection) = readavailable(s.stream)
@@ -470,6 +470,7 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     handlers = []
+    data = Dict{Symbol, Any}()
     extensions = Vector{SocketServerExtension}()
     for name in names(mod)
         if ~(isdefined(mod, name))
@@ -496,9 +497,8 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
             if ~(isnothing(f))
                 continue
             end
-            handler.f(conn)
             try
-                handlers[1].f(con)
+                handlers[1].f(conn)
             catch e
                 throw(e)
             end
@@ -513,9 +513,8 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
         if ~(isnothing(f))
             continue
         end
-        handler.f(conn)
         try
-            handlers[1].f(con)
+            handlers[1].f(conn)
         catch e
             throw(e)
         end
@@ -678,7 +677,7 @@ function read_all(c::SocketConnection)
 				data = read(sock, n)
 				write(buffer, data)
 			else
-				yield()
+				break
 			end
 		end
 	catch e
@@ -689,7 +688,7 @@ function read_all(c::SocketConnection)
     String(take!(buffer))::String
 end
 
-function new_app(st::Type{ServerTemplate{:tcp}}, name::String)
+function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
     create_serverdeps(name)
     open(name * "/dev.jl", "w") do io
         write(io, """
@@ -709,7 +708,7 @@ function new_app(st::Type{ServerTemplate{:tcp}}, name::String)
             query = read_all(c)
             write!(c, "hello client!")
         end
-        
+        # (try with `socket = connect(server IP4); write!(socket, "hello server!"); print(String(readavailable(socket)))`
         export main_handler, start!
         end""")
     end

@@ -145,6 +145,8 @@ include("core.jl")
 
 connect(ip::IP4) = connect(ip.ip, ip.port)
 
+connect(host::IP4, to::IP4) = connect(host.ip, host.port, to.ip, to.port)
+
 export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!, File, start!, route!, assign!, distribute!, waitfor, get_ip, kill!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 export get_cookies, connect, respond!, get_headers, handler, clear_cookies!, SocketConnection, read_all

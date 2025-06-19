@@ -433,6 +433,10 @@ mutable struct TCPIOConnection <: AbstractConnection
     stream::String
 end
 
+function on_start(data::Dict{Symbol, Any}, ext::SocketServerExtension)
+
+end
+
 """
 ```julia
 get_ip4(c::AbstractConnection) -> ::IP4
@@ -567,15 +571,26 @@ multi_handler = MultiHandler() do c::AbstractUDPConnection
 end
 ```
 """
-mutable struct MultiHandler <: SocketServerExtension
+mutable struct MultiHandler{T} <: SocketServerExtension
     main_handler::Handler
-    clients::Dict{IP4, String}
-    MultiHandler(hand::Handler) = new(hand, Dict{IP4, String}())
-    MultiHandler(f::Function) = new(Handler(f), Dict{IP4, String}())
+    clients::Dict{T, String}
+    MultiHandler(hand::Handler; ip4::Bool = true) = begin 
+        T = String
+        if ip4
+            T = ip4
+        end
+        new{T}(hand, Dict{T, String}())
+    end
 end
 
+MultiHandler(f::Function; args ...) = MultiHandler(Handler(f), args ...)
+
 function route!(c::AbstractSocketConnection, mh::MultiHandler)
-    ip = get_ip4(c)
+    if typeof(mh) == MultiHandler{IP4}
+        ip = get_ip4(c)
+    else
+        ip = get_ip(c)
+    end
     if ip in keys(mh.clients)
         handler_name::String = mh.clients[ip]
         f = findfirst(r -> typeof(r) == NamedHandler && r.name == handler_name, c.handlers)
@@ -585,6 +600,10 @@ function route!(c::AbstractSocketConnection, mh::MultiHandler)
         mh.main_handler.f(c)
         return(false)
     end
+end
+
+function on_start(data::Dict{Symbol, Any}, ext::MultiHandler)
+    push!(data, :MultiHandler => ext)
 end
 
 """
@@ -622,11 +641,21 @@ end
 ```
 """
 function set_handler!(c::AbstractSocketConnection, name::String)
-    c[:MultiHandler].clients[get_ip4(c)] = name
+    mh = c[:MultiHandler]
+    if typeof(mh) == MultiHandler{IP4}
+        mh.clients[get_ip4(c)] = name
+    else
+        mh.clients[get_ip(c)] = name
+    end
 end
 
 function set_handler!(c::AbstractSocketConnection, ip4::IP4, name::String)
     c[:MultiHandler].clients[ip4] = name
+end
+
+
+function set_handler!(c::AbstractSocketConnection, ip::String, name::String)
+    c[:MultiHandler].clients[ip] = name
 end
 
 """
@@ -665,7 +694,14 @@ end
 # this server will continuously switch between response 1 and response 2.
 ```
 """
-remove_handler!(c::AbstractSocketConnection) = delete!(c[:MultiHandler].clients, get_ip4(c))
+remove_handler!(c::AbstractSocketConnection) = begin
+    mh = c[:MultiHandler]
+    if typeof(mh) == MultiHandler{IP4}
+        delete!(c[:MultiHandler].clients, get_ip4(c))
+    else
+        delete!(c[:MultiHandler].clients, get_ip(c))
+    end
+end
 
 function read_all(c::SocketConnection)
     sock = c.stream

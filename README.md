@@ -88,7 +88,7 @@ using Main.DocServer; start!(Main.DocServer)
 ```
 The documentation will then be available at `/docs/(modname)` -- e.g. `/docs/toolipsservables` `/docs/toolips`.
 - **Chifi Docs**: [toolips](https://chifidocs.com/toolips/Toolips) [ecosystem](https://chifidocs.com/toolips) [source](https://github.com/ChifiSource/ChifiDocs.jl)
-- **Creator**: [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl) will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively. This also *has yet to materialize*, but is in the pipeline and will be available some time after `ChifiDocs`.
+- **Creator**: [OliveCreator](https://github.com/ChifiSource/OliveCreator.jl) will eventually offer interactive `Toolips` notebooks that help to explain and demonstrate concepts more effectively.
 ## projects
 In `Toolips`, projects are modules which **export** `Toolips` types. These special types are
 - Any sub-type of `AbstractRoute`.
@@ -180,6 +180,9 @@ get_method
 get_post
 get_parent
 get_client_system
+get_cookies
+read_all (for TCP servers)
+get_ip4
 ```
 All of these take a `Connection` and are pretty self explanatory with the exception of `get_client_system`. This will provide the system of the client, but also whether or not the client is on a mobile system. Note that the operating system is given as the request header gives it, of course.
 ```julia

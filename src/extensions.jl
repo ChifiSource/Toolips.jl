@@ -434,7 +434,7 @@ mutable struct TCPIOConnection <: AbstractConnection
 end
 
 function on_start(data::Dict{Symbol, Any}, ext::SocketServerExtension)
-
+    @warn typeof(ext)
 end
 
 """
@@ -466,7 +466,7 @@ function get_ip(c::SocketConnection)
     string(Sockets.getpeername(c.stream)[1])
 end
 
-function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, async::Bool = false)
     if threads > 1
         @warn "threading for TCP servers not yet implemented, this will be a 0.4+ feature."

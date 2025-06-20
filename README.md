@@ -25,7 +25,7 @@
 - File servers
 - Interactive fullstack web applications (using the [ToolipSession](https://github.com/ChifiSource/ToolipsSession.jl) extension)
 - Other HTTP/HTTPS servers (e.g. Proxy server, data-base cursor)
-- UDP servers and services (e.g. Systems servers, DNS servers)
+- TCP or UDP socket servers and services (e.g. Systems servers, DNS servers)
 ---
 ```julia
 using Pkg; Pkg.add("Toolips")

@@ -298,13 +298,17 @@ NamedHandler <: AbstractHandler
 - f**::Function*
 - name**::String**
 
-A `NamedHandler` is a named version of a `UDPHandler`. This naming allows 
+A `NamedHandler` is a named version of a `Handler`. This naming allows 
 for handlers to be set. We create this by providing a `String` as an 
     argument to the `handler` `Function`. This is primarily intended to be 
 used with the `MultiHandler` extension, where we are able to 
-set the current handler for a future incoming request.
+set the current handler for a future incoming request. This is primarily intended 
+    for use by a UDP server (as a TCP socket server will keep the connection alive,) 
+    but for single-packet transmissions could also be used with TCP. 
+    Named handlers will be exported alongside a multihandler, holding a default handler.
+    The default handler will use `set_handler!` to set the handler for the next response.
 
-- See also: `handler`, `UDPConnection`, `start!`, `respond!`, `UDPHandler`, `set_handler!`, `remove_handler!`, `MultiHandler`
+- See also: `handler`, `SocketConnection`, `start!`, `respond!`, `UDPHandler`, `set_handler!`, `remove_handler!`, `MultiHandler`
 ```julia
 NamedHandler(f::Function, name::String)
 ```
@@ -374,6 +378,7 @@ able to provide more.
 start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
     threads::Int64 = 1, async::Bool = false)
 ```
+- See also: `Handler`, `start!`, `SocketConnection`
 """
 function handler end
 
@@ -545,6 +550,7 @@ MultiHandler(hand::UDPHandler)
 MultiHandler(f::Function)
 ```
 ```julia
+# UDP example
 module HandlerSample
 using ToolipsUDP
 
@@ -739,6 +745,7 @@ function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
         write(o, 
         """module $name
         using Toolips
+        using Toolips: get_ip4
         
         main_handler = handler() do c::Toolips.SocketConnection
             query = read_all(c)

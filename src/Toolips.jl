@@ -256,16 +256,31 @@ new_app(name**::String**, template::Type{<:ServerTemplate} = WebServer) -> ::Not
 ```
 Creates a new toolips app with name `name`. A `template` may also be provided to build a project 
 from a `ServerTemplate`. The only `ServerTemplate` provided by `Toolips` is the `WebServer`, server 
-templates are used as a base to start a server from default files.
+templates are used as a base to start a server from default files. 
+
+As of `0.3.11`, `new_app` also contains additional server template types. The canonical example of this from 
+`Toolips` being the TCP server. Calling `new_app` for a specific server type mirrors calling `start!` for a 
+specific server type. Simply provide the symbol of the server type.
+```julia
+new_app(st::Symbol, args ...; keyargs ...)
+```
 ```example
 using Toolips
 Toolips.new_app("ToolipsApp")
+
+# new non-HTTP TCP server:
+Toolips.new_app(:TCP, "RegularApp")
+
+# extension new_app
+using ToolipsUDP
+
+ToolipsUDP.new_app(:UDP, "UDPApp")
 ```
 ```example
 using Toolips
 Toolips.new_app("ToolipsApp", Toolips.WebServer)
 ```
-- **see also:** `Toolips`, `route`, `start!`, `Connection`, `make_docroute`
+- See also: `Toolips`, `route`, `start!`, `Connection`, `make_docroute`
 """
 function new_app(name::String)
     create_serverdeps(name)

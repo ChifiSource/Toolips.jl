@@ -1332,6 +1332,9 @@ start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
 ```julia
 start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
 start!(st::Symbol, mod::Module, args ...; keyargs ...)
+# TCP start:
+start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1, async::Bool = false)
 ```
 - (extension) for a `TCP` server (no HTTP):
 ```julia

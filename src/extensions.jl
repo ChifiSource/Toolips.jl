@@ -756,3 +756,55 @@ function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
         end""")
     end
 end
+
+is_closed(c::AbstractConnection) = eof(c)
+
+"""
+```julia
+continue_connection(f::Function, c::SocketConnection, closebyte::Char = '\\n') -> ::Nothing
+```
+`continue_connection` is a *convenience* function used to keep an `AbstractSocketConnection` open 
+while reading and writing data. `f` will be a `Function` that takes a `SocketConnection` and a `String`. 
+    The return of this provided `Function` may be `Bool` or `Nothing`. If `false` is returned, the connection 
+    will be killed.
+```julia
+module SampServer
+using Toolips
+
+function cont_handle(c::AbstractSocketConnection, packet::String)
+    @info "the client sent \$packet and it is ready to use!"
+end
+
+main = handler() do c::SocketConnection
+    Toolips.continue_connection(cont_handle, c, '\\n')
+end
+
+export main
+end
+
+using Toolips
+
+start!(:TCP, Main.SampServer, "127.0.0.1":8005, async = true)
+
+sock = Toolips.connect("127.0.0.1":8005)
+
+write!(sock, "hello world!")
+```
+"""
+function continue_connection(f::Function, c::AbstractSocketConnection, closebyte::Char = '\n')
+    data::String = ""
+    while true
+        data = data * readavailable(c)
+        if eof(c.stream)
+            break
+        end
+        if length(data) > 0 && data[end] == closebyte
+            keep_going = f(c, data)
+            if isnothing(keep_going)
+                continue
+            elseif ~(keep_going)
+                break
+            end
+        end
+    end
+end

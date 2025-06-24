@@ -107,7 +107,7 @@ import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distrib
 using HTTP
 import HTTP: Cookie
 using Pkg
-import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!
+import Base: getindex, setindex!, push!, get,string, write, show, display, (:), delete!, eof
 import Base: showerror, in, Pairs, Exception, div, keys, *, read, insert!, log, readavailable
 
 const Components = ToolipsServables

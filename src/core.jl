@@ -474,6 +474,9 @@ read(c::AbstractConnection) = read(c.stream)
 
 readavailable(c::AbstractConnection) = readavailable(c.stream)
 
+
+eof(con::AbstractConnection) = eof(c.stream)::Bool
+
 """
 ```julia
 download!(c::AbstractConnection, uri::String) -> ::Nothing

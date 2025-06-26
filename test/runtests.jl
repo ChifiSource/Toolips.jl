@@ -78,6 +78,46 @@ Pkg.develop(path = "../.")
 using Main.ToolipsTestServer
 using ToolipsTester
 @testset "toolips servers" verbose = true begin
+    @test "new app" begin
+        cd(wd)
+        Toolips.new_app("Plain")
+        @test isdir("Plain")
+        @test isdir("Plain/src")
+        completed = try
+            include_string(read("Plain/src/Plain.jl", String))
+            true
+        catch
+            false
+        end
+        @test completed
+        completed = try
+            start!(Main.Plain)
+            true
+        catch
+            false
+        end
+        @test completed
+        kill!(Main.Plain)
+        rm("Plain", recursive = true)
+        Toolips.new_app(:TCP, "Plain")
+        @test isdir("Plain")
+        @test isdir("Plain/src")
+        completed = try
+            include_string(read("Plain/src/Plain.jl", String))
+            true
+        catch
+            false
+        end
+        @test completed
+        completed = try
+            start!(:TCP, Main.Plain, async = true)
+            true
+        catch
+            false
+        end
+        @test completed
+        kill!(Main.Plain)
+    end
     @testset "server creation" begin
         @test length(Main.ToolipsTestServer.mounted_dir) > 0
         found_path = findfirst(r -> r.path == "/files/runtests.jl", Main.ToolipsTestServer.mounted_dir)
@@ -138,6 +178,9 @@ using ToolipsTester
         rm("ToolipsTester", recursive = true)
     catch
         @warn "unable to perform cleanup"
+    end
+    @testset "TCP servers" begin
+
     end
 end
 

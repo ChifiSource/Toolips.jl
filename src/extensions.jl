@@ -293,6 +293,64 @@ end
 
 """
 ```julia
+NamedHandler <: AbstractHandler
+```
+- f**::Function*
+- name**::String**
+
+A `NamedHandler` is a named version of a `Handler`. This naming allows 
+for handlers to be set. We create this by providing a `String` as an 
+    argument to the `handler` `Function`. This is primarily intended to be 
+used with the `MultiHandler` extension, where we are able to 
+set the current handler for a future incoming request. This is primarily intended 
+    for use by a UDP server (as a TCP socket server will keep the connection alive,) 
+    but for single-packet transmissions could also be used with TCP. 
+    Named handlers will be exported alongside a multihandler, holding a default handler.
+    The default handler will use `set_handler!` to set the handler for the next response.
+
+- See also: `handler`, `SocketConnection`, `start!`, `respond!`, `UDPHandler`, `set_handler!`, `remove_handler!`, `MultiHandler`
+```julia
+NamedHandler(f::Function, name::String)
+```
+```example
+module NewUDPServer
+using ToolipsUDP
+password = "123"
+
+main_handler = handler() do c::AbstractUDPConnection
+    if c.packet == password
+        set_handler!(c, "private_message")
+        respond!(c, "you are confirmed")
+        return
+    end
+    respond!(c, "you are denied")
+end
+
+ #  vvv NamedHandler
+private_msg = handler("private_message") do c::AbstractUDPConnection
+    respond!(c, "this is my private message")
+    set_handler!(c, "sendback")
+end
+
+welcome_message = handler("sendback") do c::AbstractUDPConnection
+    respond!(c, "ok, you're locked out again.")
+    remove_handler!(c)
+end
+
+new_handler = MultiHandler()
+
+export start!, UDP, main_handler, new_handler
+export private_msg
+end
+```
+"""
+struct NamedHandler <: AbstractHandler
+    f::Function
+    name::String
+end
+
+"""
+```julia
 handler(f::Function, args ...) -> ::AbstractHandler
 ```
 The `handler` function is a basic API for constructing varieties of `AbstractHandler` 
@@ -320,12 +378,17 @@ able to provide more.
 start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
     threads::Int64 = 1, async::Bool = false)
 ```
+- See also: `Handler`, `start!`, `SocketConnection`
 """
 function handler end
 
 handler(f::Function) = Handler(f)
 
+handler(f::Function, name::String) = NamedHandler(f, name)
+
 write!(str::Sockets.TCPSocket, a::Any ...) = write(str, a ...)
+
+abstract type AbstractSocketConnection <: AbstractConnection end
 
 """
 ```julia
@@ -356,11 +419,28 @@ using Toolips; start!(:TCP, MyServer)
 ```
 - See also: `handler`, `AbstractHandler`, `write!`, `get_ip4`, `start!`
 """
-mutable struct SocketConnection <: AbstractConnection
+mutable struct SocketConnection <: AbstractSocketConnection
     stream::Sockets.TCPSocket
+    handlers::Vector{AbstractHandler}
+    data::Dict{Symbol, Any}
+    server::Sockets.TCPServer
 end
 
 read(s::SocketConnection) = readavailable(s.stream)
+
+abstract type SocketServerExtension  <: AbstractExtension end
+
+mutable struct TCPIOConnection <: AbstractConnection
+    ip::IP4
+    packet::String
+    handlers::Vector{AbstractHandler}
+    data::Dict{Symbol, Any}
+    stream::String
+end
+
+function on_start(data::Dict{Symbol, Any}, ext::SocketServerExtension)
+    @warn typeof(ext)
+end
 
 """
 ```julia
@@ -391,36 +471,249 @@ function get_ip(c::SocketConnection)
     string(Sockets.getpeername(c.stream)[1])
 end
 
-function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS), 
+function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, async::Bool = false)
+    mod.eval(Meta.parse("server = nothing; procs = nothing; data = Dict{Symbol, Any}()"))
     if threads > 1
         @warn "threading for TCP servers not yet implemented, this will be a 0.4+ feature."
     end
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    handler = nothing
+    handlers = []
+    extensions = Vector{SocketServerExtension}()
     for name in names(mod)
+        if ~(isdefined(mod, name))
+            continue
+        end
         f = getfield(mod, name)
-        if typeof(f) <: AbstractHandler
-            handler = f
-            break
+        T = typeof(f)
+        if T <: AbstractHandler
+            push!(handlers, f)
+        elseif T <: SocketServerExtension
+            push!(extensions, f)
         end
     end
+    for ext in extensions
+        on_start(mod.data, ext)
+    end
+    mod.server = server
+    main_worker = Worker{Async}("$mod router", rand(1000:3000))
+    pm::ProcessManager = ProcessManager(main_worker)
+    if threads > 1
+        add_workers!(pm, threads - 1)
+    end
+    handlers = [handlers ...]
     if ~(async)
         while true
 		    client = accept(server)
-		    conn = SocketConnection(client)
-            handler.f(conn)
+		    conn = SocketConnection(client, handlers, mod.data, server)
+            stop = [route!(conn, ext) for ext in extensions]
+            f = findfirst(x -> x == false, stop)
+            if ~(isnothing(f))
+                continue
+            end
+            try
+                handlers[1].f(conn)
+            catch e
+                throw(e)
+            end
 	    end
         return
     end
     t = @async while true
 		client = accept(server)
-		conn = SocketConnection(client)
-        handler.f(conn)
+		conn = SocketConnection(client, handlers, mod.data, server)
+        stop = [route!(conn, ext) for ext in extensions]
+        f = findfirst(x -> x == false, stop)
+        if ~(isnothing(f))
+            continue
+        end
+        try
+            handlers[1].f(conn)
+        catch e
+            throw(e)
+        end
 	end
-    main_worker = Worker{Async}("$mod router", rand(1000:3000))
-    ProcessManager(main_worker)::ProcessManager
+    main_worker.task = t
+    mod.procs = pm
+    pm::ProcessManager
+end
+
+"""
+```julia
+MultiHandler <: SocketServerExtension
+```
+- `main_handler`**::UDPHandler**
+- `clients`**::Dict{IP4, String}**
+
+The `MultiHandler` is a type created to route a client to multiple 
+named handlers using `set_handler!`. We provide our `MultiHandler` 
+with a main handler. This main handler acts as the first response, 
+subsequent responses can then be done through `NamedHandler`s.
+
+- See also: `set_handler!`, `NamedHandler`, `remove_handler!`
+```julia
+MultiHandler(hand::UDPHandler)
+MultiHandler(f::Function)
+```
+```julia
+# UDP example
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    respond!(c, "you made it to the second screen!")
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+
+# a multi-handler can also be passed a `Function` to automatically make the main handler.
+multi_handler = MultiHandler() do c::AbstractUDPConnection
+
+end
+```
+"""
+mutable struct MultiHandler{T} <: SocketServerExtension
+    main_handler::Handler
+    clients::Dict{T, String}
+    MultiHandler(hand::Handler; ip4::Bool = true) = begin 
+        T = String
+        if ip4
+            T = ip4
+        end
+        new{T}(hand, Dict{T, String}())
+    end
+end
+
+MultiHandler(f::Function; args ...) = MultiHandler(Handler(f), args ...)
+
+function route!(c::AbstractSocketConnection, mh::MultiHandler)
+    if typeof(mh) == MultiHandler{IP4}
+        ip = get_ip4(c)
+    else
+        ip = get_ip(c)
+    end
+    if ip in keys(mh.clients)
+        handler_name::String = mh.clients[ip]
+        f = findfirst(r -> typeof(r) == NamedHandler && r.name == handler_name, c.handlers)
+        c.handlers[f].f(c)
+        return(false)::Bool
+    else
+        mh.main_handler.f(c)
+        return(false)
+    end
+end
+
+function on_start(data::Dict{Symbol, Any}, ext::MultiHandler)
+    push!(data, :MultiHandler => ext)
+end
+
+"""
+```julia
+set_handler!(c::UDPConnection, args ...) -> ::Nothing
+```
+Sets a `NamedHandler` for a `MultiHandler` for the client 
+    currently being served by `c`.
+```julia
+# for current client
+set_handler!(c::UDPConnection, name::String)
+# for other clients
+set_handler!(c::UDPConnection, ip4::IP4, name::String)
+```
+```example
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    respond!(c, "you made it to the second screen!")
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+```
+"""
+function set_handler!(c::AbstractSocketConnection, name::String)
+    mh = c[:MultiHandler]
+    if typeof(mh) == MultiHandler{IP4}
+        mh.clients[get_ip4(c)] = name
+    else
+        mh.clients[get_ip(c)] = name
+    end
+end
+
+function set_handler!(c::AbstractSocketConnection, ip4::IP4, name::String)
+    c[:MultiHandler].clients[ip4] = name
+end
+
+
+function set_handler!(c::AbstractSocketConnection, ip::String, name::String)
+    c[:MultiHandler].clients[ip] = name
+end
+
+"""
+```julia
+remove_handler!(c::UDPConnection) -> ::Nothing
+```
+Removes a currently selected `NamedHandler`, returning the client 
+to the `main_handler` provided to the `MultiHandler`.
+```julia
+# for current client
+set_handler!(c::UDPConnection, name::String)
+# for other clients
+set_handler!(c::UDPConnection, ip4::IP4, name::String)
+```
+```example
+module HandlerSample
+using ToolipsUDP
+
+
+main_handler = handler() do c::UDPConnection
+    println("response 1")
+    set_handler!(c, "second")
+end
+
+second_step = handler("second") do c::UDPConnection
+    println("response 2")
+    remove_hanlder!(c)
+end
+
+multi_handler = ToolipsUDP.MultiHandler(main_handler)
+
+export multi_handler, start!, UDP
+export main_handler, second_step
+end
+
+# this server will continuously switch between response 1 and response 2.
+```
+"""
+remove_handler!(c::AbstractSocketConnection) = begin
+    mh = c[:MultiHandler]
+    if typeof(mh) == MultiHandler{IP4}
+        delete!(c[:MultiHandler].clients, get_ip4(c))
+    else
+        delete!(c[:MultiHandler].clients, get_ip(c))
+    end
 end
 
 function read_all(c::SocketConnection)
@@ -433,7 +726,7 @@ function read_all(c::SocketConnection)
 				data = read(sock, n)
 				write(buffer, data)
 			else
-				yield()
+				break
 			end
 		end
 	catch e
@@ -442,4 +735,146 @@ function read_all(c::SocketConnection)
 		close(sock)
 	end
     String(take!(buffer))::String
+end
+
+function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
+    create_serverdeps(name)
+    open(name * "/dev.jl", "w") do io
+        write(io, """
+        using Pkg; Pkg.activate(".")
+        using Revise
+        using Toolips
+        using $name
+        toolips_process = start!(:TCP, $name)
+        """)
+    end
+    open(name * "/src/" * "$name.jl", "w") do o::IOStream
+        write(o, 
+        """module $name
+        using Toolips
+        using Toolips: get_ip4, handler, read_all
+        
+        main_handler = handler() do c::Toolips.SocketConnection
+            query = read_all(c)
+            write!(c, "hello client!")
+        end
+        # (try with `socket = connect(server IP4); write!(socket, "hello server!"); print(String(readavailable(socket)))`
+        export main_handler, start!
+        end""")
+    end
+end
+
+"""
+```julia
+is_closed(c::AbstractConnection) -> ::Bool
+```
+A direct binding to `eof`, will return `true` if the `Connection` is closed. The inverse of 
+`is_connected`.
+```julia
+module MyServer
+using Toolips
+
+main = handler() do c::Toolips.SocketConnection
+    # define a looping function
+    continuer = (c::SocketConnection, data::String) -> begin
+        # use `is_closed`
+        if is_closed(c)
+            # break the loop
+            return(false)
+        end
+        input_split = split(data, ";")
+        if length(input_split) < 2
+            # continue
+            return
+        end
+        command = input_split[1]
+        args = input_split[2:end]
+    end
+    Toolips.continue_connection(continuer, c, '\\n')
+end
+
+export main
+end
+```
+- See also: `eof`, `continue_connection`, `SocketConnection`, `start!`, `is_connected`
+"""
+is_closed(c::AbstractConnection) = eof(c)
+
+"""
+```julia
+is_connected(c::AbstractConnection) -> ::Bool
+```
+A reversed binding to `eof`, the opposite of `is_closed`
+```julia
+module MyServer
+using Toolips
+
+main = handler() do c::Toolips.SocketConnection
+    resp = ""
+    while is_connected(c)
+        resp = resp * String(readavailable(c))
+        if length(resp) > 0 && resp[end] == '\n'
+            @info "received: " * resp
+        end
+    end
+end
+export main
+end
+```
+- See also: `eof`, `continue_connection`, `SocketConnection`, `start!`
+"""
+is_connected(c::AbstractConnection) = ~(eof(c))
+
+is_connected(str::Sockets.TCPSocket) = ~(eof(str))
+
+is_closed(str::Sockets.TCPSocket) = eof(str)
+
+"""
+```julia
+continue_connection(f::Function, c::SocketConnection, closebyte::Char = '\\n') -> ::Nothing
+```
+`continue_connection` is a *convenience* function used to keep an `AbstractSocketConnection` open 
+while reading and writing data. `f` will be a `Function` that takes a `SocketConnection` and a `String`. 
+    The return of this provided `Function` may be `Bool` or `Nothing`. If `false` is returned, the connection 
+    will be killed.
+```julia
+module SampServer
+using Toolips
+
+function cont_handle(c::AbstractSocketConnection, packet::String)
+    @info "the client sent \$packet and it is ready to use!"
+end
+
+main = handler() do c::SocketConnection
+    Toolips.continue_connection(cont_handle, c, '\\n')
+end
+
+export main
+end
+
+using Toolips
+
+start!(:TCP, Main.SampServer, "127.0.0.1":8005, async = true)
+
+sock = Toolips.connect("127.0.0.1":8005)
+
+write!(sock, "hello world!")
+```
+"""
+function continue_connection(f::Function, c::AbstractSocketConnection, closebyte::Char = '\n')
+    data::String = ""
+    while true
+        data = data * String(readavailable(c))
+        if eof(c.stream)
+            break
+        end
+        if length(data) > 0 && data[end] == closebyte
+            keep_going = f(c, data)
+            if isnothing(keep_going)
+                continue
+            elseif ~(keep_going)
+                break
+            end
+        end
+    end
 end

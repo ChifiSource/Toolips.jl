@@ -474,6 +474,9 @@ read(c::AbstractConnection) = read(c.stream)
 
 readavailable(c::AbstractConnection) = readavailable(c.stream)
 
+
+eof(con::AbstractConnection) = eof(c.stream)::Bool
+
 """
 ```julia
 download!(c::AbstractConnection, uri::String) -> ::Nothing
@@ -1278,12 +1281,17 @@ function kill!(mod::Module)
     server_names::Vector{Symbol} = names(mod, all = true)
     if :server in server_names
         close(mod.server)
-        if typeof(mod.procs) == ProcessManager
-            close(mod.procs)
-            mod.procs = nothing
+        if :procs in server_names
+            if typeof(mod.procs) == ProcessManager
+                close(mod.procs)
+                mod.procs = nothing
+            end
         end
         mod.server = nothing
-        mod.routes = nothing
+        if :routes in server_names
+            mod.routes = nothing
+        end
+        
         GC.gc(true)
         Pkg.gc()
         @info "server $mod successfully closed"
@@ -1332,6 +1340,9 @@ start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
 ```julia
 start!(st::Type{ServerTemplate{<:Any}}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
 start!(st::Symbol, mod::Module, args ...; keyargs ...)
+# TCP start:
+start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
+    threads::Int64 = 1, async::Bool = false)
 ```
 - (extension) for a `TCP` server (no HTTP):
 ```julia
@@ -1370,7 +1381,6 @@ start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{s
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end
-
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractHTTPRoute, 
@@ -1486,6 +1496,9 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, thread
     loaded = AbstractExtension[]
     for name in names(mod)
         f = getfield(mod, name)
+        if ~(isdefined(mod, name))
+            continue
+        end
         if f isa AbstractExtension
             push!(loaded, f)
             on_start(f, data, mod.routes)

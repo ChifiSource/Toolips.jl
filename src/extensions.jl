@@ -768,7 +768,8 @@ end
 ```julia
 is_closed(c::AbstractConnection) -> ::Bool
 ```
-A direct binding to `eof`, will return `true` if the `Connection` is closed.
+A direct binding to `eof`, will return `true` if the `Connection` is closed. The inverse of 
+`is_connected`.
 ```julia
 module MyServer
 using Toolips
@@ -791,10 +792,38 @@ main = handler() do c::Toolips.SocketConnection
     end
     Toolips.continue_connection(continuer, c, '\\n')
 end
+
+export main
+end
+```
+- See also: `eof`, `continue_connection`, `SocketConnection`, `start!`, `is_connected`
+"""
+is_closed(c::AbstractConnection) = eof(c)
+
+"""
+```julia
+is_connected(c::AbstractConnection) -> ::Bool
+```
+A reversed binding to `eof`
+```julia
+module MyServer
+using Toolips
+
+main = handler() do c::Toolips.SocketConnection
+    resp = ""
+    while is_connected(c)
+        resp = resp * String(readavailable(c))
+        if length(resp) > 0 && resp[end] == '\n'
+            @info "received: " * resp
+        end
+    end
+end
+export main
+end
 ```
 - See also: `eof`, `continue_connection`, `SocketConnection`, `start!`
 """
-is_closed(c::AbstractConnection) = eof(c)
+is_connected(c::AbstractConnection) = ~(eof(c))
 
 """
 ```julia
@@ -831,7 +860,7 @@ write!(sock, "hello world!")
 function continue_connection(f::Function, c::AbstractSocketConnection, closebyte::Char = '\n')
     data::String = ""
     while true
-        data = data * readavailable(c)
+        data = data * String(readavailable(c))
         if eof(c.stream)
             break
         end

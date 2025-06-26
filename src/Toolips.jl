@@ -151,7 +151,7 @@ export IP4, route, mount, Connection, AbstractConnection, WebServer, log, write!
 export get, post, proxy_pass!, get_route, get_args, get_host, get_parent, AbstractRoute, get_post, get_client_system, Routes, get_method, interpolate!
 export get_cookies, connect, respond!, get_headers, handler, clear_cookies!, SocketConnection, read_all
 include("extensions.jl")
-export is_closed
+export is_closed, is_connected, handler
 #==
 Project API
 ==#

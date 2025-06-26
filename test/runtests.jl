@@ -3,6 +3,38 @@ using Toolips
 using Toolips.Pkg
 
 wd = @__DIR__
+Pkg.activate(wd)
+
+module TCPTester
+using Toolips
+using Main.Test
+
+main = Toolips.handler() do c::Toolips.SocketConnection
+    @testset "TCP handler response" begin
+    resp = ""
+    @test is_connected(c)
+    @test ~(is_closed(c))
+    while is_connected(c)
+        resp = resp * String(readavailable(c))
+        if length(resp) > 0 && resp[end] == '\n'
+            @test resp == "testmessage1\n"
+            break
+        end
+    end
+    contf = (c, data) -> begin
+        @test data == "testmessage2\n"
+        write!(c, "testmessage3")
+        return(false)
+    end
+    Toolips.continue_connection(contf, c)
+    # connection broken test
+    @test true
+    end
+end
+
+export main
+end
+
 module TestApp
 using Toolips
 # using Toolips.Components
@@ -78,32 +110,32 @@ Pkg.develop(path = "../.")
 using Main.ToolipsTestServer
 using ToolipsTester
 @testset "toolips servers" verbose = true begin
-    @test "new app" begin
+    @testset "new app start" begin
         cd(wd)
         Toolips.new_app("Plain")
         @test isdir("Plain")
         @test isdir("Plain/src")
-        completed = try
-            include_string(read("Plain/src/Plain.jl", String))
+        completed_include = try
+            include_string(Main, read("Plain/src/Plain.jl", String))
             true
         catch
             false
         end
-        @test completed
-        completed = try
+        @test completed_include
+        completed_start = try
             start!(Main.Plain)
             true
         catch
             false
         end
-        @test completed
+        @test completed_start
         kill!(Main.Plain)
         rm("Plain", recursive = true)
         Toolips.new_app(:TCP, "Plain")
         @test isdir("Plain")
         @test isdir("Plain/src")
         completed = try
-            include_string(read("Plain/src/Plain.jl", String))
+            include_string(Main, read("Plain/src/Plain.jl", String))
             true
         catch
             false
@@ -118,6 +150,7 @@ using ToolipsTester
         @test completed
         kill!(Main.Plain)
     end
+    Pkg.activate(wd)
     @testset "server creation" begin
         @test length(Main.ToolipsTestServer.mounted_dir) > 0
         found_path = findfirst(r -> r.path == "/files/runtests.jl", Main.ToolipsTestServer.mounted_dir)
@@ -176,11 +209,23 @@ using ToolipsTester
     end
     try
         rm("ToolipsTester", recursive = true)
+        rm("Plain", recursive = true)
     catch
         @warn "unable to perform cleanup"
     end
     @testset "TCP servers" begin
-
+        pm = start!(:TCP, TCPTester, "127.0.0.1":7002, async = true)
+        @test typeof(pm) == Toolips.ProcessManager
+        new_con = Toolips.connect("127.0.0.1":7002)
+        write!(new_con, "testmessage1\n")
+        message = ""
+        while ~(eof(new_con))
+            write!(new_con, "testmessage2\n")
+            message = message * readavailable(new_con)
+        end
+        # server connection closed test
+        @test true
+        @test message == "testmessage3"
     end
 end
 

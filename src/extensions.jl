@@ -804,7 +804,7 @@ is_closed(c::AbstractConnection) = eof(c)
 ```julia
 is_connected(c::AbstractConnection) -> ::Bool
 ```
-A reversed binding to `eof`
+A reversed binding to `eof`, the opposite of `is_closed`
 ```julia
 module MyServer
 using Toolips
@@ -824,6 +824,10 @@ end
 - See also: `eof`, `continue_connection`, `SocketConnection`, `start!`
 """
 is_connected(c::AbstractConnection) = ~(eof(c))
+
+is_connected(str::Sockets.TCPSocket) = ~(eof(str))
+
+is_closed(str::Sockets.TCPSocket) = eof(str)
 
 """
 ```julia

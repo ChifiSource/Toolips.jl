@@ -473,13 +473,13 @@ end
 
 function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, async::Bool = false)
+    mod.eval(Meta.parse("server = nothing; procs = nothing; data = Dict{Symbol, Any}()"))
     if threads > 1
         @warn "threading for TCP servers not yet implemented, this will be a 0.4+ feature."
     end
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     handlers = []
-    data = Dict{Symbol, Any}()
     extensions = Vector{SocketServerExtension}()
     for name in names(mod)
         if ~(isdefined(mod, name))
@@ -494,13 +494,19 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
         end
     end
     for ext in extensions
-        on_start(data, ext)
+        on_start(mod.data, ext)
+    end
+    mod.server = server
+    main_worker = Worker{Async}("$mod router", rand(1000:3000))
+    pm::ProcessManager = ProcessManager(main_worker)
+    if threads > 1
+        add_workers!(pm, threads - 1)
     end
     handlers = [handlers ...]
     if ~(async)
         while true
 		    client = accept(server)
-		    conn = SocketConnection(client, handlers, data, server)
+		    conn = SocketConnection(client, handlers, mod.data, server)
             stop = [route!(conn, ext) for ext in extensions]
             f = findfirst(x -> x == false, stop)
             if ~(isnothing(f))
@@ -516,7 +522,7 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
     end
     t = @async while true
 		client = accept(server)
-		conn = SocketConnection(client, handlers, data, server)
+		conn = SocketConnection(client, handlers, mod.data, server)
         stop = [route!(conn, ext) for ext in extensions]
         f = findfirst(x -> x == false, stop)
         if ~(isnothing(f))
@@ -528,8 +534,9 @@ function start!(st::ServerTemplate{:TCP}, mod::Module = Main, ip::IP4 = ip4_cli(
             throw(e)
         end
 	end
-    main_worker = Worker{Async}("$mod router", rand(1000:3000))
-    ProcessManager(main_worker)::ProcessManager
+    main_worker.task = t
+    mod.procs = pm
+    pm::ProcessManager
 end
 
 """
@@ -745,7 +752,7 @@ function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
         write(o, 
         """module $name
         using Toolips
-        using Toolips: get_ip4
+        using Toolips: get_ip4, handler, read_all
         
         main_handler = handler() do c::Toolips.SocketConnection
             query = read_all(c)
@@ -757,6 +764,36 @@ function new_app(st::Type{ServerTemplate{:TCP}}, name::String)
     end
 end
 
+"""
+```julia
+is_closed(c::AbstractConnection) -> ::Bool
+```
+A direct binding to `eof`, will return `true` if the `Connection` is closed.
+```julia
+module MyServer
+using Toolips
+
+main = handler() do c::Toolips.SocketConnection
+    # define a looping function
+    continuer = (c::SocketConnection, data::String) -> begin
+        # use `is_closed`
+        if is_closed(c)
+            # break the loop
+            return(false)
+        end
+        input_split = split(data, ";")
+        if length(input_split) < 2
+            # continue
+            return
+        end
+        command = input_split[1]
+        args = input_split[2:end]
+    end
+    Toolips.continue_connection(continuer, c, '\\n')
+end
+```
+- See also: `eof`, `continue_connection`, `SocketConnection`, `start!`
+"""
 is_closed(c::AbstractConnection) = eof(c)
 
 """

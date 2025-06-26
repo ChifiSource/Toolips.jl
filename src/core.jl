@@ -1281,12 +1281,17 @@ function kill!(mod::Module)
     server_names::Vector{Symbol} = names(mod, all = true)
     if :server in server_names
         close(mod.server)
-        if typeof(mod.procs) == ProcessManager
-            close(mod.procs)
-            mod.procs = nothing
+        if :procs in server_names
+            if typeof(mod.procs) == ProcessManager
+                close(mod.procs)
+                mod.procs = nothing
+            end
         end
         mod.server = nothing
-        mod.routes = nothing
+        if :routes in server_names
+            mod.routes = nothing
+        end
+        
         GC.gc(true)
         Pkg.gc()
         @info "server $mod successfully closed"
@@ -1376,7 +1381,6 @@ start!(st::Symbol, mod::Module, args ...; keyargs ...) = start!(ServerTemplate{s
 function start!(st::ServerTemplate{<:Any}, mod::Module = Toolips.server_cli(Main.ARGS); keyargs ...)
     start!(mod; keyargs ...)
 end
-
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractHTTPRoute, 

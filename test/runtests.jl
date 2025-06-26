@@ -70,6 +70,13 @@ main = route("/") do c::AbstractConnection
             @test typeof(get_ip(c)) == String
             @test get_args(c)[:message] == "hello"
             @test contains(get_host(c), "127.0.0.1")
+            got_cookes = try
+                get_cookies(c)
+                true
+            catch
+                false
+            end
+            @test got_cookes
             write!(c, "hello back!")
         elseif method == "POST"
             pmsg = get_post(c)

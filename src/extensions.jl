@@ -587,10 +587,10 @@ end
 mutable struct MultiHandler{T} <: SocketServerExtension
     main_handler::Handler
     clients::Dict{T, String}
-    MultiHandler(hand::Handler; ip4::Bool = true) = begin 
+    MultiHandler(hand::Handler; ip4::Bool = false) = begin 
         T = String
         if ip4
-            T = ip4
+            T = IP4
         end
         new{T}(hand, Dict{T, String}())
     end

@@ -1391,7 +1391,7 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type, threads, pman_type)
+    routeserver::Function, pm::AbstractProcessManager = generate_router(mod, ip, router_type, threads, pman_type)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && maximum(router_threads) > 1
         if async == false
@@ -1450,18 +1450,18 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
             write(http, ioc.stream)
         end
         w.active = true
-        return(pm::ProcessManager)
+        return(pm::AbstractProcessManager)
     end
     if async
         serve_router = @async HTTP.listen(routeserver, ip.ip, ip.port, server = server)
         w.task = serve_router
         w.active = true
-        pm::ProcessManager
+        pm::AbstractProcessManager
     else
         w.active = true
         serve_router = HTTP.listen(routeserver, ip.ip, ip.port, server = server)
         w.task = serve_router
-        pm::ProcessManager
+        pm::AbstractProcessManager
     end
 end
 

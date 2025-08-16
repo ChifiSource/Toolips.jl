@@ -103,7 +103,7 @@ import ToolipsServables
 using ToolipsServables.Markdown
 import ToolipsServables: style!, write!, AbstractComponentModifier, Modifier, File, AbstractComponent, on, ClientModifier, h6, gen_ref, p, percent, img, body, interpolate!
 using ParametricProcesses
-import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!
+import ParametricProcesses: distribute!, assign!, waitfor, assign_open!, distribute_open!, put!, AbstractProcessManager
 using HTTP
 import HTTP: Cookie
 using Pkg

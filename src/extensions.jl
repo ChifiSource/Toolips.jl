@@ -719,21 +719,16 @@ end
 function read_all(c::SocketConnection)
     sock = c.stream
     buffer = IOBuffer()
-	try
-		while isopen(sock)
-			n = bytesavailable(sock)
-			if n > 0
-				data = read(sock, n)
-				write(buffer, data)
-			else
-				break
-			end
-		end
-	catch e
-		@warn "Error handling connection: $e"
-	finally
-		close(sock)
-	end
+    while isopen(sock)
+        n = bytesavailable(sock)
+        if n > 1
+            data = read(sock, n)
+            write(buffer, data)
+        else
+            break
+        end
+    end
+    close(sock)
     String(take!(buffer))::String
 end
 

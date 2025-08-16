@@ -475,7 +475,7 @@ read(c::AbstractConnection) = read(c.stream)
 readavailable(c::AbstractConnection) = readavailable(c.stream)
 
 
-eof(con::AbstractConnection) = eof(c.stream)::Bool
+eof(con::AbstractConnection) = eof(con.stream)::Bool
 
 """
 ```julia
@@ -661,7 +661,6 @@ end
 
 add_cookies!(con::AbstractConnection, cookies::Cookie ...; at ...) = add_cookies!(con, [cookie.name => cookie.value for cookie in cookies] ...; att ...)
 
-
 function clear_cookies!(con::AbstractConnection)
     HTTP.removeheader(con.stream.message, "Cookie")
     HTTP.removeheader(con.stream.message, "Cookies")
@@ -669,6 +668,8 @@ function clear_cookies!(con::AbstractConnection)
 end
 
 function remove_cookie!(con::AbstractConnection, name::String)
+    @warn "remove cookie! will be deprecated in `Toolips` `0.4`, it is recommended to use `clear_cookies!` to clear all cookies, "
+    @warn "(then responding again with the cookies you want to keep) as this function will not be supported going forward."
 	old = HTTP.header(con.stream, "Set-Cookie")
 	cookies = isa(old, String) ? [old] : (old === nothing ? String[] : copy(old))
 
@@ -692,7 +693,8 @@ end
 function getindex(cooks::Vector{Cookie}, key::String)
     f = findfirst(cook::Cookie -> cook.name == key, cooks)
     if isnothing(f)
-        throw(BoundsError())
+        @warn join((cook.name for cook in cooks), "; ")
+        throw(BoundsError(key))
     end
     cooks[f]
 end
@@ -1384,17 +1386,18 @@ end
 
 function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     threads::Int64 = 1, router_threads::UnitRange{Int64} = -2:threads, router_type::Type{<:AbstractRoute} = AbstractHTTPRoute, 
-    async::Bool = true)
+    async::Bool = true, pman_type::Type{<:ParametricProcesses.AbstractProcessManager} = ProcessManager)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
     mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
     mod.server = server
-    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type, threads)
+    routeserver::Function, pm::ProcessManager = generate_router(mod, ip, router_type, threads, pman_type)
     w::Worker{Async} = pm["$mod router"]
     if threads > 1 && maximum(router_threads) > 1
         if async == false
             @warn "cannot run synchronous server with router threads"
             @warn "starting asynchronously... (remove `async = false` to stop this warning)"
+            async = true
         end
         if Threads.nthreads() < threads
             throw(StartError("Julia was not started with enough threads for this server."))
@@ -1480,11 +1483,11 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
-function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1)
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1, pmantype::Type{<:ParametricProcesses.AbstractProcessManager} = ProcessManager)
     mod.routes = Vector{RT}()
     data = Dict{Symbol, Any}()
     workers = Worker{Async}("$mod router", rand(1000:3000))
-    pman = ProcessManager(workers)
+    pman = pmantype(workers)
     if threads > 1
         add_workers!(pman, threads - 1)
                 Main.eval(Meta.parse("""using Toolips: @everywhere; @everywhere begin

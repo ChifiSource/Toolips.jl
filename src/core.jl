@@ -1483,7 +1483,7 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
-function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1, pmantype::Type{<:ParametricProcesses.AbstractProcessManager})
+function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1, pmantype::Type{<:ParametricProcesses.AbstractProcessManager} = ProcessManager)
     mod.routes = Vector{RT}()
     data = Dict{Symbol, Any}()
     workers = Worker{Async}("$mod router", rand(1000:3000))

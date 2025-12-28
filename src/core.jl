@@ -1280,20 +1280,18 @@ kill!(Toolips)
 - See also: `route`, `start!`, `Toolips`, `new_app`
 """
 function kill!(mod::Module)
-    server_names::Vector{Symbol} = names(mod, all = true)
-    if :server in server_names
+    if isdefined(mod, :server)
         close(mod.server)
-        if :procs in server_names
+        if isdefined(mod, :procs)
             if typeof(mod.procs) == ProcessManager
                 close(mod.procs)
                 mod.procs = nothing
             end
         end
         mod.server = nothing
-        if :routes in server_names
+        if isdefined(mod, routes)
             mod.routes = nothing
         end
-        
         GC.gc(true)
         Pkg.gc()
         @info "server $mod successfully closed"
@@ -1389,14 +1387,25 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
     async::Bool = true, pman_type::Type{<:ParametricProcesses.AbstractProcessManager} = ProcessManager)
     IP = Sockets.InetAddr(parse(IPAddr, ip.ip), ip.port)
     server::Sockets.TCPServer = Sockets.listen(IP)
-    mod.eval(Meta.parse("server = nothing; procs = nothing; routes = nothing; data = Dict{Symbol, Any}()"))
-    mod.server = server
-    routeserver::Function, pm::AbstractProcessManager = generate_router(mod, ip, router_type, threads, pman_type)
+    (routeserver::Function, pm::AbstractProcessManager, 
+        routes::Vector{<:AbstractRoute}, server_data) = generate_router(mod, ip, router_type, threads, pman_type)
     w::Worker{Async} = pm["$mod router"]
+    if isdefined(mod, :server)
+        mod.server = server
+    end
+    if isdefined(mod, :procs)
+        mod.procs = pm
+    end
+    if isdefined(mod, :routes)
+        mod.routes = routes
+    end
+    if isdefined(mod, :data)
+        mod.data = server_data
+    end
     if threads > 1 && maximum(router_threads) > 1
         if async == false
             @warn "cannot run synchronous server with router threads"
-            @warn "starting asynchronously... (remove `async = false` to stop this warning)"
+            @warn "starting this server asynchronously... (remove `async = false` to stop this warning)"
             async = true
         end
         if Threads.nthreads() < threads
@@ -1404,11 +1413,11 @@ function start!(mod::Module = Main, ip::IP4 = ip4_cli(Main.ARGS);
         end
         has_logger = haskey(mod.data, :Logger)
         if has_logger
-            log(mod.data[:Logger], "adding $threads threaded workers ...", 2)
+            log(server_data[:Logger], "adding $threads threaded workers ...", 2)
         end
         pids::Vector{Int64} = worker_pids(pm, Threaded)
         if has_logger
-            log(mod.data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
+            log(server_data[:Logger], "spawned threaded workers: $(join(("$pid" for pid in pids), "|"))", 2)
         end
         for pid in router_threads
             if pid > 1
@@ -1484,7 +1493,7 @@ router_name(t::Any) = "unnamed custom router ($(t))"
 router_name(t::Type{<:AbstractHTTPRoute}) = "toolips http target router"
 
 function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, threads::Integer = 1, pmantype::Type{<:ParametricProcesses.AbstractProcessManager} = ProcessManager)
-    mod.routes = Vector{RT}()
+    routes = Vector{RT}()
     data = Dict{Symbol, Any}()
     workers = Worker{Async}("$mod router", rand(1000:3000))
     pman = pmantype(workers)
@@ -1504,23 +1513,22 @@ function generate_router(mod::Module, ip::IP4, RT::Type{<:AbstractRoute}, thread
         end
         if f isa AbstractExtension
             push!(loaded, f)
-            on_start(f, data, mod.routes)
+            on_start(f, data, routes)
         elseif f isa AbstractRoute
-            push!(mod.routes, f)
+            push!(routes, f)
         elseif f isa AbstractVector{<:AbstractRoute}
-            append!(mod.routes, f)
+            append!(routes, f)
         end
     end
     if RT == AbstractHTTPRoute
-        mod.routes = [r for r in mod.routes]
+        routes = [r for r in routes]
     end
     if any(ext -> ext isa Logger, loaded)
         logger = filter(ext -> ext isa Logger, loaded)[1]
-        log(logger, "Router type: $(router_name(typeof(mod.routes).parameters[1]))", 2)
+        log(logger, "Router type: $(router_name(typeof(routes).parameters[1]))", 2)
         log(logger, "Server listening at http://$(ip.ip):$(ip.port)")
     end
-    mod.data = data
-    return make_routers(mod.routes, loaded, data), pman
+    return (make_routers(routes, loaded, data), pman, routes, data)
 end
 
 function internal_http_route(http::HTTP.Stream, routes::Vector{<:AbstractRoute}, loaded::Vector, data::Dict)

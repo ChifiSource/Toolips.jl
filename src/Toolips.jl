@@ -183,25 +183,16 @@ function create_serverdeps(name::String)
 module $name
 using Toolips
 # using Toolips.Components
-    
+
+# optional, gives CLI access to server, procs, and/or data:
+server = nothing
+data = nothing
+procs = nothing
+
 #==
 extensions
 ==#
-logger = Toolips.Logger()
-        
-load_clients = Toolips.QuickExtension{:loadclients}()
-
-# creating a server extension (QuickExtension):
-import Toolips: route!, on_start
-
-function on_start(ext::Toolips.QuickExtension{:loadclients}, data::Dict{Symbol, Any}, 
-    routes::Vector{<:AbstractRoute})
-    data[:clients] = 0
-end
-
-function route!(c::AbstractConnection, ext::Toolips.QuickExtension{:loadclients})
-    c[:clients] += 1
-end
+logger = Toolips.Logger()    
 
 #==
 routes
@@ -218,33 +209,9 @@ end
 # files:
 # public = mount("/public" => "public")
 
-# make your own documentation: (/docs/toolips && /docs/toolipsservables)
-# (this works with any module)
-toolips_docs = Toolips.make_docroute(Toolips)
-# components_docs = Toolips.make_docroute(Toolips.Components)
-
-
-#==custom router example
-==#
-# custom router? no problem!
-
-abstract type AbstractCustomRoute <: Toolips.AbstractHTTPRoute end
-
-mutable struct CustomRoute <: AbstractCustomRoute
-    path::String
-    page::Function
-end
-                        #   (can also dispatch per individual route)
-route!(c::AbstractConnection, routes::Routes{AbstractCustomRoute}) = begin
-    target = get_target(c)
-    if contains(target, "@")
-        write!(c, File("user_html/@sampleuser.html"))
-    end
-end
-
 
 # make sure to export!
-export start!, main, default_404, logger, load_clients, toolips_docs #, components_docs
+export start!, main, default_404
 end # - module $name <3""")
     end
     @info "project `$name` created!"

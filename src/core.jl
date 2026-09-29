@@ -787,7 +787,7 @@ respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::
 description of method list
 - See also: `write!`, `get_target`, `Connection`, `route`, `start!`
 """
-function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{String, String} ...)
+function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{<:AbstractString, <:AbstractString} ...)
     for header in headers
         HTTP.setheader(resp, header)
     end
@@ -798,11 +798,11 @@ function respond!(c::AbstractConnection, resp::HTTP.Response, headers::Pair{Stri
     write!(c, String(resp.body))
 end
 
-function respond!(c::AbstractConnection, body::String = "", headers::Pair{String, String} ...; code::Int64 = 200)
+function respond!(c::AbstractConnection, body::String = "", headers::Pair{<:AbstractString, <:AbstractString} ...; code::Int64 = 200)
     respond!(c, HTTP.Response(code, body = body), headers ...)
 end
 
-function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{String, String} ...; 
+function respond!(c::AbstractConnection, body::String, cookies::Vector{Cookie}, headers::Pair{<:AbstractString, <:AbstractString} ...; 
     code::Int64 = 200)
     response::HTTP.Response = HTTP.Response(code, body = body)
     for cookie in cookies
